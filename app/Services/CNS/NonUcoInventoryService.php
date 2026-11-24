@@ -3,8 +3,11 @@
 namespace App\Services\CNS;
 
 use App\CnsInventoryNonUco;
+use App\CnsKemasanSerialNumber;
 use App\VesselSchedule;
+use App\VesselScheduleDtl;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class NonUcoInventoryService
 {
@@ -86,10 +89,47 @@ class NonUcoInventoryService
             return $existing;
         }
 
-        $qtyOut = (float) ($schedule->Qty1 ?? 0);
-        if ($qtyOut <= 0 && !empty($schedule->Qty)) {
-            if (preg_match('/^(\d+(\.\d+)?)/', (string) $schedule->Qty, $matches)) {
-                $qtyOut = (float) $matches[1];
+        $usedSerials = [];
+        $itemName = 'Flexibag 24KL';
+
+        if (Schema::hasColumn('vessel_schedule_dtls', 'serial_number')) {
+            $usedSerials = VesselScheduleDtl::active()
+                ->forSchedule($schedule)
+                ->whereNotNull('serial_number')
+                ->where('serial_number', '!=', '')
+                ->pluck('serial_number')
+                ->map(function ($sn) {
+                    return trim((string) $sn);
+                })
+                ->filter()
+                ->unique()
+                ->values()
+                ->all();
+        }
+
+        if (!empty($usedSerials)) {
+            $qtyOut = (float) count($usedSerials);
+            if (Schema::hasTable('cns_kemasan_serial_numbers')) {
+                $firstSn = CnsKemasanSerialNumber::with('kemasan')
+                    ->whereIn('serial_number', $usedSerials)
+                    ->first();
+                if ($firstSn && $firstSn->kemasan && !empty($firstSn->kemasan->Name)) {
+                    $itemName = $firstSn->kemasan->Name;
+                }
+
+                CnsKemasanSerialNumber::whereIn('serial_number', $usedSerials)
+                    ->update([
+                        'status' => CnsKemasanSerialNumber::STATUS_USED,
+                        'vessel_schedule_id' => $schedule->id,
+                        'used_at' => now(),
+                    ]);
+            }
+        } else {
+            $qtyOut = (float) ($schedule->Qty1 ?? 0);
+            if ($qtyOut <= 0 && !empty($schedule->Qty)) {
+                if (preg_match('/^(\d+(\.\d+)?)/', (string) $schedule->Qty, $matches)) {
+                    $qtyOut = (float) $matches[1];
+                }
             }
         }
 
@@ -98,10 +138,11 @@ class NonUcoInventoryService
         }
 
         $reference = $schedule->Booking_No ?: ($schedule->Order_No ?: ($schedule->Contract_No ?: ('VS-' . $schedule->id)));
-        $notes = 'Pengeluaran Stuffing Selesai (Order: ' . ($schedule->Order_No ?: '-') . ', Booking: ' . ($schedule->Booking_No ?: '-') . ')';
+        $snText = !empty($usedSerials) ? (' | SN: ' . implode(', ', $usedSerials)) : '';
+        $notes = 'Pengeluaran Stuffing Selesai (Order: ' . ($schedule->Order_No ?: '-') . ', Booking: ' . ($schedule->Booking_No ?: '-') . ')' . $snText;
 
         return $this->recordStockMutation(
-            'Flexibag 24KL',
+            $itemName,
             'Flexibag',
             'PCS',
             'OUT',

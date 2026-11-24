@@ -145,6 +145,11 @@
         </tr>
     </table>
 
+    @php
+        $hasSerialColumn = $gr->details->contains(function ($d) {
+            return stripos((string) $d->item_name, 'flexibag') !== false || !empty($d->serial_number);
+        });
+    @endphp
     <table class="items-table">
         <thead>
             <tr>
@@ -154,6 +159,9 @@
                 <th style="width: 90px;">Qty PO</th>
                 <th style="width: 100px;">Qty Diterima</th>
                 <th style="width: 60px;">Satuan</th>
+                @if($hasSerialColumn)
+                    <th style="width: 140px;">Serial Number</th>
+                @endif
                 <th style="width: 150px;">Kondisi / Keterangan</th>
             </tr>
         </thead>
@@ -166,6 +174,9 @@
                     <td style="text-align: right;">{{ number_format((float) $item->qty_ordered, 2, '.', ',') }}</td>
                     <td style="text-align: right; font-weight: bold;">{{ number_format((float) $item->qty_received, 2, '.', ',') }}</td>
                     <td style="text-align: center;">{{ $item->unit }}</td>
+                    @if($hasSerialColumn)
+                        <td>{{ $item->serial_number ?: '-' }}</td>
+                    @endif
                     <td>{{ $item->notes ?: '-' }}</td>
                 </tr>
             @endforeach

@@ -22,16 +22,52 @@ class DeliveryNoteViewTest extends TestCase
             ],
         ];
 
+        $issuers = [
+            (object) [
+                'Supplier_ID'  => 'ISS-001',
+                'Company_Name' => 'PT Green Energi Utama',
+            ],
+        ];
+
+        $contracts = [
+            (object) [
+                'ID'               => 10,
+                'Contract_No'      => 'CTR-DONE-01',
+                'Buyer_Name'       => 'Global Buyer B.V.',
+                'Buyer_Address'    => 'Rotterdam, NL',
+                'Supplier_Address' => 'Rotterdam, NL',
+                'Quantity_MT'      => 125.500,
+                'Consignee_Code'   => 'SUPP-001',
+            ],
+        ];
+
+        $approvers = [
+            (object) [
+                'id'       => 7,
+                'Name'     => 'Hani Septyana',
+                'Position' => 'Commercial and Sustainability Manager',
+            ],
+        ];
+
         $html = view('cns.export.dn-new', [
             'companies' => $companies,
+            'issuers'   => $issuers,
+            'contracts' => $contracts,
+            'approvers' => $approvers,
             'DnNo'      => '001/DN-GEU/XI/2026',
         ])->render();
 
         $this->assertStringContainsString('Entitas Penerbit', $html);
         $this->assertStringContainsString('name="Shipper"', $html);
         $this->assertStringContainsString('id="Shipper"', $html);
+        $this->assertStringContainsString('value="ISS-001"', $html);
         $this->assertStringContainsString('value="SUPP-001"', $html);
-        $this->assertStringContainsString('value="SUPP-002"', $html);
+        $this->assertStringContainsString('value="CTR-DONE-01"', $html);
+        $this->assertStringContainsString('data-tonnage="125.5"', $html);
+        $this->assertStringContainsString('applyContractToDnForm', $html);
+        $this->assertStringContainsString('name="signatory_key"', $html);
+        $this->assertStringContainsString('Hani Septyana', $html);
+        $this->assertStringContainsString('name="signatory_title"', $html);
         $this->assertStringContainsString('name="Consignee_Address"', $html);
         $this->assertStringContainsString('data-address="Jl. Industri No 1"', $html);
         $this->assertStringContainsString('updateAddressFromSelectedCompany', $html);
@@ -83,7 +119,7 @@ class DeliveryNoteViewTest extends TestCase
     }
 
     /** @test */
-    public function print_view_renders_letterhead_when_issuer_has_letterhead(): void
+    public function print_view_renders_issuer_and_dn_body_for_mpdf(): void
     {
         $issuer = (object) [
             'Supplier_ID'    => 'SUPP-002',
@@ -127,8 +163,9 @@ class DeliveryNoteViewTest extends TestCase
             'issuer'    => $issuer,
         ])->render();
 
-        $this->assertStringContainsString('filesupplier/LetterHead_Custom.png', $html);
-        $this->assertStringContainsString('filesupplier/Footer_Custom.png', $html);
+        $this->assertStringNotContainsString('paper.css', $html);
+        $this->assertStringNotContainsString('filesupplier/LetterHead_Custom.png', $html);
+        $this->assertStringNotContainsString('filesupplier/Footer_Custom.png', $html);
         $this->assertStringContainsString('PT Energi Hijau Selaras', $html);
         $this->assertStringContainsString('Budi Santoso', $html);
         $this->assertStringContainsString('Direktur Utama', $html);
@@ -136,7 +173,7 @@ class DeliveryNoteViewTest extends TestCase
     }
 
     /** @test */
-    public function print_view_renders_fallback_header_when_no_letterhead(): void
+    public function print_view_renders_clean_body_when_no_letterhead(): void
     {
         $issuer = (object) [
             'Supplier_ID'    => 'SUPP-001',
@@ -175,7 +212,7 @@ class DeliveryNoteViewTest extends TestCase
         ])->render();
 
         $this->assertStringContainsString('PT Green Energi Utama', $html);
-        $this->assertStringContainsString('filesupplier/Logo_GEU.jpeg', $html);
+        $this->assertStringNotContainsString('filesupplier/Logo_GEU.jpeg', $html);
         $this->assertStringContainsString('Puput Deni Iswara', $html);
         $this->assertStringContainsString('CMO', $html);
     }

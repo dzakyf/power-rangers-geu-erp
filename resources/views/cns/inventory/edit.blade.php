@@ -12,10 +12,10 @@
         ['key' => 'Total_Metals',    'label' => '10. Total Metals',     'unit' => 'ppm', 'required' => false],
     ];
 @endphp
-<div id="FormEditStock" class="row m-1" style="display:none;">
-    <div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">EDIT UCO TRACKING</div>
-    <div class="card w-100">
-        <div class="card-body">
+<div id="FormEditStock" class="mt-3" style="display:none;">
+    <div class="cns-section-header">EDIT UCO TRACKING</div>
+    <div class="card cns-card">
+        <div class="card-body pt-3">
             <form id="StockEditForm" enctype="multipart/form-data">
                 @csrf
                 <input type="hidden" name="id" id="edit_id" />
@@ -249,7 +249,7 @@
         }, function(res) {
             var row = res && res[0] ? res[0] : null;
             if (!row) {
-                alert('Data tidak ditemukan');
+                swal('Error', 'Data tidak ditemukan', 'error');
                 return;
             }
 
@@ -330,7 +330,7 @@
 
             $('#FormEditStock').show();
         }).fail(function() {
-            alert('Gagal memuat data');
+            swal('Error', 'Gagal memuat data', 'error');
         });
     }
 
@@ -357,7 +357,7 @@
         var form = document.getElementById('StockEditForm');
 
         if (!form.Transaction_Date.value) {
-            alert('Transaction Date wajib diisi');
+            swal('Perhatian', 'Transaction Date wajib diisi', 'warning');
             return;
         }
 
@@ -366,49 +366,63 @@
             getEditTankCapacityParams()
         );
         if (!overflowResult.ok) {
-            alert(overflowResult.message);
+            swal('Perhatian', overflowResult.message, 'warning');
             return;
         }
+
+        var proceedSubmit = function () {
+            var formData = new FormData(form);
+            if (overflowResult.allocations && overflowResult.allocations.length > 0) {
+                formData.set('overflow_allocations', JSON.stringify(overflowResult.allocations));
+            }
+            $(form).find('input.cns-decimal').each(function() {
+                var name = $(this).attr('name');
+                if (name && $.trim($(this).val()) !== '') {
+                    formData.set(name, cnsParseNumber($(this).val(), 0));
+                }
+            });
+
+            $.ajax({
+                url: 'cns-inventory-tracking-submit-edit',
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(res) {
+                    if (res.success) {
+                        swal('Berhasil!', 'Data berhasil diupdate', 'success').then(function () {
+                            closeEditStock();
+                            applyFilters();
+                            if (typeof loadTankMonitoringCards === 'function') {
+                                loadTankMonitoringCards();
+                            }
+                        });
+                    } else {
+                        swal('Error', 'Gagal mengupdate data: ' + (res.message || 'Unknown error'), 'error');
+                    }
+                },
+                error: function(xhr) {
+                    var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Gagal mengupdate data';
+                    swal('Error', msg, 'error');
+                }
+            });
+        };
 
         var capacityCheck = window.cnsEvaluateTankCapacity(getEditTankCapacityParams());
-        if (capacityCheck && capacityCheck.isNegativeStock && !confirm(capacityCheck.confirmMessage)) {
+        if (capacityCheck && capacityCheck.isNegativeStock) {
+            swal({
+                title: 'Konfirmasi',
+                text: capacityCheck.confirmMessage,
+                icon: 'warning',
+                buttons: ['Batal', 'Ya'],
+                dangerMode: true
+            }).then(function (confirmed) {
+                if (!confirmed) return;
+                proceedSubmit();
+            });
             return;
         }
-
-        var formData = new FormData(form);
-        if (overflowResult.allocations && overflowResult.allocations.length > 0) {
-            formData.set('overflow_allocations', JSON.stringify(overflowResult.allocations));
-        }
-        $(form).find('input.cns-decimal').each(function() {
-            var name = $(this).attr('name');
-            if (name && $.trim($(this).val()) !== '') {
-                formData.set(name, cnsParseNumber($(this).val(), 0));
-            }
-        });
-
-        $.ajax({
-            url: 'cns-inventory-tracking-submit-edit',
-            type: 'POST',
-            data: formData,
-            processData: false,
-            contentType: false,
-            success: function(res) {
-                if (res.success) {
-                    alert('Data berhasil diupdate');
-                    closeEditStock();
-                    applyFilters();
-                    if (typeof loadTankMonitoringCards === 'function') {
-                        loadTankMonitoringCards();
-                    }
-                } else {
-                    alert('Gagal mengupdate data: ' + (res.message || 'Unknown error'));
-                }
-            },
-            error: function(xhr) {
-                var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Gagal mengupdate data';
-                alert(msg);
-            }
-        });
+        proceedSubmit();
     }
 
     function getEditTankCapacityParams() {

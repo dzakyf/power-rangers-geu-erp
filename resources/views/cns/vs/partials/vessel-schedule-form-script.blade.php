@@ -109,13 +109,13 @@
         $('#SubmitVesselSchedule').on('click', function () {
             var selectedContract = $('#Contract_ID').val() || $('input[name="Contract_ID"]').val();
             if (!selectedContract) {
-                alert('Pilih kontrak terlebih dahulu.');
+                swal('Perhatian', 'Pilih kontrak terlebih dahulu.', 'warning');
                 return;
             }
 
             var selectedMethod = $('#Shipping_Method').val() || $('input[name="Shipping_Method"]').val();
             if (!selectedMethod) {
-                alert('Pilih shipping method terlebih dahulu.');
+                swal('Perhatian', 'Pilih shipping method terlebih dahulu.', 'warning');
                 return;
             }
 
@@ -143,15 +143,15 @@
                     $.unblockUI();
 
                     if (String(data).indexOf('success') !== -1) {
-                        alert('Shipping schedule berhasil disimpan.');
+                        swal('Berhasil!', 'Shipping schedule berhasil disimpan.', 'success').then(function () {
+                            if (typeof refreshdata === 'function') {
+                                refreshdata();
+                            }
 
-                        if (typeof refreshdata === 'function') {
-                            refreshdata();
-                        }
-
-                        $('#divlistOpportunity').html('');
+                            $('#divlistOpportunity').html('');
+                        });
                     } else {
-                        alert('Gagal menyimpan shipping schedule.');
+                        swal('Error', 'Gagal menyimpan shipping schedule.', 'error');
                     }
                 },
                 error: function (xhr) {
@@ -167,7 +167,7 @@
                         }
                     }
 
-                    alert(message);
+                    swal('Error', message, 'error');
                 }
             });
         });

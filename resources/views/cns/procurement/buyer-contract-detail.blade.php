@@ -5,9 +5,9 @@
     <button type="button" class="btn btn-secondary" onclick="$('#BuyerContractDiv').html('');">Tutup</button>
 </div>
 
-<div class="card">
+<div class="card cns-card">
     <div class="card-header">
-        <strong>Booking Confirmation</strong>
+        <h5 class="card-title mb-0">Booking Confirmation</h5>
     </div>
     <div class="card-body">
         <div class="table-responsive">
@@ -80,26 +80,28 @@
 <script>
     var CONTRACT_ID = {{ (int) $contract->ID }};
     var BUYERS = @json($buyersPayload);
+    var KYCS = @json($kycsPayload);
 
     function reloadContractDetail() {
         LoadM('BuyerContractDiv', 'cns-procurement-buyer-contract-detail?ID=' + CONTRACT_ID);
     }
 
-    function addEmailRow(value) {
+    function addEmailRow(value, readonly) {
         if ($('#UcoEmailRows .uco-email-row').length >= 10) {
             return;
         }
-        var input = $('<input type="email" name="Buyer_Emails[]" class="form-control shadow-sm" readonly />');
+        var input = $('<input type="email" name="Buyer_Emails[]" class="form-control shadow-sm" placeholder="nama@domain.com" />');
         input.val(value || '');
+        input.prop('readonly', !!readonly);
         $('#UcoEmailRows').append($('<div class="input-group mb-2 uco-email-row"></div>').append(input));
     }
 
-    function renderEmails(values) {
+    function renderEmails(values, readonly) {
         $('#UcoEmailRows').empty();
         if (!values || values.length === 0) {
             values = [''];
         }
-        values.slice(0, 10).forEach(function (email) { addEmailRow(email); });
+        values.slice(0, 10).forEach(function (email) { addEmailRow(email, readonly); });
     }
 
     function updateQtyPreview() {
@@ -117,6 +119,7 @@
         var formData = new FormData();
         formData.append('_token', $('meta[name="csrf-token"]').attr('content'));
         formData.append('ID', CONTRACT_ID);
+        formData.append('kyc_id', $('#kyc_id').val() || '');
         formData.append('Supplier_ID', $('#Supplier_ID').val() || '');
         formData.append('Buyer_Name', $('#Buyer_Name').val());
         formData.append('Buyer_Address', $('#Buyer_Address').val());
@@ -148,19 +151,48 @@
     }
 
     $(function () {
+        $('#kyc_id').select2({ width: '100%', placeholder: '-- Pilih KYC (Approved) --', allowClear: true });
         $('#Supplier_ID').select2({ width: '100%', placeholder: '-- Pilih Buyer --', allowClear: true });
         updateQtyPreview();
+
+        $('#kyc_id').on('change', function () {
+            var id = parseInt($(this).val(), 10);
+            var kyc = KYCS.find(function (item) { return item.id === id; });
+            if (!kyc) {
+                $('#Buyer_Name').val('');
+                return;
+            }
+            if (kyc.supplier_id) {
+                $('#Supplier_ID').val(String(kyc.supplier_id)).trigger('change');
+            } else {
+                $('#Supplier_ID').val('').trigger('change');
+                $('#Buyer_Address').val(kyc.registered_address || '');
+            }
+            $('#Buyer_Name').val(kyc.company_name || '');
+        });
 
         $('#Supplier_ID').on('change', function () {
             var id = parseInt($(this).val(), 10);
             var buyer = BUYERS.find(function (item) { return item.id === id; });
+            var selectedKycId = parseInt($('#kyc_id').val(), 10);
+            var selectedKyc = KYCS.find(function (item) { return item.id === selectedKycId; });
+
             if (!buyer) {
+                $('#Buyer_Address').prop('readonly', false);
+                $('#Buyer_Phone').prop('readonly', false);
+                $('#UcoEmailRows input[name="Buyer_Emails[]"]').prop('readonly', false);
+                if (selectedKyc && !$('#Buyer_Address').val()) {
+                    $('#Buyer_Address').val(selectedKyc.registered_address || '');
+                }
                 return;
             }
-            $('#Buyer_Name').val(buyer.name || '');
-            $('#Buyer_Address').val(buyer.address || '');
-            $('#Buyer_Phone').val(buyer.phone || '');
-            renderEmails(buyer.emails || []);
+
+            if (!selectedKyc) {
+                $('#Buyer_Name').val(buyer.name || '');
+            }
+            $('#Buyer_Address').val(buyer.address || (selectedKyc ? (selectedKyc.registered_address || '') : '')).prop('readonly', true);
+            $('#Buyer_Phone').val(buyer.phone || '').prop('readonly', true);
+            renderEmails(buyer.emails || [], true);
         });
 
         $('#RefreshBuyerBtn').on('click', function () {
@@ -173,7 +205,7 @@
                     select.append($('<option>').val(buyer.id).text(buyer.name));
                 });
                 select.val(current).trigger('change.select2');
-                alert('Data buyer diperbarui.');
+                swal('Berhasil!', 'Data buyer diperbarui.', 'success');
             });
         });
 
@@ -191,11 +223,11 @@
                 success: function (data) {
                     $.unblockUI();
                     if (String(data).indexOf('success') !== -1) {
-                        alert('Kontrak berhasil diperbarui.');
+                        swal('Berhasil!', 'Kontrak berhasil diperbarui.', 'success');
                         if (typeof refreshdata === 'function') { refreshdata(); }
                         reloadContractDetail();
                     } else {
-                        alert('Gagal memperbarui kontrak.');
+                        swal('Error', 'Gagal memperbarui kontrak.', 'error');
                     }
                 },
                 error: function (xhr) {
@@ -209,7 +241,7 @@
                             message = xhr.responseJSON.message;
                         }
                     }
-                    alert(message);
+                    swal('Error', message, 'error');
                 }
             });
         });
@@ -220,11 +252,11 @@
             var fileInput = $('#Booking_File')[0];
 
             if (!label || !bookingNo) {
-                alert('Label dan Nomor Booking wajib diisi.');
+                swal('Perhatian', 'Label dan Nomor Booking wajib diisi.', 'warning');
                 return;
             }
             if (!fileInput.files[0]) {
-                alert('File Booking Confirmation wajib diunggah.');
+                swal('Perhatian', 'File Booking Confirmation wajib diunggah.', 'warning');
                 return;
             }
 
@@ -246,10 +278,10 @@
                 success: function (data) {
                     $.unblockUI();
                     if (String(data).indexOf('success') !== -1) {
-                        alert('Booking Confirmation berhasil ditambahkan.');
+                        swal('Berhasil!', 'Booking Confirmation berhasil ditambahkan.', 'success');
                         reloadContractDetail();
                     } else {
-                        alert('Gagal menambahkan booking.');
+                        swal('Error', 'Gagal menambahkan booking.', 'error');
                     }
                 },
                 error: function (xhr) {
@@ -263,34 +295,40 @@
                             message = xhr.responseJSON.message;
                         }
                     }
-                    alert(message);
+                    swal('Error', message, 'error');
                 }
             });
         });
 
         $(document).on('click', '.delete-booking', function () {
-            if (!confirm('Hapus booking confirmation ini?')) {
-                return;
-            }
             var bookingId = $(this).data('id');
-            $.ajax({
-                url: 'cns-procurement-buyer-contract-booking-delete',
-                type: 'POST',
-                data: {
-                    _token: $('meta[name="csrf-token"]').attr('content'),
-                    ID: bookingId,
-                    Contract_ID: CONTRACT_ID
-                },
-                success: function (data) {
-                    if (String(data).indexOf('success') !== -1) {
-                        reloadContractDetail();
-                    } else {
-                        alert('Gagal menghapus booking.');
+            swal({
+                title: 'Konfirmasi',
+                text: 'Hapus booking confirmation ini?',
+                icon: 'warning',
+                buttons: ['Batal', 'Ya'],
+                dangerMode: true
+            }).then(function (confirmed) {
+                if (!confirmed) return;
+                $.ajax({
+                    url: 'cns-procurement-buyer-contract-booking-delete',
+                    type: 'POST',
+                    data: {
+                        _token: $('meta[name="csrf-token"]').attr('content'),
+                        ID: bookingId,
+                        Contract_ID: CONTRACT_ID
+                    },
+                    success: function (data) {
+                        if (String(data).indexOf('success') !== -1) {
+                            reloadContractDetail();
+                        } else {
+                            swal('Error', 'Gagal menghapus booking.', 'error');
+                        }
+                    },
+                    error: function () {
+                        swal('Error', 'Gagal menghapus booking.', 'error');
                     }
-                },
-                error: function () {
-                    alert('Gagal menghapus booking.');
-                }
+                });
             });
         });
     });

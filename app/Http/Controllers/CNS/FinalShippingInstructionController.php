@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\PackingList;
 use App\ShippingInstruction;
 use App\Services\CNS\ShippingInstructionPdfService;
+use App\Support\DhtmlxGridPagination;
 use App\User;
 use App\VesselSchedule;
 use App\VesselScheduleDtl;
@@ -42,18 +43,29 @@ class FinalShippingInstructionController extends Controller
 
     public function indexFinalShippingInstructionXml(Request $request)
     {
-        if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
-            header("Content-type: application/xhtml+xml");
-        } else {
-            header("Content-type: text/xml");
-        }
-        echo ("<?xml version='1.0' encoding='iso-8859-1'?>\n");
+        $query = ShippingInstruction::whereBetween("Final_SI_Date", [$request->tgl1, $request->tgl2])
+            ->whereIn('Status', ["FINAL", "APPROVED"]);
 
-        echo "<rows>";
+        $colMap = [
+            1 => 'Final_SI_No',
+            2 => 'Final_SI_Date',
+            3 => 'SI_No',
+            10 => 'Status',
+        ];
+
+        $paginated = DhtmlxGridPagination::paginateQuery($query, $request, [
+            'col_map' => $colMap,
+            'default_page_size' => 25,
+        ]);
+
+        $shipments = $paginated['rows'];
+        $siNos = $shipments->pluck('SI_No')->filter()->unique()->values()->all();
+        $vsds = count($siNos)
+            ? VesselScheduleDtl::active()->whereIn('SI_No', $siNos)->get()
+            : collect();
 
         $vsdData = [];
-        $vsds = VesselScheduleDtl::active()->whereNotNull('SI_No')->get();
-        foreach ($vsds as $key => $vsd) {
+        foreach ($vsds as $vsd) {
             if (!isset($vsdData[$vsd->SI_No])) {
                 $vsdData[$vsd->SI_No] = [
                     'list' => [],
@@ -72,33 +84,35 @@ class FinalShippingInstructionController extends Controller
             $vsdData[$vsd->SI_No]['gross_mt'] += $vsd->Gross_MT;
         }
 
-        $shipments = ShippingInstruction::whereBetween("Final_SI_Date", [$request->tgl1, $request->tgl2])->whereIn('Status', ["FINAL", "APPROVED"])->get();
-        foreach ($shipments as $key => $shipment) {
-            echo "<row id=\"$shipment->id\" >";
-            echo "<cell>" . ($key + 1) . "</cell>";
-            echo "<cell>" . htmlspecialchars($shipment->Final_SI_No) . "</cell>";
-            echo "<cell>" . htmlspecialchars($shipment->Final_SI_Date) . "</cell>";
-            echo "<cell>" . htmlspecialchars($shipment->SI_No) . "</cell>";
+        $bodyXml = '';
+        $nomor = $paginated['posStart'] + 1;
+
+        foreach ($shipments as $shipment) {
+            $bodyXml .= "<row id=\"$shipment->id\" >";
+            $bodyXml .= "<cell>" . $nomor++ . "</cell>";
+            $bodyXml .= "<cell>" . htmlspecialchars($shipment->Final_SI_No) . "</cell>";
+            $bodyXml .= "<cell>" . htmlspecialchars($shipment->Final_SI_Date) . "</cell>";
+            $bodyXml .= "<cell>" . htmlspecialchars($shipment->SI_No) . "</cell>";
             if (isset($vsdData[$shipment->SI_No])) {
-                echo "<cell>" . htmlspecialchars(implode(', ', $vsdData[$shipment->SI_No]['list'])) . "</cell>";
-                echo "<cell>" . htmlspecialchars($vsdData[$shipment->SI_No]['tare']) . "</cell>";
-                echo "<cell>" . htmlspecialchars($vsdData[$shipment->SI_No]['netto_kg']) . "</cell>";
-                echo "<cell>" . htmlspecialchars($vsdData[$shipment->SI_No]['netto_mt']) . "</cell>";
-                echo "<cell>" . htmlspecialchars($vsdData[$shipment->SI_No]['gross_kg']) . "</cell>";
-                echo "<cell>" . htmlspecialchars($vsdData[$shipment->SI_No]['gross_mt']) . "</cell>";
-            }else {
-                echo "<cell></cell>";
-                echo "<cell></cell>";
-                echo "<cell></cell>";
-                echo "<cell></cell>";
-                echo "<cell></cell>";
-                echo "<cell></cell>";
+                $bodyXml .= "<cell>" . htmlspecialchars(implode(', ', $vsdData[$shipment->SI_No]['list'])) . "</cell>";
+                $bodyXml .= "<cell>" . htmlspecialchars($vsdData[$shipment->SI_No]['tare']) . "</cell>";
+                $bodyXml .= "<cell>" . htmlspecialchars($vsdData[$shipment->SI_No]['netto_kg']) . "</cell>";
+                $bodyXml .= "<cell>" . htmlspecialchars($vsdData[$shipment->SI_No]['netto_mt']) . "</cell>";
+                $bodyXml .= "<cell>" . htmlspecialchars($vsdData[$shipment->SI_No]['gross_kg']) . "</cell>";
+                $bodyXml .= "<cell>" . htmlspecialchars($vsdData[$shipment->SI_No]['gross_mt']) . "</cell>";
+            } else {
+                $bodyXml .= "<cell></cell>";
+                $bodyXml .= "<cell></cell>";
+                $bodyXml .= "<cell></cell>";
+                $bodyXml .= "<cell></cell>";
+                $bodyXml .= "<cell></cell>";
+                $bodyXml .= "<cell></cell>";
             }
-            echo "<cell>" . htmlspecialchars((string) $shipment->Status) . "</cell>";
-            echo "</row>";
+            $bodyXml .= "<cell>" . htmlspecialchars((string) $shipment->Status) . "</cell>";
+            $bodyXml .= "</row>\n";
         }
 
-        echo "</rows>";
+        return DhtmlxGridPagination::response($paginated['total'], $paginated['posStart'], $bodyXml);
     }
 
     public function printFinalShipmentInstruction(Request $request)
@@ -141,22 +155,35 @@ class FinalShippingInstructionController extends Controller
 
     public function newFinalShippingInstructionSubmit(Request $request)
     {
-        $si = ShippingInstruction::where("SI_No", $request->SI_No)->first();
-        if (!$si || $si->Status !== 'APPROVED') {
-            echo "<script>alert('Shipping Instructions harus berstatus APPROVED sebelum dibuatkan Final SI.')</script>";
+        $error = DB::transaction(function () use ($request) {
+            $si = ShippingInstruction::where("SI_No", $request->SI_No)->lockForUpdate()->first();
+            if (!$si || $si->Status !== 'APPROVED') {
+                return 'Shipping Instructions harus berstatus APPROVED sebelum dibuatkan Final SI.';
+            }
+            if (!empty($si->Final_SI_No)) {
+                return "Shipping Instructions ini sudah memiliki Final SI ({$si->Final_SI_No}).";
+            }
+
+            $SINo = ShippingInstruction::generateNextFinalSiNo($request->SI_Date);
+            $fsiUpdate = [
+                'Final_SI_No' => $SINo,
+                'Final_SI_Date' => $request->SI_Date ?: date('Y-m-d'),
+                'Status' => "FINAL",
+                'Updated_Date' => now(),
+                'Updated_By' => auth()->user()->username
+            ];
+            if ($request->has('Remarks')) {
+                $fsiUpdate['Remarks'] = $request->input('Remarks');
+            }
+            ShippingInstruction::where("id", $si->id)->update($fsiUpdate);
+
+            return null;
+        }, 3);
+
+        if ($error !== null) {
+            echo "<script>alert(" . json_encode($error) . ")</script>";
             return;
         }
-
-        $counter = DB::table("shipping_instructions")->where('SI_Date', "LIKE", date("Y-m"). "%")->where('Status', "FINAL")->count();
-
-        $SINo = "FINALSI/EXP/" . sprintf('%03d',$counter + 1) . "/" . $this->getRomawi(date("n")) . "/" . date("Y");
-        ShippingInstruction::where("SI_No", $request->SI_No)->update([
-            'Final_SI_No' => $SINo,
-            'Final_SI_Date' => $request->SI_Date,
-            'Status' => "FINAL",
-            'Updated_Date' => now(),
-            'Updated_By' => auth()->user()->username
-        ]);
 
         echo "<script>alert('Done Generate to Final SI')</script>";
     }
@@ -303,6 +330,9 @@ class FinalShippingInstructionController extends Controller
         if ($request->has('POD')) {
             $updateData['POD'] = $request->POD;
         }
+        if ($request->has('Remarks')) {
+            $updateData['Remarks'] = $request->Remarks;
+        }
 
         $si->update($updateData);
 
@@ -403,19 +433,47 @@ class FinalShippingInstructionController extends Controller
 
     public function generatePackingList(Request $request)
     {
-        $shipment = ShippingInstruction::where('Final_SI_No', $request->Task)->first();
-        if (!$shipment) {
-            echo "<script>alert('Shipping Instructions not found');</script>";
-            return;
+        $task = trim((string) $request->Task);
+        if ($task === '') {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Nomor Final Shipping Instructions tidak ditemukan.'
+            ], 422);
         }
 
-        $ci = PackingList::where('Final_SI_No', $request->Task)->first();
+        $shipment = ShippingInstruction::where('Final_SI_No', $task)->first();
+        if (!$shipment) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Final Shipping Instructions tidak ditemukan.'
+            ], 404);
+        }
+
+        if ($shipment->Status !== 'APPROVED') {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Packing List hanya dapat dibuat untuk Final Shipping Instructions yang sudah berstatus APPROVED.'
+            ], 422);
+        }
+
+        $ci = PackingList::where('Final_SI_No', $task)
+            ->whereIn('Status', ['CREATED', 'APPROVED'])
+            ->first();
         if ($ci) {
-            echo "<script>alert('Packing List already generated for this Shipping Instructions');</script>";
-            return;
+            return response()->json([
+                'status' => 'error',
+                'message' => "Packing List ({$ci->Packing_List_No}) sudah pernah dibuat untuk Final Shipping Instructions ini."
+            ], 422);
         }
 
         $vs = VesselSchedule::where("Order_No", $shipment->Order_No)->first();
+        if (!$vs) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Vessel Schedule tidak ditemukan untuk Order No ' . ($shipment->Order_No ?: '-') . '.'
+            ], 422);
+        }
+
         $vsd = VesselScheduleDtl::active()->where('Task_ID', $vs->Task_ID)
             ->get()
             ->map(function ($item) {
@@ -446,7 +504,11 @@ class FinalShippingInstructionController extends Controller
         $shipmentData['Status'] = "CREATED";
         PackingList::create($shipmentData);
 
-        echo "<script>alert('Packing List generated successfully');</script>";
+        return response()->json([
+            'status' => 'success',
+            'message' => "Packing List {$shipmentData['Packing_List_No']} berhasil dibuat.",
+            'packing_list_no' => $shipmentData['Packing_List_No'],
+        ]);
     }
 
     public function generateCommercialInvoice(Request $request)

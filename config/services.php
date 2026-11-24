@@ -40,6 +40,10 @@ return [
         'show_bdp' => filter_var(env('TRACEABILITY_SHOW_BDP', false), FILTER_VALIDATE_BOOLEAN),
     ],
 
+    'finance' => [
+        'webhook_token' => env('FINANCE_WEBHOOK_TOKEN'),
+    ],
+
     'ses' => [
         'key' => env('AWS_ACCESS_KEY_ID'),
         'secret' => env('AWS_SECRET_ACCESS_KEY'),

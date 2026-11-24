@@ -14,10 +14,12 @@
 ])
 
 <div class="mt-3">
-	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">VESSEL SCHEDULE LOG</div>
-	<div class="card">
+	<div class="cns-section-header">VESSEL SCHEDULE LOG</div>
+	<div class="card cns-card">
 		<div class="card-body">
-			<div id="StuffingDetailLog" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
+			<div class="cns-grid-wrapper">
+				<div id="StuffingDetailLog" class="cns-grid" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
+			</div>
 		</div>
 	</div>
 </div>
@@ -43,17 +45,17 @@
 				var dataPos = data.indexOf("success");
 				if (dataPos != '-1') {
 					var cariAWB = data.split(":");
-					alert('Data Announcement Submitted!');
-
-					// location.href = "partner-announcement";
-                    refreshdata();
-                    $('#divlistOpportunity').html('')
+					swal('Berhasil!', 'Data Announcement Submitted!', 'success').then(function() {
+						// location.href = "partner-announcement";
+						refreshdata();
+						$('#divlistOpportunity').html('');
+					});
 				} else {
-					alert('Announcement Failed to Submit!');
+					swal('Error', 'Announcement Failed to Submit!', 'error');
 				}
 			},
 			error: function(jqXHR, textStatus, errorThrown) {
-				alert("Error Internal! Please Try again!");
+				swal('Error', 'Error Internal! Please Try again!', 'error');
 
 			}
 		});

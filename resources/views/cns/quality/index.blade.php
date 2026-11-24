@@ -16,127 +16,122 @@
     }
 @endphp
 
-<style>
-    #ProjectionGridWrapper {
-        width: 100%;
-        max-width: 100%;
-        overflow: hidden;
-    }
-</style>
+@include('cns.partials.page-header', [
+    'title' => $sub !== 'All' ? 'Quality Control - ' . $sub : 'Quality Control',
+    'breadcrumbs' => [
+        ['label' => 'Quality Control'],
+        ['label' => $sub],
+    ],
+])
 
-<!-- Main Content Header -->
-<div class="main-content-header">
-    <h1>Quality Control</h1>
-    <ol class="breadcrumb">
-        <li class="breadcrumb-item">
-            <span>Quality Control</span>
-        </li>
-        <li class="breadcrumb-item active">
-            <span class="active">{{ $sub }}</span>
-        </li>
-    </ol>
-</div>
+<div id="ProjectionSection" class="card cns-card">
+    <div class="card-header">
+        <h5 class="card-title">{{ $title }}</h5>
+        <div class="d-flex flex-wrap" style="gap: 8px;">
+            <button type="button" id="CreateQC" name="CreateQC" class="btn btn-primary btn-sm" onclick="createQC()">
+                <i class="fa fa-plus-circle"></i> Create
+            </button>
+            <button type="button" id="DetailQC" name="DetailQC" class="btn btn-info btn-sm" onclick="detailQC()">
+                <i class="fa fa-eye"></i> Detail
+            </button>
+            <button type="button" id="PrintQC" name="PrintQC" class="btn btn-secondary btn-sm" onclick="printQC()">
+                <i class="fa fa-print"></i> Print
+            </button>
+            <button type="button" id="DeleteQC" name="DeleteQC" class="btn btn-danger btn-sm" onclick="deleteQC()">
+                <i class="fa fa-trash"></i> Delete
+            </button>
+        </div>
+    </div>
+    <div class="card-body">
+        <!-- Filter Bar -->
+        <div class="row cns-filter-bar align-items-end">
+            <div class="col-md-3">
+                <label for="filter_qc_category" class="font-weight-bold">Filter Pelaksana Lab:</label>
+                <select id="filter_qc_category" class="form-control" onchange="loadQualityGrid()">
+                    <option value="ALL" {{ $category === 'ALL' ? 'selected' : '' }}>-- Semua Pelaksana Lab --</option>
+                    <option value="INTERNAL" {{ $category === 'INTERNAL' ? 'selected' : '' }}>Lab Internal</option>
+                    <option value="EXTERNAL" {{ $category === 'EXTERNAL' ? 'selected' : '' }}>Lab External</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="filter_qc_type" class="font-weight-bold">Filter Jenis QC:</label>
+                <select id="filter_qc_type" class="form-control" onchange="loadQualityGrid()">
+                    <option value="ALL">-- Semua Jenis QC --</option>
+                    <option value="INBOUND">INBOUND</option>
+                    <option value="OUTBOUND">OUTBOUND</option>
+                    <option value="DAILY_QC">DAILY QC</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="filter_date" class="font-weight-bold">Filter Tanggal:</label>
+                <input type="date" id="filter_date" class="form-control" onchange="loadQualityGrid()" />
+            </div>
+            <div class="col-md-3">
+                <button type="button" class="btn btn-secondary" onclick="$('#filter_qc_category').val('{{ $category }}'); $('#filter_qc_type').val('ALL'); $('#filter_date').val(''); $('#filter_stat_month').val('{{ date('Y-m') }}'); loadQualityGrid();">Reset Filter</button>
+            </div>
+        </div>
 
-<div id="ProjectionSection" class="row m-1">
-    <div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">{{ $title }}</div>
-    <div class="card w-100">
-        <div class="card-body">
-            <!-- Filter Bar -->
-            <div class="row mb-3 align-items-end">
-                <div class="col-md-3">
-                    <label for="filter_qc_category" class="font-weight-bold">Filter Pelaksana Lab:</label>
-                    <select id="filter_qc_category" class="form-control" onchange="loadQualityGrid()">
-                        <option value="ALL" {{ $category === 'ALL' ? 'selected' : '' }}>-- Semua Pelaksana Lab --</option>
-                        <option value="INTERNAL" {{ $category === 'INTERNAL' ? 'selected' : '' }}>Lab Internal</option>
-                        <option value="EXTERNAL" {{ $category === 'EXTERNAL' ? 'selected' : '' }}>Lab External</option>
-                    </select>
+        <!-- Monthly Min/Max Parameter Summary Table (Collapsible) -->
+        <div class="card mb-3 border shadow-sm">
+            <div class="card-header bg-light d-flex flex-wrap justify-content-between align-items-center py-2" style="cursor: pointer;" onclick="toggleMonthlyStats()">
+                <div class="d-flex align-items-center">
+                    <strong class="text-dark">
+                        <i class="fa fa-chart-line text-primary mr-1"></i> Nilai Minimum & Maksimum Parameter (1 Bulan)
+                    </strong>
+                    <span class="badge badge-info ml-2" id="qcMonthlyTotalBadge">0 Data Pengujian</span>
                 </div>
-                <div class="col-md-3">
-                    <label for="filter_qc_type" class="font-weight-bold">Filter Jenis QC:</label>
-                    <select id="filter_qc_type" class="form-control" onchange="loadQualityGrid()">
-                        <option value="ALL">-- Semua Jenis QC --</option>
-                        <option value="INBOUND">INBOUND</option>
-                        <option value="OUTBOUND">OUTBOUND</option>
-                        <option value="DAILY_QC">DAILY QC</option>
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <label for="filter_date" class="font-weight-bold">Filter Tanggal:</label>
-                    <input type="date" id="filter_date" class="form-control" onchange="loadQualityGrid()" />
-                </div>
-                <div class="col-md-3">
-                    <button type="button" class="btn btn-secondary" onclick="$('#filter_qc_category').val('{{ $category }}'); $('#filter_qc_type').val('ALL'); $('#filter_date').val(''); $('#filter_stat_month').val('{{ date('Y-m') }}'); loadQualityGrid();">Reset Filter</button>
+                <div class="d-flex align-items-center mt-1 mt-md-0" onclick="event.stopPropagation();">
+                    <label for="filter_stat_month" class="mb-0 mr-2 font-weight-bold text-secondary" style="font-size: 0.85rem;">Periode:</label>
+                    <input type="month" id="filter_stat_month" class="form-control form-control-sm mr-1" style="width: 170px;" value="{{ date('Y-m') }}" onchange="loadMonthlyStats()">
+                    <button type="button" class="btn btn-sm btn-outline-secondary ml-1" onclick="toggleMonthlyStats()" title="Buka/Tutup Ringkasan">
+                        <i id="qcStatsToggleIcon" class="fa fa-chevron-down"></i>
+                    </button>
                 </div>
             </div>
-
-            <!-- Monthly Min/Max Parameter Summary Table (Collapsible) -->
-            <div class="card mb-3 border shadow-sm">
-                <div class="card-header bg-light d-flex flex-wrap justify-content-between align-items-center py-2" style="cursor: pointer;" onclick="toggleMonthlyStats()">
-                    <div class="d-flex align-items-center">
-                        <strong class="text-dark">
-                            <i class="fa fa-chart-line text-primary mr-1"></i> Nilai Minimum & Maksimum Parameter (1 Bulan)
-                        </strong>
-                        <span class="badge badge-info ml-2" id="qcMonthlyTotalBadge">0 Data Pengujian</span>
-                    </div>
-                    <div class="d-flex align-items-center mt-1 mt-md-0" onclick="event.stopPropagation();">
-                        <label for="filter_stat_month" class="mb-0 mr-2 font-weight-bold text-secondary" style="font-size: 0.85rem;">Periode:</label>
-                        <input type="month" id="filter_stat_month" class="form-control form-control-sm mr-1" style="width: 170px;" value="{{ date('Y-m') }}" onchange="loadMonthlyStats()">
-                        <button type="button" class="btn btn-sm btn-outline-secondary ml-1" onclick="toggleMonthlyStats()" title="Buka/Tutup Ringkasan">
-                            <i id="qcStatsToggleIcon" class="fa fa-chevron-down"></i>
-                        </button>
-                    </div>
-                </div>
-                <div id="qcMonthlyStatsCollapse" style="display: none;">
-                    <div class="card-body p-2">
-                        <div class="row">
-                            <div class="col-md-6 mb-2 mb-md-0">
-                                <div class="table-responsive">
-                                    <table class="table table-bordered table-sm table-striped mb-0 text-center" style="font-size: 0.88rem;">
-                                        <thead class="thead-light">
-                                            <tr>
-                                                <th style="width: 35%; text-align: left;">Parameter</th>
-                                                <th style="width: 20%; color: #000;">Satuan</th>
-                                                <th style="width: 22%; color: #28a745;">Min</th>
-                                                <th style="width: 23%; color: #dc3545;">Max</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="qcMonthlyStatsBodyLeft">
-                                            <tr><td colspan="4" class="text-muted text-center">Memuat data...</td></tr>
-                                        </tbody>
-                                    </table>
-                                </div>
+            <div id="qcMonthlyStatsCollapse" style="display: none;">
+                <div class="card-body p-2">
+                    <div class="row">
+                        <div class="col-md-6 mb-2 mb-md-0">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-sm table-striped mb-0 text-center" style="font-size: 0.88rem;">
+                                    <thead class="thead-light">
+                                        <tr>
+                                            <th style="width: 35%; text-align: left;">Parameter</th>
+                                            <th style="width: 20%; color: #000;">Satuan</th>
+                                            <th style="width: 22%; color: #28a745;">Min</th>
+                                            <th style="width: 23%; color: #dc3545;">Max</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="qcMonthlyStatsBodyLeft">
+                                        <tr><td colspan="4" class="text-muted text-center">Memuat data...</td></tr>
+                                    </tbody>
+                                </table>
                             </div>
-                            <div class="col-md-6">
-                                <div class="table-responsive">
-                                    <table class="table table-bordered table-sm table-striped mb-0 text-center" style="font-size: 0.88rem;">
-                                        <thead class="thead-light">
-                                            <tr>
-                                                <th style="width: 35%; text-align: left;">Parameter</th>
-                                                <th style="width: 20%; color: #000;">Satuan</th>
-                                                <th style="width: 22%; color: #28a745;">Min</th>
-                                                <th style="width: 23%; color: #dc3545;">Max</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="qcMonthlyStatsBodyRight">
-                                            <tr><td colspan="4" class="text-muted text-center">Memuat data...</td></tr>
-                                        </tbody>
-                                    </table>
-                                </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-sm table-striped mb-0 text-center" style="font-size: 0.88rem;">
+                                    <thead class="thead-light">
+                                        <tr>
+                                            <th style="width: 35%; text-align: left;">Parameter</th>
+                                            <th style="width: 20%; color: #000;">Satuan</th>
+                                            <th style="width: 22%; color: #28a745;">Min</th>
+                                            <th style="width: 23%; color: #dc3545;">Max</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="qcMonthlyStatsBodyRight">
+                                        <tr><td colspan="4" class="text-muted text-center">Memuat data...</td></tr>
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
+        </div>
 
-            <div id="ProjectionGridWrapper">
-                <div id="ProjectionGrid" style="width:100%;height:340px; background-color:white;overflow:hidden" class="mt-2"></div>
-            </div>
-            <div class="mt-2">
-                <input type="button" id="CreateQC" name="CreateQC" value="Create" class="btn btn-info mr-2" onclick="createQC()" />
-                <input type="button" id="DetailQC" name="DetailQC" value="Detail" class="btn btn-info mr-2" onclick="detailQC()" />
-                <input type="button" id="DeleteQC" name="DeleteQC" value="Delete" class="btn btn-danger mr-2" onclick="deleteQC()" />
-                <input type="button" id="PrintQC" name="PrintQC" value="Print" class="btn btn-secondary mr-2" onclick="printQC()" />
-            </div>
+        <div id="ProjectionGridWrapper" class="cns-grid-wrapper">
+            <div id="ProjectionGrid" class="cns-grid" style="width:100%;height:340px;background-color:white;overflow:hidden"></div>
         </div>
     </div>
 </div>
@@ -152,15 +147,11 @@
         initProjectionGrid();
     });
 
+    var QualityPagination;
+
     function loadQualityGrid() {
-        if (ProjectionGrid) {
-            var category = $('#filter_qc_category').val() || 'ALL';
-            var type = $('#filter_qc_type').val() || 'ALL';
-            var date = $('#filter_date').val() || '';
-            var url = 'cns-quality-data?category=' + encodeURIComponent(category) +
-                      '&type=' + encodeURIComponent(type) +
-                      '&Date=' + encodeURIComponent(date);
-            ProjectionGrid.clearAndLoad(url);
+        if (QualityPagination) {
+            QualityPagination.reload(true);
         }
         loadMonthlyStats();
     }
@@ -237,7 +228,7 @@
         $('#FormQualityControl').hide();
         var rowId = ProjectionGrid.getSelectedRowId();
         if (!rowId) {
-            alert('Pilih data terlebih dahulu');
+            swal('Perhatian', 'Pilih data terlebih dahulu', 'warning');
             return;
         }
         prefillEditQC(rowId);
@@ -246,7 +237,7 @@
     function printQC() {
         var rowId = ProjectionGrid.getSelectedRowId();
         if (!rowId) {
-            alert('Pilih data terlebih dahulu');
+            swal('Perhatian', 'Pilih data terlebih dahulu', 'warning');
             return;
         }
 
@@ -268,41 +259,47 @@
     function deleteQC() {
         var rowId = ProjectionGrid.getSelectedRowId();
         if (!rowId) {
-            alert('Pilih data terlebih dahulu');
+            swal('Perhatian', 'Pilih data terlebih dahulu', 'warning');
             return;
         }
 
-        if (!confirm('Yakin ingin menghapus data ini?')) {
-            return;
-        }
+        swal({
+            title: 'Konfirmasi',
+            text: 'Yakin ingin menghapus data ini?',
+            icon: 'warning',
+            buttons: ['Batal', 'Ya'],
+            dangerMode: true
+        }).then(function(confirmed) {
+            if (!confirmed) return;
 
-        var kodeQc = ProjectionGrid.cells(rowId, 1).getValue();
-        var tanggal = ProjectionGrid.cells(rowId, 2).getValue();
-        var qcType = ProjectionGrid.cells(rowId, 3).getValue();
-        var qcCat = ProjectionGrid.cells(rowId, 4).getValue() || currentCategory;
-        var date = new Date(tanggal);
-        var formatted = date.getFullYear() + '-' +
-            String(date.getMonth() + 1).padStart(2, '0') + '-' +
-            String(date.getDate()).padStart(2, '0');
+            var kodeQc = ProjectionGrid.cells(rowId, 1).getValue();
+            var tanggal = ProjectionGrid.cells(rowId, 2).getValue();
+            var qcType = ProjectionGrid.cells(rowId, 3).getValue();
+            var qcCat = ProjectionGrid.cells(rowId, 4).getValue() || currentCategory;
+            var date = new Date(tanggal);
+            var formatted = date.getFullYear() + '-' +
+                String(date.getMonth() + 1).padStart(2, '0') + '-' +
+                String(date.getDate()).padStart(2, '0');
 
-        $.ajax({
-            url: 'cns-quality-delete',
-            type: 'DELETE',
-            data: {
-                _token: $('meta[name="csrf-token"]').attr('content'),
-                Kode_QC: kodeQc,
-                Date: formatted,
-                QC_Type: qcType,
-                QC_Category: qcCat
-            },
-            success: function(res) {
-                if (res.status === 'success') {
-                    loadQualityGrid();
+            $.ajax({
+                url: 'cns-quality-delete',
+                type: 'DELETE',
+                data: {
+                    _token: $('meta[name="csrf-token"]').attr('content'),
+                    Kode_QC: kodeQc,
+                    Date: formatted,
+                    QC_Type: qcType,
+                    QC_Category: qcCat
+                },
+                success: function(res) {
+                    if (res.status === 'success') {
+                        loadQualityGrid();
+                    }
+                },
+                error: function() {
+                    swal('Error', 'Gagal menghapus data', 'error');
                 }
-            },
-            error: function() {
-                alert('Gagal menghapus data');
-            }
+            });
         });
     }
 
@@ -377,6 +374,37 @@
         ProjectionGrid.setColumnHidden(48, true);
         ProjectionGrid.setColumnHidden(49, true);
         ProjectionGrid.setColumnHidden(50, true);
+
+        QualityPagination = initCnsGridPagination(ProjectionGrid, {
+            pageSize: 25,
+            pageSizeOptions: [10, 25, 50, 100],
+            getUrl: function (params) {
+                var q = [];
+                q.push('posStart=' + params.posStart);
+                q.push('count=' + params.count);
+
+                var category = $('#filter_qc_category').val() || 'ALL';
+                var type = $('#filter_qc_type').val() || 'ALL';
+                var date = $('#filter_date').val() || '';
+
+                if (category) q.push('category=' + encodeURIComponent(category));
+                if (type)     q.push('type=' + encodeURIComponent(type));
+                if (date)     q.push('Date=' + encodeURIComponent(date));
+
+                if (params.sortCol !== null && params.sortCol !== undefined) {
+                    q.push('sort_col=' + params.sortCol);
+                    q.push('sort_dir=' + (params.sortDir || 'asc'));
+                }
+
+                if (params.filters) {
+                    for (var colIdx in params.filters) {
+                        q.push('filters[' + colIdx + ']=' + encodeURIComponent(params.filters[colIdx]));
+                    }
+                }
+
+                return 'cns-quality-data?' + q.join('&');
+            }
+        });
 
         loadQualityGrid();
 

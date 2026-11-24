@@ -7,6 +7,7 @@ use App\CnsKemasanSiteLimit;
 use App\CnsMasterKemasan;
 use App\Http\Controllers\Controller;
 use App\Services\CNS\KemasanInventoryService;
+use App\Support\DhtmlxGridPagination;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
@@ -97,17 +98,53 @@ class KemasanInventoryController extends Controller
         }
         $this->applyItemFilter($query, $packagingId, $itemName, $manualOnly, $siteId);
 
-        $records = $query->get();
+        // Column filters from dhtmlx header
+        if ($request->has('filters') && is_array($request->query('filters'))) {
+            foreach ($request->query('filters') as $colIdx => $val) {
+                $val = trim((string) $val);
+                if ($val === '') continue;
+                if ($colIdx == 1) $query->whereDate('transaction_date', $val);
+                if ($colIdx == 2) $query->where('site_name', 'like', "%{$val}%");
+                if ($colIdx == 3) $query->where('reference_no', 'like', "%{$val}%");
+                if ($colIdx == 4) $query->where('item_name', 'like', "%{$val}%");
+                if ($colIdx == 5) $query->where('unit', $val);
+                if ($colIdx == 6) $query->where('type', $val);
+                if ($colIdx == 7) $query->where('out_type', $val);
+                if ($colIdx == 13) $query->where('notes', 'like', "%{$val}%");
+                if ($colIdx == 14) $query->where('created_by', 'like', "%{$val}%");
+            }
+        }
 
-        header('Content-Type: text/xml');
-        echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>";
-        echo "<rows>";
+        $colMap = [
+            1 => 'transaction_date',
+            2 => 'site_name',
+            3 => 'reference_no',
+            4 => 'item_name',
+            5 => 'unit',
+            6 => 'type',
+            7 => 'out_type',
+            8 => 'qty_in',
+            9 => 'qty_out',
+            12 => 'current_balance',
+            13 => 'notes',
+            14 => 'created_by',
+        ];
 
-        $no = 1;
+        $paginated = DhtmlxGridPagination::paginateQuery($query, $request, [
+            'col_map' => $colMap,
+            'default_page_size' => 25,
+        ]);
+
+        $records = $paginated['rows'];
+        $total = $paginated['total'];
+        $posStart = $paginated['posStart'];
+
+        $bodyXml = "";
+        $no = $posStart + 1;
         $runningBalance = 0.0;
 
         // If filtering by item and start_date, get prior initial balance
-        if ($startDate && $isItemFilter) {
+        if ($startDate && $isItemFilter && $posStart === 0) {
             $priorQuery = CnsInventoryKemasan::query();
             $this->applyItemFilter($priorQuery, $packagingId, $itemName, $manualOnly, $siteId);
             $priorRecord = $priorQuery->whereDate('transaction_date', '<', $startDate)
@@ -117,23 +154,24 @@ class KemasanInventoryController extends Controller
             if ($priorRecord) {
                 [$priorQty, $priorExcess] = KemasanInventoryService::extractBucketBalances($priorRecord);
                 $runningBalance = (float) $priorRecord->current_balance;
-                echo '<row id="init_0">';
-                echo '<cell>' . $no++ . '</cell>';
-                echo '<cell>' . Carbon::parse($startDate)->format('d/m/Y') . '</cell>';
-                echo '<cell>' . htmlspecialchars($priorRecord->site_name ?: '-') . '</cell>';
-                echo '<cell>SALDO AWAL</cell>';
-                echo '<cell>' . htmlspecialchars($priorRecord->item_name) . '</cell>';
-                echo '<cell>-</cell>';
-                echo '<cell>-</cell>';
-                echo '<cell>-</cell>';
-                echo '<cell>-</cell>';
-                echo '<cell>-</cell>';
-                echo '<cell>' . number_format($priorQty, 2) . '</cell>';
-                echo '<cell>' . number_format($priorExcess, 2) . '</cell>';
-                echo '<cell>' . number_format($runningBalance, 2) . '</cell>';
-                echo '<cell>Saldo sebelum ' . Carbon::parse($startDate)->format('d/m/Y') . '</cell>';
-                echo '<cell>system</cell>';
-                echo '</row>';
+                $bodyXml .= '<row id="init_0">';
+                $bodyXml .= '<cell>' . $no++ . '</cell>';
+                $bodyXml .= '<cell>' . Carbon::parse($startDate)->format('d/m/Y') . '</cell>';
+                $bodyXml .= '<cell>' . htmlspecialchars($priorRecord->site_name ?: '-') . '</cell>';
+                $bodyXml .= '<cell>SALDO AWAL</cell>';
+                $bodyXml .= '<cell>' . htmlspecialchars($priorRecord->item_name) . '</cell>';
+                $bodyXml .= '<cell>-</cell>';
+                $bodyXml .= '<cell>-</cell>';
+                $bodyXml .= '<cell>-</cell>';
+                $bodyXml .= '<cell>-</cell>';
+                $bodyXml .= '<cell>-</cell>';
+                $bodyXml .= '<cell>' . number_format($priorQty, 2) . '</cell>';
+                $bodyXml .= '<cell>' . number_format($priorExcess, 2) . '</cell>';
+                $bodyXml .= '<cell>' . number_format($runningBalance, 2) . '</cell>';
+                $bodyXml .= '<cell>Saldo sebelum ' . Carbon::parse($startDate)->format('d/m/Y') . '</cell>';
+                $bodyXml .= '<cell>system</cell>';
+                $bodyXml .= '</row>' . "\n";
+                $total++;
             }
         }
 
@@ -141,27 +179,26 @@ class KemasanInventoryController extends Controller
             [$qtyBalance, $excessBalance] = KemasanInventoryService::extractBucketBalances($r);
             $dateFormatted = $r->transaction_date ? Carbon::parse($r->transaction_date)->format('d/m/Y') : '-';
 
-            echo '<row id="' . $r->id . '">';
-            echo '<cell>' . $no++ . '</cell>';
-            echo '<cell>' . $dateFormatted . '</cell>';
-            echo '<cell>' . htmlspecialchars($r->site_name ?: '-') . '</cell>';
-            echo '<cell>' . htmlspecialchars($r->reference_no ?: '-') . '</cell>';
-            echo '<cell>' . htmlspecialchars($r->item_name) . '</cell>';
-            echo '<cell>' . htmlspecialchars($r->unit ?: 'PCS') . '</cell>';
-            echo '<cell>' . htmlspecialchars($r->type) . '</cell>';
-            echo '<cell>' . htmlspecialchars($r->out_type ?: '-') . '</cell>';
-            echo '<cell>' . ($r->qty_in > 0 ? number_format((float) $r->qty_in, 2) : '-') . '</cell>';
-            echo '<cell>' . ($r->qty_out > 0 ? number_format((float) $r->qty_out, 2) : '-') . '</cell>';
-            echo '<cell>' . number_format($qtyBalance, 2) . '</cell>';
-            echo '<cell>' . number_format($excessBalance, 2) . '</cell>';
-            echo '<cell>' . number_format((float) $r->current_balance, 2) . '</cell>';
-            echo '<cell>' . htmlspecialchars($r->notes ?: '-') . '</cell>';
-            echo '<cell>' . htmlspecialchars($r->created_by ?: '-') . '</cell>';
-            echo '</row>';
+            $bodyXml .= '<row id="' . $r->id . '">';
+            $bodyXml .= '<cell>' . $no++ . '</cell>';
+            $bodyXml .= '<cell>' . $dateFormatted . '</cell>';
+            $bodyXml .= '<cell>' . htmlspecialchars($r->site_name ?: '-') . '</cell>';
+            $bodyXml .= '<cell>' . htmlspecialchars($r->reference_no ?: '-') . '</cell>';
+            $bodyXml .= '<cell>' . htmlspecialchars($r->item_name) . '</cell>';
+            $bodyXml .= '<cell>' . htmlspecialchars($r->unit ?: 'PCS') . '</cell>';
+            $bodyXml .= '<cell>' . htmlspecialchars($r->type) . '</cell>';
+            $bodyXml .= '<cell>' . htmlspecialchars($r->out_type ?: '-') . '</cell>';
+            $bodyXml .= '<cell>' . ($r->qty_in > 0 ? number_format((float) $r->qty_in, 2) : '-') . '</cell>';
+            $bodyXml .= '<cell>' . ($r->qty_out > 0 ? number_format((float) $r->qty_out, 2) : '-') . '</cell>';
+            $bodyXml .= '<cell>' . number_format($qtyBalance, 2) . '</cell>';
+            $bodyXml .= '<cell>' . number_format($excessBalance, 2) . '</cell>';
+            $bodyXml .= '<cell>' . number_format((float) $r->current_balance, 2) . '</cell>';
+            $bodyXml .= '<cell>' . htmlspecialchars($r->notes ?: '-') . '</cell>';
+            $bodyXml .= '<cell>' . htmlspecialchars($r->created_by ?: '-') . '</cell>';
+            $bodyXml .= '</row>' . "\n";
         }
 
-        echo "</rows>";
-        exit;
+        return DhtmlxGridPagination::response($total, $posStart, $bodyXml);
     }
 
     /**
@@ -212,8 +249,8 @@ class KemasanInventoryController extends Controller
             'site_id'          => ['required', 'integer', Rule::in(array_keys($sites))],
             'item_name'        => 'required|string',
             'unit'             => 'required|string',
-            'type'             => 'required|in:IN,OUT',
-            'out_type'         => 'required_if:type,OUT|nullable|in:DROP,PENJUALAN',
+            'type'             => 'required|in:OUT',
+            'out_type'         => 'required|in:DROP,PENJUALAN',
             'qty'              => 'required|numeric|min:0.01',
             'reference_no'     => 'required|string|max:100',
             'notes'            => 'nullable|string|max:255',
@@ -228,7 +265,7 @@ class KemasanInventoryController extends Controller
             $this->service->recordStockMutation(
                 $request->item_name,
                 $request->unit,
-                $request->type,
+                'OUT',
                 (float) $request->qty,
                 $request->reference_no,
                 $request->notes,
@@ -236,7 +273,7 @@ class KemasanInventoryController extends Controller
                 $request->packaging_id ? (int) $request->packaging_id : null,
                 null,
                 $request->transaction_date,
-                $request->type === 'OUT' ? $request->out_type : null,
+                $request->out_type,
                 $siteId,
                 $siteName
             );

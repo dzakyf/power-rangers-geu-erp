@@ -1,6 +1,6 @@
 <div class="mt-3">
-    <div class="JudulContent" style="color:#699;background-image:url(./hdr_back.gif);">NEW PURCHASE REQUEST</div>
-    <div class="card">
+    <div class="cns-section-header">NEW PURCHASE REQUEST</div>
+    <div class="card cns-card">
         <div class="card-body">
             <div id="ContentPages">
                 <div class="FormInput_Form_Content">
@@ -191,7 +191,9 @@
         - Payment 50% before delivery and 50% 14 days after delivery (valid on working days)
         - The product be received in PT PEL not later than April 25, 2026</textarea>
                     </div>
-                    <div id="gridPRNewDetail" style="width:auto;height:200px; background-color:white;overflow:hidden"></div>
+                    <div class="cns-grid-wrapper">
+                        <div id="gridPRNewDetail" class="cns-grid" style="width:auto;height:200px;background-color:white;overflow:hidden"></div>
+                    </div>
                     <div id="divtom">
                         <input type="button" id="AddPRNewDetail" class="btn btn-info mt-2 mr-2" NAME="AddPRNewDetail" value="Add New" />
                         <input type="button" id="DelPRNewDetail" class="btn btn-danger mt-2 mr-2" NAME="DelPRNewDetail" value="Delete" />
@@ -353,7 +355,7 @@
     $("#SubmitPRNewDetail").click(function() {
         var count = PRNewDetail.getRowsNum();
         if (count == 0) {
-            alert('Masukkan Item Request Terlebih Dahulu! ');
+            swal('Perhatian', 'Masukkan Item Request Terlebih Dahulu! ', 'warning');
             return false;
         } else {
             Reference = $("#Reference").val();
@@ -371,11 +373,11 @@
             Estimated_Budget = $("#Estimated_Budget").val();
 
             if (Note == '') {
-                alert("Kolom catatan (Note) Harus Diisi!");
+                swal('Perhatian', 'Kolom catatan (Note) Harus Diisi!', 'warning');
                 $("#Note").focus();
                 return false;
             } else if (Note.length < 5) {
-                alert("Kolom catatan (Note) minimal 5 karakter!");
+                swal('Perhatian', 'Kolom catatan (Note) minimal 5 karakter!', 'warning');
                 $("#Note").focus();
                 return false;
             } else {
@@ -403,21 +405,18 @@
                     data: dapat,
                     success: function(data, textStatus, jqXHR) {
                         if (data == 'success') {
-                            alert('Purchase Request Submitted with no  <?php echo $PR_No ?>!');
-
-                            setTimeout(function() {
-
-
-                                $.unblockUI();
+                            $.unblockUI();
+                            swal('Berhasil!', 'Purchase Request Submitted with no  <?php echo $PR_No ?>!', 'success').then(function() {
                                 location.href = 'po-outstanding';
-                            }, 1000);
+                            });
 
                         } else {
 
                         }
                     },
                     error: function(jqXHR, textStatus, errorThrown) {
-                        alert("error");
+                        $.unblockUI();
+                        swal('Error', 'error', 'error');
 
                     }
                 });

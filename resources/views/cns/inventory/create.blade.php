@@ -12,10 +12,10 @@
         ['key' => 'Total_Metals',    'label' => '10. Total Metals',     'unit' => 'ppm', 'required' => false],
     ];
 @endphp
-<div id="FormQualityControl" class="row m-1" style="display:none;">
-    <div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">CREATE INBOUND MOVEMENT</div>
-    <div class="card w-100">
-        <div class="card-body">
+<div id="FormQualityControl" class="mt-3" style="display:none;">
+    <div class="cns-section-header">CREATE INBOUND MOVEMENT</div>
+    <div class="card cns-card">
+        <div class="card-body pt-3">
             <form id="UCOStorageForm" enctype="multipart/form-data">
                 @csrf
 
@@ -313,7 +313,7 @@
                 .done(function(res) {
                     if (!res || !res.success || !res.data) {
                         resetMovementFields();
-                        alert((res && res.message) ? res.message : 'Gagal memuat detail movement dari APIPI');
+                        swal('Error', (res && res.message) ? res.message : 'Gagal memuat detail movement dari APIPI', 'error');
                         return;
                     }
                     prefillCreateFromMovement(res.data);
@@ -321,7 +321,7 @@
                 .fail(function(xhr) {
                     resetMovementFields();
                     var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Gagal menghubungi APIPI detail movement';
-                    alert(msg);
+                    swal('Error', msg, 'error');
                 })
                 .always(function() {
                     $('#movementDetailLoading').hide();
@@ -445,7 +445,7 @@
                 $sel.empty().append($('<option>', { value: '', text: '-- Pilih Nomor Movement --' }));
                 if (!res || !res.success) {
                     initMovementSelect2();
-                    alert((res && res.message) ? res.message : 'Gagal memuat data movement dari APIPI');
+                    swal('Error', (res && res.message) ? res.message : 'Gagal memuat data movement dari APIPI', 'error');
                     return;
                 }
                 $.each(res.data || [], function(_, m) {
@@ -466,7 +466,7 @@
                 $sel.empty().append($('<option>', { value: '', text: '-- Pilih Nomor Movement --' }));
                 initMovementSelect2();
                 var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Gagal menghubungi APIPI movements';
-                alert(msg);
+                swal('Error', msg, 'error');
             });
     };
 
@@ -481,19 +481,19 @@
         var form = document.getElementById('UCOStorageForm');
 
         if (!$('#movement_kode').val()) {
-            alert('Nomor Movement wajib dipilih');
+            swal('Perhatian', 'Nomor Movement wajib dipilih', 'warning');
             return;
         }
         if (!form.Type.value) {
-            alert('Type wajib diisi');
+            swal('Perhatian', 'Type wajib diisi', 'warning');
             return;
         }
         if (form.Quantity.value === '') {
-            alert('Quantity wajib diisi');
+            swal('Perhatian', 'Quantity wajib diisi', 'warning');
             return;
         }
         if (!form.Transaction_Date.value) {
-            alert('Transaction Date wajib diisi');
+            swal('Perhatian', 'Transaction Date wajib diisi', 'warning');
             return;
         }
 
@@ -502,55 +502,69 @@
             getCreateTankCapacityParams()
         );
         if (!overflowResult.ok) {
-            alert(overflowResult.message);
+            swal('Perhatian', overflowResult.message, 'warning');
             return;
         }
+
+        var proceedSubmit = function () {
+            var formData = new FormData(form);
+            if (overflowResult.allocations && overflowResult.allocations.length > 0) {
+                formData.set('overflow_allocations', JSON.stringify(overflowResult.allocations));
+            }
+            $(form).find('input.cns-decimal').each(function() {
+                var name = $(this).attr('name');
+                if (name && $.trim($(this).val()) !== '') {
+                    formData.set(name, cnsParseNumber($(this).val(), 0));
+                }
+            });
+            var $btn = $('#btnSubmitUCO');
+            $btn.prop('disabled', true);
+
+            $.ajax({
+                url: 'cns-inventory-tracking-submit',
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(res) {
+                    if (res && res.success) {
+                        swal('Berhasil!', 'Data berhasil disimpan', 'success').then(function () {
+                            closeCreateUCO();
+                            applyFilters();
+                            if (typeof loadTankMonitoringCards === 'function') {
+                                loadTankMonitoringCards();
+                            }
+                        });
+                    } else {
+                        swal('Error', 'Gagal menyimpan data: ' + ((res && res.message) ? res.message : 'Unknown error'), 'error');
+                    }
+                },
+                error: function(xhr) {
+                    var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Gagal menyimpan data';
+                    swal('Error', msg, 'error');
+                },
+                complete: function() {
+                    if ($('#movement_kode').val()) {
+                        $btn.prop('disabled', false);
+                    }
+                }
+            });
+        };
 
         var capacityCheck = window.cnsEvaluateTankCapacity(getCreateTankCapacityParams());
-        if (capacityCheck && capacityCheck.isNegativeStock && !confirm(capacityCheck.confirmMessage)) {
+        if (capacityCheck && capacityCheck.isNegativeStock) {
+            swal({
+                title: 'Konfirmasi',
+                text: capacityCheck.confirmMessage,
+                icon: 'warning',
+                buttons: ['Batal', 'Ya'],
+                dangerMode: true
+            }).then(function (confirmed) {
+                if (!confirmed) return;
+                proceedSubmit();
+            });
             return;
         }
-
-        var formData = new FormData(form);
-        if (overflowResult.allocations && overflowResult.allocations.length > 0) {
-            formData.set('overflow_allocations', JSON.stringify(overflowResult.allocations));
-        }
-        $(form).find('input.cns-decimal').each(function() {
-            var name = $(this).attr('name');
-            if (name && $.trim($(this).val()) !== '') {
-                formData.set(name, cnsParseNumber($(this).val(), 0));
-            }
-        });
-        var $btn = $('#btnSubmitUCO');
-        $btn.prop('disabled', true);
-
-        $.ajax({
-            url: 'cns-inventory-tracking-submit',
-            type: 'POST',
-            data: formData,
-            processData: false,
-            contentType: false,
-            success: function(res) {
-                if (res && res.success) {
-                    alert('Data berhasil disimpan');
-                    closeCreateUCO();
-                    applyFilters();
-                    if (typeof loadTankMonitoringCards === 'function') {
-                        loadTankMonitoringCards();
-                    }
-                } else {
-                    alert('Gagal menyimpan data: ' + ((res && res.message) ? res.message : 'Unknown error'));
-                }
-            },
-            error: function(xhr) {
-                var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Gagal menyimpan data';
-                alert(msg);
-            },
-            complete: function() {
-                if ($('#movement_kode').val()) {
-                    $btn.prop('disabled', false);
-                }
-            }
-        });
+        proceedSubmit();
     }
 </script>

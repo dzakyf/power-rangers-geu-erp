@@ -1,7 +1,8 @@
-<div class="card mt-3">
+<div class="card cns-card mt-3">
+	<div class="card-header">
+		<h5 class="card-title">Edit Traceability Data</h5>
+	</div>
 	<div class="card-body">
-		<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">EDIT TRACEABILITY DATA</div>
-
 		<div class="mb-3">
 			<strong>POO Name:</strong> {{ $fragment->poo_name }}<br />
 			<strong>Supplier:</strong> {{ $fragment->supplier_name }}<br />
@@ -40,7 +41,7 @@
 
 		<hr />
 
-		<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">PHOTOS (max 3)</div>
+		<div class="cns-section-header">PHOTOS (max 3)</div>
 		<div id="photoList" class="mt-2">
 			@foreach ($photos as $photo)
 				<div class="d-inline-block position-relative mr-2 mb-2" id="photo-{{ $photo->ID }}">
@@ -72,10 +73,11 @@
 			contentType: false,
 			success: function (resp) {
 				if (resp.status === 'success') {
-					dhtmlx.alert('Data saved.');
-					refreshdata();
+					swal('Berhasil!', 'Data saved.', 'success').then(function () {
+						refreshdata();
+					});
 				} else {
-					dhtmlx.alert(resp.message || 'Failed to save.');
+					swal('Error', resp.message || 'Failed to save.', 'error');
 				}
 			},
 			error: function (xhr) {
@@ -83,7 +85,7 @@
 				if (xhr.responseJSON && xhr.responseJSON.message) {
 					msg = xhr.responseJSON.message;
 				}
-				dhtmlx.alert(msg);
+				swal('Error', msg, 'error');
 			}
 		});
 	}
@@ -98,10 +100,11 @@
 			contentType: false,
 			success: function (resp) {
 				if (resp.status === 'success') {
-					dhtmlx.alert(resp.message);
-					reloadEdit();
+					swal('Berhasil!', resp.message, 'success').then(function () {
+						reloadEdit();
+					});
 				} else {
-					dhtmlx.alert(resp.message || 'Failed to upload.');
+					swal('Error', resp.message || 'Failed to upload.', 'error');
 				}
 			},
 			error: function (xhr) {
@@ -109,13 +112,19 @@
 				if (xhr.responseJSON && xhr.responseJSON.message) {
 					msg = xhr.responseJSON.message;
 				}
-				dhtmlx.alert(msg);
+				swal('Error', msg, 'error');
 			}
 		});
 	}
 
 	function deletePhoto(photoId) {
-		dhtmlx.confirm('Delete this photo?', 'Delete Photo', function (r) {
+		swal({
+			title: 'Delete Photo',
+			text: 'Delete this photo?',
+			icon: 'warning',
+			buttons: ['Batal', 'Ya'],
+			dangerMode: true
+		}).then(function (r) {
 			if (!r) return;
 			$.ajax({
 				url: 'cns-iscc-traceability-photo-delete',
@@ -126,10 +135,11 @@
 				},
 				success: function (resp) {
 					if (resp.status === 'success') {
-						dhtmlx.alert('Photo deleted.');
-						reloadEdit();
+						swal('Berhasil!', 'Photo deleted.', 'success').then(function () {
+							reloadEdit();
+						});
 					} else {
-						dhtmlx.alert(resp.message || 'Failed to delete.');
+						swal('Error', resp.message || 'Failed to delete.', 'error');
 					}
 				}
 			});

@@ -285,7 +285,7 @@
           </tr>
           <tr>
             <td style="font-size:7.5pt;padding:1px 0;">
-              Container condition: A.&nbsp;&nbsp;&nbsp;{{ Str::contains($shipment->Qty2, 'FT') ? 'Good, Clean and Suitable for Flexibag' : 'Good and Clean' }}
+              {!! nl2br(e($shipment->Remarks ?? '')) !!}
             </td>
           </tr>
         </table>

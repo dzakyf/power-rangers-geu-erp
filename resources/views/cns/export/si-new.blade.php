@@ -1,6 +1,6 @@
 <div class="mt-3">
-    <div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">SHIPPING INSTRUCTIONS</div>
-    <div class="card">
+    <div class="cns-section-header">SHIPPING INSTRUCTIONS</div>
+    <div class="card cns-card">
         <div class="card-body">
             <div id="ContentPages">
                 <div class="FormInput_Form_Content">
@@ -130,6 +130,12 @@
                                 </select>
                             </div>
                         </div>
+                        <div class="col-12">
+                            <div class="form-group">
+                                <strong><label class="font-bold" for="Remarks">Remarks</label></strong>
+                                <textarea name="Remarks" id="Remarks" rows="3" class="text-black form-control shadow-sm" placeholder="Remarks"></textarea>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -217,22 +223,22 @@
             data: gettingVars,
             success: function(data) {
                 if (data.status === 'success') {
-                    alert('Draft Shipping Instructions berhasil dibuat.');
+                    swal('Berhasil!', 'Draft Shipping Instructions berhasil dibuat.', 'success');
                     if (typeof refreshdata === 'function') {
                         refreshdata();
                     }
                     $('#divlistOpportunity').html('');
                 } else {
-                    alert('Draft Shipping Instructions gagal dibuat.');
+                    swal('Error', 'Draft Shipping Instructions gagal dibuat.', 'error');
                 }
             },
             error: function(xhr) {
                 if (xhr.responseJSON && xhr.responseJSON.errors) {
-                    alert(Object.values(xhr.responseJSON.errors).flat().join('\n'));
+                    swal('Perhatian', Object.values(xhr.responseJSON.errors).flat().join('\n'), 'warning');
                 } else if (xhr.responseJSON && xhr.responseJSON.message) {
-                    alert(xhr.responseJSON.message);
+                    swal('Error', xhr.responseJSON.message, 'error');
                 } else {
-                    alert('Error Internal! Please Try again!');
+                    swal('Error', 'Error Internal! Please Try again!', 'error');
                 }
             }
         });

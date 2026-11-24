@@ -14,73 +14,78 @@ $Saya =  Auth::user()->username;
 
 @section('content-wrapper')
 @csrf
-<!-- Main Content Header -->
-<div class="main-content-header">
-	<h1>Partner</h1>
-	<ol class="breadcrumb">
-		<li class="breadcrumb-item">
-			<a href="/">Packing List</a>
-		</li>
-		<li class="breadcrumb-item active">
-			<span class="active">Packing List List</span>
-		</li>
-	</ol>
-</div>
+@include('cns.partials.page-header', [
+	'title' => 'Packing List',
+	'breadcrumbs' => [
+		['label' => 'Export Management'],
+		['label' => 'Packing List'],
+	],
+])
 
-<div>
-	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">PACKING LIST LIST</div>
-	<div class="card">
-		<div class="card-body">
-			<div class="mb-2">
-				Periode : <input type="date" id="tgl1" name="tgl1" value="{{ date('Y-m-01', strtotime('-7 days')) }}" class="form-control-sm" />
-				s/d <input type="date" id="tgl2" name="tgl2" value="{{ date('Y-m-d') }}" class="form-control-sm" />
-				<button onclick="refreshdata()" class="btn btn-primary p-2">Refresh</button>
-			</div>
-			<div id="ShipmentInstruction" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
+<div class="card cns-card">
+	<div class="card-header">
+		<h5 class="card-title mb-0">Packing List</h5>
+		<div class="d-flex align-items-center flex-wrap" style="gap: 0.5rem;">
+			<input type="button" id="newSchedule" name="newSchedule" value="New PL" class="btn btn-sm btn-primary" onclick="ShipmentInstructionNewBtn()" />
+			<input type="button" id="DetailSchedule" name="DetailSchedule" value="Detail PL" class="btn btn-sm btn-info" onclick="ShipmentInstructionKlik()" />
+			<input type="button" id="approvePL" name="approvePL" value="Approve PL" class="btn btn-sm btn-success" onclick="ApprovePL()" />
+			<input type="button" id="printPL" name="printPL" value="Print PL" class="btn btn-sm btn-secondary" onclick="PrintPL()" />
+			<input type="button" id="printPLByer" name="printPLByer" value="Print PL Buyer" class="btn btn-sm btn-secondary" onclick="PrintPLByer()" />
+			<input type="button" id="ekselShipmentInstructionDet" name="ekselShipmentInstructionDet" class="btn btn-sm btn-warning" value="Export Excel" onclick="ShipmentInstruction.toExcel('./export/generate.php');" />
+			<button type="button" onclick="refreshdata()" class="btn btn-sm btn-outline-secondary">Refresh</button>
+		</div>
+	</div>
+	<div class="card-body">
+		<div class="cns-filter-bar">
 			<div>
-				<input type="button" id="newSchedule" name="newSchedule" value="New PL" class="btn btn-primary mt-2 mr-2" onclick="ShipmentInstructionNewBtn()" />
-				<input type="button" id="DetailSchedule" name="DetailSchedule" value="Detail PL" class="btn btn-info mt-2 mr-2" onclick="ShipmentInstructionKlik()" />
-				<input type="button" id="approvePL" name="approvePL" value="Approve PL" class="btn btn-success mt-2 mr-2" onclick="ApprovePL()" />
-				<input type="button" id="printPL" name="printPL" value="Print PL" class="btn btn-secondary mt-2 mr-2" onclick="PrintPL()" />
-				<input type="button" id="printPLByer" name="printPLByer" value="Print PL Buyer" class="btn btn-secondary mt-2 mr-2" onclick="PrintPLByer()" />
-				<input type="button" id="ekselShipmentInstructionDet" name="ekselShipmentInstructionDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="ShipmentInstruction.toExcel('./export/generate.php');" />
+				<label for="tgl1" class="d-block mb-1"><small>Dari Tanggal</small></label>
+				<input type="date" id="tgl1" name="tgl1" value="{{ date('Y-m-01', strtotime('-7 days')) }}" class="form-control form-control-sm" style="width:auto;" />
+			</div>
+			<div>
+				<label for="tgl2" class="d-block mb-1"><small>Sampai Tanggal</small></label>
+				<input type="date" id="tgl2" name="tgl2" value="{{ date('Y-m-d') }}" class="form-control form-control-sm" style="width:auto;" />
+			</div>
+			<div>
+				<button type="button" onclick="refreshdata()" class="btn btn-sm btn-primary">Filter</button>
+			</div>
+		</div>
+		<div class="cns-grid-wrapper">
+			<div id="ShipmentInstruction" class="cns-grid" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
+		</div>
+	</div>
+</div>
+<div id="divlistOpportunity"></div>
+<div id="DivProcess"></div>
+
+<div class="modal fade" id="modalApprovePL" tabindex="-1" role="dialog" aria-labelledby="modalApprovePLLabel" aria-hidden="true">
+	<div class="modal-dialog" role="document">
+		<div class="modal-content">
+			<div class="modal-header bg-success text-white">
+				<h5 class="modal-title" id="modalApprovePLLabel"><i class="fa fa-check-circle mr-1"></i> Approve Packing List</h5>
+				<button type="button" class="close text-white" data-dismiss="modal" data-bs-dismiss="modal" aria-label="Close" onclick="$('#modalApprovePL').modal('hide');">
+					<span aria-hidden="true">&times;</span>
+				</button>
+			</div>
+			<div class="modal-body">
+				<p>Pilih user yang menyetujui (Approved By) untuk dokumen <strong id="approvePlDocNo">-</strong>:</p>
+				<div class="form-group">
+					<label for="approvePlUser">Approved By <span class="text-danger">*</span></label>
+					<select id="approvePlUser" class="form-control">
+						<option value="">-- Pilih Approver --</option>
+						@foreach ($approvers ?? [] as $appr)
+							<option value="{{ $appr->id }}">
+								{{ $appr->Name }} @if(!empty($appr->Position))({{ $appr->Position }})@endif
+							</option>
+						@endforeach
+					</select>
+				</div>
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-secondary" data-dismiss="modal" data-bs-dismiss="modal" onclick="$('#modalApprovePL').modal('hide');">Batal</button>
+				<button type="button" class="btn btn-success" id="btnConfirmApprovePL" onclick="SubmitApprovePL()">Approve</button>
 			</div>
 		</div>
 	</div>
-	<div id="divlistOpportunity"></div>
-	<div id="DivProcess"></div>
-
-	<div class="modal fade" id="modalApprovePL" tabindex="-1" role="dialog" aria-labelledby="modalApprovePLLabel" aria-hidden="true">
-		<div class="modal-dialog" role="document">
-			<div class="modal-content">
-				<div class="modal-header bg-success text-white">
-					<h5 class="modal-title" id="modalApprovePLLabel"><i class="fa fa-check-circle mr-1"></i> Approve Packing List</h5>
-					<button type="button" class="close text-white" data-dismiss="modal" data-bs-dismiss="modal" aria-label="Close" onclick="$('#modalApprovePL').modal('hide');">
-						<span aria-hidden="true">&times;</span>
-					</button>
-				</div>
-				<div class="modal-body">
-					<p>Pilih user yang menyetujui (Approved By) untuk dokumen <strong id="approvePlDocNo">-</strong>:</p>
-					<div class="form-group">
-						<label for="approvePlUser">Approved By <span class="text-danger">*</span></label>
-						<select id="approvePlUser" class="form-control">
-							<option value="">-- Pilih Approver --</option>
-							@foreach ($approvers ?? [] as $appr)
-								<option value="{{ $appr->id }}">
-									{{ $appr->Name }} @if(!empty($appr->Position))({{ $appr->Position }})@endif
-								</option>
-							@endforeach
-						</select>
-					</div>
-				</div>
-				<div class="modal-footer">
-					<button type="button" class="btn btn-secondary" data-dismiss="modal" data-bs-dismiss="modal" onclick="$('#modalApprovePL').modal('hide');">Batal</button>
-					<button type="button" class="btn btn-success" id="btnConfirmApprovePL" onclick="SubmitApprovePL()">Approve</button>
-				</div>
-			</div>
-		</div>
-	</div>
-
 </div>
 
 <script>
@@ -104,11 +109,7 @@ $Saya =  Auth::user()->username;
 			var selectedId = getActivePlId();
 
 			if (!selectedId) {
-				dhtmlx.alert({
-					title: "Peringatan",
-					text: "Pilih baris data terlebih dahulu pada tabel Packing List!",
-					ok: "OK"
-				});
+				swal('Perhatian', 'Pilih baris data terlebih dahulu pada tabel Packing List!', 'warning');
 				return false;
 			}
 
@@ -127,11 +128,7 @@ $Saya =  Auth::user()->username;
 			}
 
 			if (status && status.trim().toUpperCase() === 'APPROVED') {
-				dhtmlx.alert({
-					title: "Peringatan",
-					text: "Packing List " + (plNo || selectedId) + " ini sudah berstatus APPROVED!",
-					ok: "OK"
-				});
+				swal('Perhatian', 'Packing List ' + (plNo || selectedId) + ' ini sudah berstatus APPROVED!', 'warning');
 				return false;
 			}
 
@@ -140,11 +137,7 @@ $Saya =  Auth::user()->username;
 			$('#modalApprovePL').modal('show');
 		} catch (err) {
 			console.error("Error pada ApprovePL:", err);
-			dhtmlx.alert({
-				title: "Error",
-				text: "Terjadi kesalahan pada aksi Approve: " + err.message,
-				ok: "OK"
-			});
+			swal('Error', 'Terjadi kesalahan pada aksi Approve: ' + err.message, 'error');
 			return false;
 		}
 		return true;
@@ -156,11 +149,7 @@ $Saya =  Auth::user()->username;
 			var approverId = $('#approvePlUser').val();
 
 			if (!approverId) {
-				dhtmlx.alert({
-					title: "Peringatan",
-					text: "Silakan pilih user Approved By terlebih dahulu!",
-					ok: "OK"
-				});
+				swal('Perhatian', 'Silakan pilih user Approved By terlebih dahulu!', 'warning');
 				return false;
 			}
 
@@ -171,82 +160,65 @@ $Saya =  Auth::user()->username;
 
 			var approverName = $('#approvePlUser option:selected').text().trim();
 
-			dhtmlx.confirm({
-				title: "Konfirmasi Approval",
+			swal({
+				title: 'Konfirmasi Approval',
 				text: "Apakah Anda yakin ingin menyetujui (Approve) Packing List " + (plNo || selectedId) + " dengan Approver: " + approverName + "?",
-				ok: "Ya, Setujui",
-				cancel: "Batal",
-				callback: function(result) {
-					if (!result) {
-						return;
-					}
-
-					$('#modalApprovePL').modal('hide');
-
-					if (typeof $.blockUI === 'function') {
-						$.blockUI();
-					}
-
-					$.ajax({
-						headers: {
-							'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-						},
-						url: "cns-export-packing-list-approve",
-						type: "POST",
-						dataType: "json",
-						data: {
-							_token: "{{ csrf_token() }}",
-							id: selectedId,
-							Task: plNo,
-							approved_by: approverId
-						},
-						success: function(response) {
-							if (typeof $.unblockUI === 'function') {
-								$.unblockUI();
-							}
-							if (response && response.status === 'success') {
-								dhtmlx.alert({
-									title: "Sukses",
-									text: response.message || "Packing List berhasil di-approve.",
-									ok: "OK",
-									callback: function() {
-										if (typeof refreshdata === 'function') {
-											refreshdata();
-										}
-									}
-								});
-							} else {
-								dhtmlx.alert({
-									title: "Gagal",
-									text: (response && response.message) || "Gagal approve Packing List.",
-									ok: "OK"
-								});
-							}
-						},
-						error: function(xhr, status, error) {
-							if (typeof $.unblockUI === 'function') {
-								$.unblockUI();
-							}
-							var msg = "Gagal approve Packing List.";
-							if (xhr && xhr.responseJSON && xhr.responseJSON.message) {
-								msg = xhr.responseJSON.message;
-							}
-							dhtmlx.alert({
-								title: "Error",
-								text: msg,
-								ok: "OK"
-							});
-						}
-					});
+				icon: 'warning',
+				buttons: ['Batal', 'Ya, Setujui'],
+				dangerMode: false
+			}).then(function(confirmed) {
+				if (!confirmed) {
+					return;
 				}
+
+				$('#modalApprovePL').modal('hide');
+
+				if (typeof $.blockUI === 'function') {
+					$.blockUI();
+				}
+
+				$.ajax({
+					headers: {
+						'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+					},
+					url: "cns-export-packing-list-approve",
+					type: "POST",
+					dataType: "json",
+					data: {
+						_token: "{{ csrf_token() }}",
+						id: selectedId,
+						Task: plNo,
+						approved_by: approverId
+					},
+					success: function(response) {
+						if (typeof $.unblockUI === 'function') {
+							$.unblockUI();
+						}
+						if (response && response.status === 'success') {
+							swal('Berhasil!', response.message || "Packing List berhasil di-approve.", 'success').then(function() {
+								if (typeof refreshdata === 'function') {
+									refreshdata();
+								}
+							});
+						} else {
+							swal('Error', (response && response.message) || "Gagal approve Packing List.", 'error');
+						}
+					},
+					error: function(xhr, status, error) {
+						if (typeof $.unblockUI === 'function') {
+							$.unblockUI();
+						}
+						var msg = "Gagal approve Packing List.";
+						if (xhr && xhr.responseJSON && xhr.responseJSON.message) {
+							msg = xhr.responseJSON.message;
+						}
+						swal('Error', msg, 'error');
+					}
+				});
 			});
 		} catch (err) {
 			console.error("Error pada ApprovePL:", err);
-			dhtmlx.alert({
-				title: "Error",
-				text: "Terjadi kesalahan pada aksi Approve: " + err.message,
-				ok: "OK"
-			});
+			swal('Error', 'Terjadi kesalahan pada aksi Approve: ' + err.message, 'error');
 		}
 		return true;
 	}
@@ -257,11 +229,7 @@ $Saya =  Auth::user()->username;
 		if (selectedId != null) {
 			window.open('cns-export-packing-list-print?Task=' + ShipmentInstruction.cells(selectedId, 1).getValue() + '&Buyer=0', '_blank');
 		}else {
-			dhtmlx.alert({
-				title: "Peringatan",
-				text: "Pilih baris data terlebih dahulu",
-				ok: "OK"
-			});
+			swal('Perhatian', 'Pilih baris data terlebih dahulu', 'warning');
 		}
 		return true;
 	 }
@@ -271,11 +239,7 @@ $Saya =  Auth::user()->username;
 		if (selectedId != null) {
 			window.open('cns-export-packing-list-print?Task=' + ShipmentInstruction.cells(selectedId, 1).getValue() + '&Buyer=1', '_blank');
 		}else {
-			dhtmlx.alert({
-				title: "Peringatan",
-				text: "Pilih baris data terlebih dahulu",
-				ok: "OK"
-			});
+			swal('Perhatian', 'Pilih baris data terlebih dahulu', 'warning');
 		}
 		return true;
 	 }
@@ -290,11 +254,7 @@ $Saya =  Auth::user()->username;
 		if (selectedId != null) {
 			LoadM('divlistOpportunity', 'cns-export-packing-list-detail?Task=' + selectedId);
 		}else {
-			dhtmlx.alert({
-				title: "Peringatan",
-				text: "Pilih baris data terlebih dahulu",
-				ok: "OK"
-			});
+			swal('Perhatian', 'Pilih baris data terlebih dahulu', 'warning');
 		}
 		return true;
 	}
@@ -305,8 +265,7 @@ $Saya =  Auth::user()->username;
 	ShipmentInstruction.setInitWidths("60,150,150,100,150,150,100,100,100,100,100");
 	ShipmentInstruction.setColAlign("center,left,left,center,left,left,left,left,left,left,center");
 	ShipmentInstruction.setColSorting("int,str,str,str,str,str,str,str,str,str,str");
-	ShipmentInstruction.setColTypes("ron,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
-	ShipmentInstruction.enableSmartRendering(true, 150);
+	ShipmentInstruction.setColTypes("ron,ro,ro,ro,ro,ro,ro,ro,ro,ro,cns_badge");
 	ShipmentInstruction.attachEvent("onRowDblClicked", ShipmentInstructionKlik);
 	ShipmentInstruction.attachEvent("onRowSelect", function(id, ind) {
 		selectedPlId = id;
@@ -314,10 +273,29 @@ $Saya =  Auth::user()->username;
 	});
 	ShipmentInstruction.setSkin("dhx_skyblue");
 	ShipmentInstruction.init();
+
+	var PackingListPagination = initCnsGridPagination(ShipmentInstruction, {
+		pageSize: 25,
+		pageSizeOptions: [10, 25, 50, 100],
+		serverFilter: false,
+		getUrl: function (params) {
+			var q = [
+				'posStart=' + params.posStart,
+				'count=' + params.count,
+				'tgl1=' + encodeURIComponent($('#tgl1').val()),
+				'tgl2=' + encodeURIComponent($('#tgl2').val())
+			];
+			if (params.sortCol !== null && params.sortCol !== undefined) {
+				q.push('sort_col=' + params.sortCol);
+				q.push('sort_dir=' + (params.sortDir || 'asc'));
+			}
+			return 'xml-cns-export-packing-list?' + q.join('&');
+		}
+	});
 	refreshdata();
 
 	function refreshdata() {
-		ShipmentInstruction.clearAndLoad('xml-cns-export-packing-list?tgl1=' + $('#tgl1').val() + "&tgl2=" + $('#tgl2').val());
+		PackingListPagination.reload(1);
 	}
 </script>
 @endsection

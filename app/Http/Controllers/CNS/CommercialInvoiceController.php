@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\ShippingInstruction;
 use App\VesselScheduleDtl;
 use App\CommercialInvoice;
+use App\Support\DhtmlxGridPagination;
 use App\VesselSchedule;
 use App\VesselScheduleLog;
 use Illuminate\Http\Request;
@@ -20,47 +21,60 @@ class CommercialInvoiceController extends Controller
 
     public function indexCommercialInvoiceXml(Request $request)
     {
-        if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
-            header("Content-type: application/xhtml+xml");
-        } else {
-            header("Content-type: text/xml");
-        }
-        echo ("<?xml version='1.0' encoding='iso-8859-1'?>\n");
-
-        echo "<rows>";
-
         $company = DB::table('supplier')->where("Location", auth()->user()->Location)->get();
         $companies = [];
-        foreach ($company as $key => $value) {
+        foreach ($company as $value) {
             $companies[$value->Supplier_ID] = $value->Company_Name;
         }
 
-        $nomor = 1;
-        $cis = CommercialInvoice::whereBetween('Inv_Date', [$request->tgl1, $request->tgl2])->get();
-        foreach ($cis as $key => $value) {
+        $query = CommercialInvoice::whereBetween('Inv_Date', [$request->tgl1, $request->tgl2]);
+
+        $colMap = [
+            1 => 'SI_No',
+            2 => 'Inv_No',
+            3 => 'Inv_Date',
+            6 => 'Description',
+            7 => 'Qty',
+            9 => 'Amount',
+            10 => 'Amount',
+            11 => 'Advance_Payment',
+            12 => 'Other',
+            13 => 'Total',
+            14 => 'Note',
+        ];
+
+        $paginated = DhtmlxGridPagination::paginateQuery($query, $request, [
+            'col_map' => $colMap,
+            'default_page_size' => 25,
+        ]);
+
+        $bodyXml = '';
+        $nomor = $paginated['posStart'] + 1;
+
+        foreach ($paginated['rows'] as $value) {
             $unitPrice = (!empty($value->Qty) && (float)$value->Qty != 0) ? ($value->Amount / $value->Qty) : 0;
-            echo "<row id=\"$value->ID\">";
-                echo "<cell>$nomor</cell>";
-                echo "<cell>".htmlspecialchars($value->SI_No)."</cell>";
-                echo "<cell>".htmlspecialchars($value->Inv_No)."</cell>";
-                echo "<cell>".htmlspecialchars(date("d F Y", strtotime($value->Inv_Date)))."</cell>";
-                echo "<cell>".htmlspecialchars($companies[$value->Shipper] ?? '')."</cell>";
-                echo "<cell>".htmlspecialchars($companies[$value->Consignee] ?? '')."</cell>";
-                echo "<cell>".htmlspecialchars($value->Description)."</cell>";
-                echo "<cell>".htmlspecialchars($value->Qty)."</cell>";
-                echo "<cell>".htmlspecialchars($unitPrice)."</cell>";
-                echo "<cell>".htmlspecialchars($value->Amount)."</cell>";
-                echo "<cell>".htmlspecialchars($value->Amount)."</cell>";
-                echo "<cell>".htmlspecialchars($value->Advance_Payment)."</cell>";
-                echo "<cell>".htmlspecialchars($value->Other)."</cell>";
-                echo "<cell>".htmlspecialchars($value->Total)."</cell>";
-                echo "<cell>".htmlspecialchars($value->Note)."</cell>";
-            echo "</row>";
+            $bodyXml .= "<row id=\"$value->ID\">";
+            $bodyXml .= "<cell>$nomor</cell>";
+            $bodyXml .= "<cell>".htmlspecialchars($value->SI_No)."</cell>";
+            $bodyXml .= "<cell>".htmlspecialchars($value->Inv_No)."</cell>";
+            $bodyXml .= "<cell>".htmlspecialchars(date("d F Y", strtotime($value->Inv_Date)))."</cell>";
+            $bodyXml .= "<cell>".htmlspecialchars($companies[$value->Shipper] ?? '')."</cell>";
+            $bodyXml .= "<cell>".htmlspecialchars($companies[$value->Consignee] ?? '')."</cell>";
+            $bodyXml .= "<cell>".htmlspecialchars($value->Description)."</cell>";
+            $bodyXml .= "<cell>".htmlspecialchars($value->Qty)."</cell>";
+            $bodyXml .= "<cell>".htmlspecialchars($unitPrice)."</cell>";
+            $bodyXml .= "<cell>".htmlspecialchars($value->Amount)."</cell>";
+            $bodyXml .= "<cell>".htmlspecialchars($value->Amount)."</cell>";
+            $bodyXml .= "<cell>".htmlspecialchars($value->Advance_Payment)."</cell>";
+            $bodyXml .= "<cell>".htmlspecialchars($value->Other)."</cell>";
+            $bodyXml .= "<cell>".htmlspecialchars($value->Total)."</cell>";
+            $bodyXml .= "<cell>".htmlspecialchars($value->Note)."</cell>";
+            $bodyXml .= "</row>\n";
 
             $nomor++;
         }
 
-        echo "</rows>";
+        return DhtmlxGridPagination::response($paginated['total'], $paginated['posStart'], $bodyXml);
     }
 
     public function printCommercialInvoice(Request $request)

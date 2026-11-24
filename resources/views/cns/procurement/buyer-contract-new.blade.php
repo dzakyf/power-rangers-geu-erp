@@ -1,5 +1,6 @@
 <div class="mt-3">
-    <div class="card">
+    <div class="cns-section-header">NEW PROCUREMENT / CONTRACT</div>
+    <div class="card cns-card">
         <div class="card-body">
             <div class="form-group mb-0">
                 <label for="Purchase_Group">Pilih Kelompok Pembelian</label>
@@ -32,6 +33,7 @@
 
 <script>
     var BUYERS = @json($buyersPayload);
+    var KYCS = @json($kycsPayload);
     var VENDORS = [];
 
     function togglePurchaseGroup() {
@@ -41,14 +43,15 @@
         $('#SubmitProcurement').text(group === 'UCO' ? 'Simpan Kontrak' : 'Simpan Supplier');
     }
 
-    function renderUcoEmails(values) {
+    function renderUcoEmails(values, readonly) {
         $('#UcoEmailRows').empty();
         if (!values || values.length === 0) {
             values = [''];
         }
         values.slice(0, 10).forEach(function (email) {
-            var input = $('<input type="email" name="Buyer_Emails[]" class="form-control shadow-sm" readonly />');
+            var input = $('<input type="email" name="Buyer_Emails[]" class="form-control shadow-sm" placeholder="nama@domain.com" />');
             input.val(email || '');
+            input.prop('readonly', !!readonly);
             $('#UcoEmailRows').append($('<div class="input-group mb-2 uco-email-row"></div>').append(input));
         });
     }
@@ -103,12 +106,13 @@
     function submitUcoContract() {
         var fileInput = $('#Contract_File')[0];
         if (!fileInput.files[0]) {
-            alert('File kontrak wajib diunggah.');
+            swal('Perhatian', 'File kontrak wajib diunggah.', 'warning');
             return;
         }
 
         var formData = new FormData();
         formData.append('_token', $('meta[name="csrf-token"]').attr('content'));
+        formData.append('kyc_id', $('#kyc_id').val() || '');
         formData.append('Supplier_ID', $('#Supplier_ID').val() || '');
         formData.append('Buyer_Name', $('#Buyer_Name').val());
         formData.append('Buyer_Address', $('#Buyer_Address').val());
@@ -164,11 +168,11 @@
     function handleSubmitSuccess(data, message) {
         $.unblockUI();
         if (String(data).indexOf('success') !== -1) {
-            alert(message);
+            swal('Berhasil!', message, 'success');
             if (typeof refreshdata === 'function') { refreshdata(); }
             $('#BuyerContractDiv').html('');
         } else {
-            alert('Gagal menyimpan data.');
+            swal('Error', 'Gagal menyimpan data.', 'error');
         }
     }
 
@@ -183,26 +187,55 @@
                 message = xhr.responseJSON.message;
             }
         }
-        alert(message);
+        swal('Error', message, 'error');
     }
 
     $(function () {
         $('#Purchase_Group').on('change', togglePurchaseGroup);
         togglePurchaseGroup();
 
+        $('#kyc_id').select2({ width: '100%', placeholder: '-- Pilih KYC (Approved) --', allowClear: true });
         $('#Supplier_ID').select2({ width: '100%', placeholder: '-- Pilih Buyer --', allowClear: true });
         updateQtyPreview();
+
+        $('#kyc_id').on('change', function () {
+            var id = parseInt($(this).val(), 10);
+            var kyc = KYCS.find(function (item) { return item.id === id; });
+            if (!kyc) {
+                $('#Buyer_Name').val('');
+                return;
+            }
+            if (kyc.supplier_id) {
+                $('#Supplier_ID').val(String(kyc.supplier_id)).trigger('change');
+            } else {
+                $('#Supplier_ID').val('').trigger('change');
+                $('#Buyer_Address').val(kyc.registered_address || '');
+            }
+            $('#Buyer_Name').val(kyc.company_name || '');
+        });
 
         $('#Supplier_ID').on('change', function () {
             var id = parseInt($(this).val(), 10);
             var buyer = BUYERS.find(function (item) { return item.id === id; });
+            var selectedKycId = parseInt($('#kyc_id').val(), 10);
+            var selectedKyc = KYCS.find(function (item) { return item.id === selectedKycId; });
+
             if (!buyer) {
+                $('#Buyer_Address').prop('readonly', false);
+                $('#Buyer_Phone').prop('readonly', false);
+                $('#UcoEmailRows input[name="Buyer_Emails[]"]').prop('readonly', false);
+                if (selectedKyc && !$('#Buyer_Address').val()) {
+                    $('#Buyer_Address').val(selectedKyc.registered_address || '');
+                }
                 return;
             }
-            $('#Buyer_Name').val(buyer.name || '');
-            $('#Buyer_Address').val(buyer.address || '');
-            $('#Buyer_Phone').val(buyer.phone || '');
-            renderUcoEmails(buyer.emails || []);
+
+            if (!selectedKyc) {
+                $('#Buyer_Name').val(buyer.name || '');
+            }
+            $('#Buyer_Address').val(buyer.address || (selectedKyc ? (selectedKyc.registered_address || '') : '')).prop('readonly', true);
+            $('#Buyer_Phone').val(buyer.phone || '').prop('readonly', true);
+            renderUcoEmails(buyer.emails || [], true);
         });
 
         $('#RefreshBuyerBtn').on('click', function () {
@@ -215,7 +248,7 @@
                     select.append($('<option>').val(buyer.id).text(buyer.name));
                 });
                 select.val(current).trigger('change.select2');
-                alert('Data buyer diperbarui.');
+                swal('Berhasil!', 'Data buyer diperbarui.', 'success');
             });
         });
 

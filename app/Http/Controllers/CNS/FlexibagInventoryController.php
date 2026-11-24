@@ -6,6 +6,7 @@ use App\CnsFlexibagInventory;
 use App\CnsInventoryNonUco;
 use App\Http\Controllers\Controller;
 use App\Services\CNS\FlexibagInventoryService;
+use App\Support\DhtmlxGridPagination;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
@@ -51,15 +52,43 @@ class FlexibagInventoryController extends Controller
             $query->whereDate('transaction_date', '<=', $endDate);
         }
 
-        $records = $query->get();
+        // Column filters from dhtmlx header
+        if ($request->has('filters') && is_array($request->query('filters'))) {
+            foreach ($request->query('filters') as $colIdx => $val) {
+                $val = trim((string) $val);
+                if ($val === '') continue;
+                if ($colIdx == 1) $query->whereDate('transaction_date', $val);
+                if ($colIdx == 2) $query->where('reference_no', 'like', "%{$val}%");
+                if ($colIdx == 3) $query->where('type', $val);
+                if ($colIdx == 7) $query->where('notes', 'like', "%{$val}%");
+                if ($colIdx == 8) $query->where('created_by', 'like', "%{$val}%");
+            }
+        }
 
-        header('Content-Type: text/xml');
-        echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>";
-        echo "<rows>";
+        $colMap = [
+            1 => 'transaction_date',
+            2 => 'reference_no',
+            3 => 'type',
+            4 => 'qty_in',
+            5 => 'qty_out',
+            6 => 'current_balance',
+            7 => 'notes',
+            8 => 'created_by',
+        ];
 
-        $no = 1;
+        $paginated = DhtmlxGridPagination::paginateQuery($query, $request, [
+            'col_map' => $colMap,
+            'default_page_size' => 25,
+        ]);
 
-        if ($startDate) {
+        $records = $paginated['rows'];
+        $total = $paginated['total'];
+        $posStart = $paginated['posStart'];
+
+        $bodyXml = "";
+        $no = $posStart + 1;
+
+        if ($startDate && $posStart === 0) {
             if (Schema::hasTable('cns_inventory_non_uco')) {
                 $priorRecord = CnsInventoryNonUco::where(function ($q) {
                         $q->where('category', 'Flexibag')
@@ -80,17 +109,18 @@ class FlexibagInventoryController extends Controller
             $virtualDate = Carbon::parse($startDate)->format('d/m/Y');
             $formattedInitial = number_format((float) $initialBalance, 2, '.', ',');
 
-            echo '<row id="virtual_saldo_awal" style="font-weight:bold; background-color:#e8f4fd;">';
-            echo '<cell>' . $no++ . '</cell>';
-            echo '<cell>' . htmlspecialchars($virtualDate) . '</cell>';
-            echo '<cell>SALDO AWAL PERIODE</cell>';
-            echo '<cell>SALDO AWAL</cell>';
-            echo '<cell>0.00</cell>';
-            echo '<cell>0.00</cell>';
-            echo '<cell>' . htmlspecialchars($formattedInitial) . '</cell>';
-            echo '<cell>Saldo akhir bulan sebelumnya</cell>';
-            echo '<cell>SYSTEM</cell>';
-            echo '</row>';
+            $bodyXml .= '<row id="virtual_saldo_awal" style="font-weight:bold; background-color:#e8f4fd;">';
+            $bodyXml .= '<cell>' . $no++ . '</cell>';
+            $bodyXml .= '<cell>' . htmlspecialchars($virtualDate) . '</cell>';
+            $bodyXml .= '<cell>SALDO AWAL PERIODE</cell>';
+            $bodyXml .= '<cell>SALDO AWAL</cell>';
+            $bodyXml .= '<cell>0.00</cell>';
+            $bodyXml .= '<cell>0.00</cell>';
+            $bodyXml .= '<cell>' . htmlspecialchars($formattedInitial) . '</cell>';
+            $bodyXml .= '<cell>Saldo akhir bulan sebelumnya</cell>';
+            $bodyXml .= '<cell>SYSTEM</cell>';
+            $bodyXml .= '</row>' . "\n";
+            $total++;
         }
 
         foreach ($records as $row) {
@@ -103,21 +133,20 @@ class FlexibagInventoryController extends Controller
             $notes = $row->notes ?: '-';
             $createdBy = $row->created_by ?: '-';
 
-            echo '<row id="' . $row->id . '">';
-            echo '<cell>' . $no++ . '</cell>';
-            echo '<cell>' . htmlspecialchars($date) . '</cell>';
-            echo '<cell>' . htmlspecialchars($ref) . '</cell>';
-            echo '<cell>' . htmlspecialchars($type) . '</cell>';
-            echo '<cell>' . htmlspecialchars($qtyIn) . '</cell>';
-            echo '<cell>' . htmlspecialchars($qtyOut) . '</cell>';
-            echo '<cell>' . htmlspecialchars($balance) . '</cell>';
-            echo '<cell>' . htmlspecialchars($notes) . '</cell>';
-            echo '<cell>' . htmlspecialchars($createdBy) . '</cell>';
-            echo '</row>';
+            $bodyXml .= '<row id="' . $row->id . '">';
+            $bodyXml .= '<cell>' . $no++ . '</cell>';
+            $bodyXml .= '<cell>' . htmlspecialchars($date) . '</cell>';
+            $bodyXml .= '<cell>' . htmlspecialchars($ref) . '</cell>';
+            $bodyXml .= '<cell>' . htmlspecialchars($type) . '</cell>';
+            $bodyXml .= '<cell>' . htmlspecialchars($qtyIn) . '</cell>';
+            $bodyXml .= '<cell>' . htmlspecialchars($qtyOut) . '</cell>';
+            $bodyXml .= '<cell>' . htmlspecialchars($balance) . '</cell>';
+            $bodyXml .= '<cell>' . htmlspecialchars($notes) . '</cell>';
+            $bodyXml .= '<cell>' . htmlspecialchars($createdBy) . '</cell>';
+            $bodyXml .= '</row>' . "\n";
         }
 
-        echo "</rows>";
-        exit;
+        return DhtmlxGridPagination::response($total, $posStart, $bodyXml);
     }
 
     public function balanceJson(Request $request)

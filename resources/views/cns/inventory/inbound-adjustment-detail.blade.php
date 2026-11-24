@@ -1,19 +1,19 @@
-<div class="ml-2">
-    <div class="JudulContent" style="color:#699;">DETAIL INBOUND ADJUSTMENT: {{ $adjustment->adjustment_code }}</div>
-    <div class="card">
-        <div class="card-body pt-2">
+<div class="mt-3">
+    <div class="cns-section-header">DETAIL INBOUND ADJUSTMENT: {{ $adjustment->adjustment_code }}</div>
+    <div class="card cns-card">
+        <div class="card-body pt-3">
             <!-- Status Badge Header -->
             <div class="d-flex justify-content-between align-items-center mb-3 p-2 bg-light border rounded">
                 <div>
                     <strong>Status: </strong>
                     @if($adjustment->approval_status === 'APPROVED')
-                        <span class="badge badge-success px-2 py-1" style="font-size:13px;">APPROVED</span>
+                        <span class="badge rounded-pill cns-status-badge bg-success">APPROVED</span>
                         <span class="text-muted ml-2 small">Oleh: {{ $adjustment->approved_by }} ({{ $adjustment->approved_at ? $adjustment->approved_at->format('d/m/Y H:i') : '-' }})</span>
                     @elseif($adjustment->approval_status === 'REJECTED')
                         <span class="badge badge-danger px-2 py-1" style="font-size:13px;">REJECTED</span>
                         <span class="text-muted ml-2 small">Oleh: {{ $adjustment->approved_by }} ({{ $adjustment->approved_at ? $adjustment->approved_at->format('d/m/Y H:i') : '-' }})</span>
                     @else
-                        <span class="badge badge-warning px-2 py-1" style="font-size:13px;">PENDING APPROVAL</span>
+                        <span class="badge rounded-pill cns-status-badge bg-warning text-dark">PENDING APPROVAL</span>
                         <span class="text-muted ml-2 small">Menunggu persetujuan Supervisor / Manager</span>
                     @endif
                 </div>
@@ -225,7 +225,7 @@
         e.preventDefault();
 
         if (!validateEditAdjCapacity()) {
-            alert('Qty adjustment melebihi sisa kapasitas tangki.');
+            swal('Perhatian', 'Qty adjustment melebihi sisa kapasitas tangki.', 'warning');
             return;
         }
 
@@ -250,62 +250,81 @@
             contentType: false,
             headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
             success: function(res) {
-                alert(res.message || 'Data berhasil diperbarui.');
-                $('#InboundAdjustmentDet').empty();
-                refreshAdjData();
+                swal('Berhasil!', res.message || 'Data berhasil diperbarui.', 'success').then(function () {
+                    $('#InboundAdjustmentDet').empty();
+                    refreshAdjData();
+                });
             },
             error: function(xhr) {
                 var msg = 'Terjadi kesalahan saat memperbarui data.';
                 if (xhr.responseJSON && xhr.responseJSON.message) {
                     msg = xhr.responseJSON.message;
                 }
-                alert(msg);
+                swal('Error', msg, 'error');
                 $('#btnUpdateAdjustment').prop('disabled', false).html('Simpan Perubahan');
             }
         });
     }
 
     function deleteInboundAdjustment(id) {
-        if (!confirm('Apakah Anda yakin ingin menghapus data Inbound Adjustment ini?')) return;
+        swal({
+            title: 'Konfirmasi',
+            text: 'Apakah Anda yakin ingin menghapus data Inbound Adjustment ini?',
+            icon: 'warning',
+            buttons: ['Batal', 'Ya'],
+            dangerMode: true
+        }).then(function (confirmed) {
+            if (!confirmed) return;
 
-        $.ajax({
-            url: 'cns-inbound-adjustment-delete/' + id,
-            type: 'POST',
-            headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
-            success: function(res) {
-                alert(res.message || 'Data berhasil dihapus.');
-                $('#InboundAdjustmentDet').empty();
-                refreshAdjData();
-            },
-            error: function(xhr) {
-                var msg = 'Gagal menghapus data.';
-                if (xhr.responseJSON && xhr.responseJSON.message) {
-                    msg = xhr.responseJSON.message;
+            $.ajax({
+                url: 'cns-inbound-adjustment-delete/' + id,
+                type: 'POST',
+                headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
+                success: function(res) {
+                    swal('Berhasil!', res.message || 'Data berhasil dihapus.', 'success').then(function () {
+                        $('#InboundAdjustmentDet').empty();
+                        refreshAdjData();
+                    });
+                },
+                error: function(xhr) {
+                    var msg = 'Gagal menghapus data.';
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        msg = xhr.responseJSON.message;
+                    }
+                    swal('Error', msg, 'error');
                 }
-                alert(msg);
-            }
+            });
         });
     }
 
     function approveInboundAdjustment(id) {
-        if (!confirm('Approve Inbound Adjustment ini? Setelah di-approve, Qty Inbound Movement akan otomatis menggunakan nilai Qty Adjustment.')) return;
+        swal({
+            title: 'Konfirmasi',
+            text: 'Approve Inbound Adjustment ini? Setelah di-approve, Qty Inbound Movement akan otomatis menggunakan nilai Qty Adjustment.',
+            icon: 'warning',
+            buttons: ['Batal', 'Ya'],
+            dangerMode: false
+        }).then(function (confirmed) {
+            if (!confirmed) return;
 
-        $.ajax({
-            url: 'cns-inbound-adjustment-approve/' + id,
-            type: 'POST',
-            headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
-            success: function(res) {
-                alert(res.message || 'Inbound Adjustment berhasil di-approve.');
-                LoadM('InboundAdjustmentDet', 'cns-inbound-adjustment-detail?ID=' + id);
-                refreshAdjData();
-            },
-            error: function(xhr) {
-                var msg = 'Gagal approve data.';
-                if (xhr.responseJSON && xhr.responseJSON.message) {
-                    msg = xhr.responseJSON.message;
+            $.ajax({
+                url: 'cns-inbound-adjustment-approve/' + id,
+                type: 'POST',
+                headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
+                success: function(res) {
+                    swal('Berhasil!', res.message || 'Inbound Adjustment berhasil di-approve.', 'success').then(function () {
+                        LoadM('InboundAdjustmentDet', 'cns-inbound-adjustment-detail?ID=' + id);
+                        refreshAdjData();
+                    });
+                },
+                error: function(xhr) {
+                    var msg = 'Gagal approve data.';
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        msg = xhr.responseJSON.message;
+                    }
+                    swal('Error', msg, 'error');
                 }
-                alert(msg);
-            }
+            });
         });
     }
 
@@ -314,7 +333,7 @@
         if (reason === null) return;
         reason = $.trim(reason);
         if (!reason) {
-            alert('Alasan penolakan wajib diisi.');
+            swal('Perhatian', 'Alasan penolakan wajib diisi.', 'warning');
             return;
         }
 
@@ -324,16 +343,17 @@
             data: { reason: reason },
             headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
             success: function(res) {
-                alert(res.message || 'Inbound Adjustment ditolak.');
-                LoadM('InboundAdjustmentDet', 'cns-inbound-adjustment-detail?ID=' + id);
-                refreshAdjData();
+                swal('Berhasil!', res.message || 'Inbound Adjustment ditolak.', 'success').then(function () {
+                    LoadM('InboundAdjustmentDet', 'cns-inbound-adjustment-detail?ID=' + id);
+                    refreshAdjData();
+                });
             },
             error: function(xhr) {
                 var msg = 'Gagal reject data.';
                 if (xhr.responseJSON && xhr.responseJSON.message) {
                     msg = xhr.responseJSON.message;
                 }
-                alert(msg);
+                swal('Error', msg, 'error');
             }
         });
     }

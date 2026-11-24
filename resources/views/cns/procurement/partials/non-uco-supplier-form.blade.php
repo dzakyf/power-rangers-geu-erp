@@ -19,8 +19,8 @@
 @endphp
 
 <div class="mt-3">
-    <div class="JudulContent" style="color:#699;">{{ $isEdit ? 'DETAIL SUPPLIER NON-UCO' : 'NEW SUPPLIER NON-UCO' }}</div>
-    <div class="card">
+    <div class="cns-section-header">{{ $isEdit ? 'DETAIL SUPPLIER NON-UCO' : 'NEW SUPPLIER NON-UCO' }}</div>
+    <div class="card cns-card">
         <div class="card-body">
             <div id="{{ $formId }}">
                 <input type="hidden" name="_token" value="{{ csrf_token() }}" />

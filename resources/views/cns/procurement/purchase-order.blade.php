@@ -1,30 +1,40 @@
 @extends('layout.mainlayout-cns')
 
 @section('content-wrapper')
-<!-- Main Content Header -->
-<div class="main-content-header">
-    <h1>PROCUREMENT</h1>
-    <ol class="breadcrumb">
-        <li class="breadcrumb-item">
-            <a href="/dashboard1">Purchase Order</a>
-        </li>
-        <li class="breadcrumb-item active">
-            <span class="active">PO List</span>
-        </li>
-    </ol>
-</div>
-<!-- End Main Content Header -->
+@include('cns.partials.page-header', [
+    'title' => 'Purchase Order (PO)',
+    'breadcrumbs' => [
+        ['label' => 'Procurement'],
+        ['label' => 'Purchase Order'],
+    ],
+])
 
-<!-- Stats Card -->
-<div class="row">
-    <div class="mb-2">
-        Periode : <input type="date" id="tgl1" name="tgl1" value="{{ date('Y-m-01', strtotime('-7 days')) }}" class="form-control-sm" />
-        s/d <input type="date" id="tgl2" name="tgl2" value="{{ date('Y-m-d') }}" class="form-control-sm" />
-        <button onclick="refreshdata()" class="btn btn-primary p-2">Refresh</button>
+<div class="card cns-card">
+    <div class="card-header">
+        <h5 class="card-title mb-0">Data Purchase Order</h5>
+        <div class="d-flex align-items-center flex-wrap" style="gap: 0.5rem;">
+            <button type="button" id="poExport" name="poExport" class="btn btn-sm btn-success" onclick="POMgt.toExcel('./export/generate.php');">Export</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="refreshdata()">Refresh</button>
+        </div>
     </div>
-    <div id="POMgt" style="width:auto;height:350px; background-color:white;overflow:hidden"></div>
-    <input type="button" id="poExport" NAME="poExport" value="Export" class="btn btn-warning mt-2 mr-2" onclick="POMgt.toExcel('./export/generate.php');" />
-
+    <div class="card-body">
+        <div class="cns-filter-bar">
+            <div>
+                <label for="tgl1" class="d-block mb-1"><small>Dari Tanggal</small></label>
+                <input type="date" id="tgl1" name="tgl1" value="{{ date('Y-m-01', strtotime('-7 days')) }}" class="form-control form-control-sm" style="width:auto;" />
+            </div>
+            <div>
+                <label for="tgl2" class="d-block mb-1"><small>Sampai Tanggal</small></label>
+                <input type="date" id="tgl2" name="tgl2" value="{{ date('Y-m-d') }}" class="form-control form-control-sm" style="width:auto;" />
+            </div>
+            <div>
+                <button type="button" onclick="refreshdata()" class="btn btn-sm btn-primary">Filter</button>
+            </div>
+        </div>
+        <div class="cns-grid-wrapper">
+            <div id="POMgt" class="cns-grid" style="width:auto;height:350px;background-color:white;overflow:hidden"></div>
+        </div>
+    </div>
 </div>
 <div id="POMgtDiv"></div>
 
@@ -43,7 +53,7 @@
     POMgt.attachHeader("&nbsp;,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
     POMgt.setInitWidths("50,0,165,165,210,0,0,0,120,110,0,0,100,450");
     POMgt.setColAlign("left,left,center,center,left,center,center,center,center,center,left,left");
-    POMgt.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
+    POMgt.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,cns_badge,ro,ro,ro,ro,ro");
     POMgt.setColSorting("int,str,str,str,str,str,str,str,str,str,str,str,str,str");
     POMgt.setColumnColor(",,,,,,,,,,,,,#E4FCCC");
     POMgt.setEditable(false);

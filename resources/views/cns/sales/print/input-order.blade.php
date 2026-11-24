@@ -19,51 +19,57 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Database\Eloquent\Builder;
 
-class moneyFormat
-{
-
-	public function rupiah($angka)
+if (!class_exists('moneyFormat')) {
+	class moneyFormat
 	{
-		$rupiah = number_format((float) $angka, 2, '.', ',');
-		return $rupiah;
+
+		public function rupiah($angka)
+		{
+			$rupiah = number_format((float) $angka, 2, '.', ',');
+			return $rupiah;
+		}
 	}
 }
-function terbilang($x)
-{
-	$angka = ["", "satu", "dua", "tiga", "empat", "lima", "enam", "tujuh", "delapan", "sembilan", "sepuluh", "sebelas"];
+if (!function_exists('terbilang')) {
+	function terbilang($x)
+	{
+		$angka = ["", "satu", "dua", "tiga", "empat", "lima", "enam", "tujuh", "delapan", "sembilan", "sepuluh", "sebelas"];
 
-	if ($x < 12)
-		return " " . $angka[$x];
-	elseif ($x < 20)
-		return terbilang($x - 10) . " belas";
-	elseif ($x < 100)
-		return terbilang($x / 10) . " puluh" . terbilang($x % 10);
-	elseif ($x < 200)
-		return "seratus" . terbilang($x - 100);
-	elseif ($x < 1000)
-		return terbilang($x / 100) . " ratus" . terbilang($x % 100);
-	elseif ($x < 2000)
-		return "seribu" . terbilang($x - 1000);
-	elseif ($x < 1000000)
-		return terbilang($x / 1000) . " ribu" . terbilang($x % 1000);
-	elseif ($x < 1000000000)
-		return terbilang($x / 1000000) . " juta" . terbilang($x % 1000000);
+		if ($x < 12)
+			return " " . $angka[$x];
+		elseif ($x < 20)
+			return terbilang($x - 10) . " belas";
+		elseif ($x < 100)
+			return terbilang($x / 10) . " puluh" . terbilang($x % 10);
+		elseif ($x < 200)
+			return "seratus" . terbilang($x - 100);
+		elseif ($x < 1000)
+			return terbilang($x / 100) . " ratus" . terbilang($x % 100);
+		elseif ($x < 2000)
+			return "seribu" . terbilang($x - 1000);
+		elseif ($x < 1000000)
+			return terbilang($x / 1000) . " ribu" . terbilang($x % 1000);
+		elseif ($x < 1000000000)
+			return terbilang($x / 1000000) . " juta" . terbilang($x % 1000000);
+	}
 }
 if ($row_ar1['sum(ar.mdoc)']) {
 	echo (ucwords(Terbilang($row_ar1['sum(ar.mdoc)'])));
 }
-function limit_text($text, $limit)
-{
-	if (str_word_count($text, 0) > $limit) {
-		$words = str_word_count($text, 2);
-		$pos = array_keys($words);
-		$text = substr($text, 0, $pos[$limit]) . '...';
+if (!function_exists('limit_text')) {
+	function limit_text($text, $limit)
+	{
+		if (str_word_count($text, 0) > $limit) {
+			$words = str_word_count($text, 2);
+			$pos = array_keys($words);
+			$text = substr($text, 0, $pos[$limit]) . '...';
+		}
+		return $text;
 	}
-	return $text;
 }
 
 $us = DB::table('users')->where('username', $salesOrder->created_by)->select(['Name','Position'])->first();
-
+$isSuratJalan = !empty($isSuratJalan);
 
 $moneyFormat = new moneyFormat();
 
@@ -150,19 +156,30 @@ $moneyFormat = new moneyFormat();
 					<tr>
 						<td width="500">
 							<div style="color:#779161;font-weight:bold;font-size:12px;float:none;padding-left:5px;padding-top:3px;padding-bottom:3px;">
-								SALES ORDER
+								{{ $isSuratJalan ? 'SURAT JALAN' : 'SALES ORDER' }}
 							</div>
 						</td>
 						<td>
 							<table>
 								<tr>
-									<td width="90" valign="top">Date</td>
-									<td valign="top">: <?php echo $salesOrder->so_date ?></td>
+									<td width="100" valign="top">Date</td>
+									<td valign="top">: {{ $isSuratJalan ? ($salesOrder->surat_jalan_date ?: $salesOrder->so_date) : $salesOrder->so_date }}</td>
+								</tr>
+								@if($isSuratJalan)
+								<tr>
+									<td width="100" valign="top">Surat Jalan No</td>
+									<td valign="top">: {{ strtoupper((string) $salesOrder->surat_jalan_no) }}</td>
 								</tr>
 								<tr>
-									<td width="90" valign="top">Sales Order Code</td>
-									<td valign="top">: <?php echo strtoupper($salesOrder->so_no) ?></td>
+									<td width="100" valign="top">Ref. SO Code</td>
+									<td valign="top">: {{ strtoupper((string) $salesOrder->so_no) }}</td>
 								</tr>
+								@else
+								<tr>
+									<td width="100" valign="top">Sales Order Code</td>
+									<td valign="top">: {{ strtoupper((string) $salesOrder->so_no) }}</td>
+								</tr>
+								@endif
 							</table>
 						</td>
 					</tr>
@@ -230,55 +247,54 @@ $moneyFormat = new moneyFormat();
 						<thead>
 							<tr>
 								<td width="50" height="20" style="padding:5px;background-color:#B8E094;vertical-align:middle;text-align:center;font-weight:bold;border-bottom:1px solid #000;border-right:1px solid #000;">No.</td>
-								<td width="300" height="20" style="vertical-align:middle;background-color:#B8E094;text-align:center;font-weight:bold;border-bottom:1px solid #000;border-right:1px solid #000">DESCRIPTION</td>
-								<td width="40" height="20" style="vertical-align:middle;background-color:#B8E094;text-align:center;font-weight:bold;border-bottom:1px solid #000;border-right:1px solid #000">QTY (UNIT)</td>
+								<td width="{{ $isSuratJalan ? '450' : '300' }}" height="20" style="vertical-align:middle;background-color:#B8E094;text-align:center;font-weight:bold;border-bottom:1px solid #000;border-right:1px solid #000">DESCRIPTION</td>
+								<td width="{{ $isSuratJalan ? '140' : '40' }}" height="20" style="vertical-align:middle;background-color:#B8E094;text-align:center;font-weight:bold;border-bottom:1px solid #000;{{ $isSuratJalan ? '' : 'border-right:1px solid #000' }}">QTY (UNIT)</td>
+								@if(!$isSuratJalan)
 								<td width="100" height="20" style="vertical-align:middle;background-color:#B8E094;text-align:center;font-weight:bold;border-bottom:1px solid #000;border-right:1px solid #000">UNIT PRICE (Rp)</td>
 								<td width="150" height="20" style="vertical-align:middle;background-color:#B8E094;text-align:center;font-weight:bold;border-bottom:1px solid #000;">TOTAL (Rp)</td>
+								@endif
 							</tr>
 							<tr>
 								<td width="50" height="20" style="vertical-align:middle;text-align:center;border-right:1px solid #000">&nbsp;</td>
-								<td height="20" width="300" style="vertical-align:middle;text-align:center;border-right:1px solid #000">&nbsp;</td>
-								<td height="20" width="40" style="vertical-align:middle;text-align:center;border-right:1px solid #000">&nbsp;</td>
+								<td height="20" width="{{ $isSuratJalan ? '450' : '300' }}" style="vertical-align:middle;text-align:center;border-right:1px solid #000">&nbsp;</td>
+								<td height="20" width="{{ $isSuratJalan ? '140' : '40' }}" style="vertical-align:middle;text-align:center;{{ $isSuratJalan ? '' : 'border-right:1px solid #000' }}">&nbsp;</td>
+								@if(!$isSuratJalan)
 								<td height="20" width="100" style="vertical-align:middle;text-align:center;border-right:1px solid #000">&nbsp;</td>
 								<td height="20" style="vertical-align:middle;text-align:center;">&nbsp;</td>
+								@endif
 							</tr>
 						</thead>
 						<?php
 						$no = 1;
 						foreach ($details as $rowy) {
 							$NamaProduk = $rowy->description;
-							// if($Product_Code != '' && $Products) {
-	
-							// 	$NamaProduk = $Products->Product_Brand . " # " . $Products->Description . $specProd;
-							// }
-
-
 						?>
 							<tr>
 								<td width="50" height="20" style="vertical-align:top;text-align:center;border-right:1px solid #000;padding:10px"><?php echo $no; ?></td>
-								<td height="20" width="300" style="vertical-align:middle;text-align:left;border-right:1px solid #000;padding:10px"><?php echo $NamaProduk ?></td>
-								<td height="20" width="40" style="vertical-align:middle;text-align:center;border-right:1px solid #000;padding:10px"><?php echo trim(number_format((float) $rowy->qty, 2, '.', ',') . ' ' . ($rowy->unit ?? '')); ?></td>
+								<td height="20" width="{{ $isSuratJalan ? '450' : '300' }}" style="vertical-align:middle;text-align:left;border-right:1px solid #000;padding:10px"><?php echo $NamaProduk ?></td>
+								<td height="20" width="{{ $isSuratJalan ? '140' : '40' }}" style="vertical-align:middle;text-align:center;{{ $isSuratJalan ? '' : 'border-right:1px solid #000;' }}padding:10px"><?php echo trim(number_format((float) $rowy->qty, 2, '.', ',') . ' ' . ($rowy->unit ?? '')); ?></td>
+								@if(!$isSuratJalan)
 								<td height="20" width="100" style="vertical-align:middle;text-align:right;border-right:1px solid #000;padding:10px"><?php echo $moneyFormat->rupiah($rowy->unit_price) ?></td>
 								<td height="20" style="vertical-align:middle;text-align:right;padding:10px"><?php echo $moneyFormat->rupiah($rowy->total) ?></td>
+								@endif
 							</tr>
 
 						<?php
 							$no++;
 						}
-
-
-
 						?>
 
 						<tr>
 							<td width="50" style="vertical-align:middle;text-align:center;border-right:1px solid #000">&nbsp;</td>
 							<td width="200" style="vertical-align:middle;text-align:center;border-right:1px solid #000">&nbsp;</td>
-							<td width="80" style="vertical-align:middle;text-align:center;border-right:1px solid #000">&nbsp;</td>
+							<td width="80" style="vertical-align:middle;text-align:center;{{ $isSuratJalan ? '' : 'border-right:1px solid #000' }}">&nbsp;</td>
+							@if(!$isSuratJalan)
 							<td width="100" style="vertical-align:middle;text-align:center;border-right:1px solid #000">&nbsp;</td>
 							<td style="vertical-align:middle;text-align:center;">&nbsp;</td>
+							@endif
 						</tr>
 
-
+						@if(!$isSuratJalan)
 						<tr>
 							<td colspan="4" height="20" style="vertical-align:middle;text-align:left;border-top:1px solid #000;border-right:1px solid #000;padding-left:10px;font-weight:bold;font-size:12px;background-color:#B8E094">Subtotal</td>
 							<td height="20" style="vertical-align:middle;text-align:right;border-top:1px solid #000;padding-right:10px;font-weight:bold;font-size:12px;"><?php echo $moneyFormat->rupiah($salesOrder->subtotal) ?></td>
@@ -301,18 +317,23 @@ $moneyFormat = new moneyFormat();
 							<td colspan="4" height="20" style="vertical-align:middle;text-align:left;border-top:1px solid #000;border-right:1px solid #000;padding-left:10px;font-weight:bold;font-size:12px;background-color:#B8E094;">Total</td>
 							<td height="20" style="vertical-align:middle;text-align:right;border-top:1px solid #000;padding-right:10px;font-weight:bold;font-size:12px;"><?php echo $moneyFormat->rupiah($salesOrder->total) ?></td>
 						</tr>
+						@endif
 
 
 					</table>
 				</div>
 
 			</div>
+			@if(!$isSuratJalan)
 			<div style="font-style:italic;font-size:12px;text-align:left;padding-top:10px;padding-left:10px;padding-bottom:14px;">
 
 				<b>Terbilang </b>: <?php echo ucfirst(terbilang(round($salesOrder->total))) ?> rupiah
 
 
 			</div>
+			@else
+			<div style="padding-top:14px;"></div>
+			@endif
 
 			<div style="vertical-align:top;text-align:left;padding-bottom:10px;">
 
@@ -343,13 +364,19 @@ $moneyFormat = new moneyFormat();
 								$nama2 = 'Hani Septyana';
 								echo QrCode::size(60)->generate($nama2 . $salesOrder->so_no); ?></div>
 						</td>
-						<td height="120" valign="top" align="center">Vendor,<div style="padding-top:30px;vertical-align:middle;text-align:center">&nbsp;</div>
+						<td height="120" valign="top" align="center">Buyer / Penerima,<div style="padding-top:20px;vertical-align:middle;text-align:center">
+								@if(!empty($salesOrder->buyer_signature_path))
+									<img src="{{ asset($salesOrder->buyer_signature_path) }}" alt="TTD Buyer" style="max-height:70px;max-width:170px;" />
+								@else
+									&nbsp;
+								@endif
+							</div>
 						</td>
 					</tr>
 					<tr>
 						<td width="150" valign="top" align="center"><div style="border-bottom:2px solid #000;width:200px;"><b><?= $nama1; ?></b></div></td>
 						<td width="150" valign="top" align="center"><div style="border-bottom:2px solid #000;width:200px;"><b>{{ $nama2 }}</b></div></td>
-						<td width="150" valign="top" align="center"><div style="border-bottom:2px solid #000;width:200px;"><b>{!! $salesOrder->buyer_pic ?? "&nbsp;" !!}</b></div></td>
+						<td width="150" valign="top" align="center"><div style="border-bottom:2px solid #000;width:200px;"><b>{!! $salesOrder->buyer_signed_by ?: ($salesOrder->buyer_pic ?? "&nbsp;") !!}</b></div></td>
 					</tr>
 					<tr>
 						<td width="150" valign="top" align="center" style="padding-top:5px;">

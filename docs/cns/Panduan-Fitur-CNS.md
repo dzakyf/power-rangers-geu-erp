@@ -40,13 +40,13 @@ Seluruh penjelasan ditulis dengan bahasa formal yang mudah dipahami, termasuk pe
 
 Modul CNS adalah bagian dari sistem aplikasi GEU yang menangani proses ekspor minyak jelantah (UCO). Modul ini menghubungkan seluruh tahapan kegiatan ekspor, yaitu:
 
-- Perencanaan dan pemantauan jadwal kapal beserta boking pengiriman.
-- Pencatatan pengisian kontainer (stuffing) beserta data truk, kontainer, dan segel.
-- Penerbitan dokumen ekspor secara berjenjang, mulai dari perintah pengiriman hingga sertifikat asal.
-- Pengelolaan data kualitas produk dan pengendalian mutu.
-- Pengelolaan penjualan dan pengadaan pendukung.
-- Pemenuhan keterlacakan dan sertifikasi keberlanjutan ISCC.
-- Pengelolaan stok di pelabuhan dan data induk perusahaan.
+-   Perencanaan dan pemantauan jadwal kapal beserta boking pengiriman.
+-   Pencatatan pengisian kontainer (stuffing) beserta data truk, kontainer, dan segel.
+-   Penerbitan dokumen ekspor secara berjenjang, mulai dari perintah pengiriman hingga sertifikat asal.
+-   Pengelolaan data kualitas produk dan pengendalian mutu.
+-   Pengelolaan penjualan dan pengadaan pendukung.
+-   Pemenuhan keterlacakan dan sertifikasi keberlanjutan ISCC.
+-   Pengelolaan stok di pelabuhan dan data induk perusahaan.
 
 Dokumen-dokumen pada modul ini saling berkaitan dan umumnya dibuat secara berjenjang; satu dokumen menjadi dasar pembuatan dokumen berikutnya. Rincian hubungan tersebut dijelaskan pada Bab 2.
 
@@ -54,17 +54,17 @@ Dokumen-dokumen pada modul ini saling berkaitan dan umumnya dibuat secara berjen
 
 Modul ini digunakan oleh beberapa kelompok pengguna dengan hak akses yang berbeda, antara lain:
 
-- **Administrator**, mengelola data induk perusahaan, persetujuan pengadaan, dan pemantauan menyeluruh.
-- **Tim Operasional Ekspor**, mengelola jadwal kapal, stuffing, dan dokumen ekspor.
-- **Tim Penjualan & Komersial**, membuat pesanan penjualan (Sales Order).
-- **Tim Keberlanjutan (Sustainability)**, mengelola kualitas produk, keterlacakan, dan deklarasi keberlanjutan.
-- **Tim Pengadaan**, mengelola permintaan dan pesanan pembelian.
+-   **Administrator**, mengelola data induk perusahaan, persetujuan pengadaan, dan pemantauan menyeluruh.
+-   **Tim Operasional Ekspor**, mengelola jadwal kapal, stuffing, dan dokumen ekspor.
+-   **Tim Penjualan & Komersial**, membuat pesanan penjualan (Sales Order).
+-   **Tim Keberlanjutan (Sustainability)**, mengelola kualitas produk, keterlacakan, dan deklarasi keberlanjutan.
+-   **Tim Pengadaan**, mengelola permintaan dan pesanan pembelian.
 
 ### 1.3 Cara Membaca Panduan
 
-- Urutan bab mengikuti urutan menu pada bilah navigasi atas aplikasi modul CNS.
-- Istilah teknis diminimalkan; istilah khusus yang tidak dapat dihindari dijelaskan pada bagian **Glosarium** di akhir panduan.
-- Bagian yang menjelaskan perhitungan (terutama pada Bab 8) ditujukan bagi pengguna yang ingin memahami bagaimana data tersusun.
+-   Urutan bab mengikuti urutan menu pada bilah navigasi atas aplikasi modul CNS.
+-   Istilah teknis diminimalkan; istilah khusus yang tidak dapat dihindari dijelaskan pada bagian **Glosarium** di akhir panduan.
+-   Bagian yang menjelaskan perhitungan (terutama pada Bab 8) ditujukan bagi pengguna yang ingin memahami bagaimana data tersusun.
 
 ---
 
@@ -75,24 +75,24 @@ Modul ini digunakan oleh beberapa kelompok pengguna dengan hak akses yang berbed
 Sebagian besar dokumen pada modul CNS dibuat secara berjenjang. Alur pembuatan dokumen ekspor secara ringkas adalah sebagai berikut:
 
 1. **Jadwal Kapal / Boking** menjadi sumber awal; dari sini data kontainer (nomor kontainer, segel, dan berat) dicatat pada menu **Stuffing**.
-2. **Shipping Instructions (SI)** dibuat dari data boking setelah seluruh kontainer tercatat. Dokumen SI kemudian difinalisasi menjadi **Final Shipping Instructions (FSI)**.
+2. **Draft Shipping Instructions (SI)** dibuat dari data boking setelah seluruh kontainer tercatat. Dokumen SI kemudian difinalisasi menjadi **Final Shipping Instructions (FSI)**.
 3. Dari **FSI** dihasilkan dokumen **Packing List** dan **Commercial Invoice**.
 4. **Weight Bridge Ticket** dibuat berdasarkan **Packing List**, memuat bukti tiket timbangan setiap kontainer.
 5. **Certificate of Origin** dibuat berdasarkan **Weight Bridge Ticket**, memuat rincian kontainer dan segel.
 6. **Annex VII** dibuat berdasarkan **FSI** sebagai dokumen pergerakan lintas batas.
 7. **Sustainability Declaration** dan **Delivery Note** merupakan dokumen mandiri yang tidak dihasilkan dari dokumen lain.
 
-| Dokumen                             | Dihasilkan dari       | Keterangan                          |
-| ----------------------------------- | --------------------- | ----------------------------------- |
-| Shipping Instructions (SI)          | Boking / Jadwal Kapal | Nomor SI dibuat otomatis            |
-| Final Shipping Instructions (FSI)   | SI                    | Menjadi kunci dokumen hilir         |
-| Packing List (PL)                | FSI                   | Terdapat varian cetak untuk pembeli |
-| Commercial Invoice (CI)          | FSI                   | Berstatus draf hingga difinalisasi  |
-| Weight Bridge Ticket (WBT)       | Packing List          | Memuat unggahan tiket timbangan     |
-| Certificate of Origin (COO)      | Weight Bridge Ticket  | Rincian kontainer dan segel         |
-| Annex VII                        | FSI                   | Dokumen pergerakan lintas batas     |
-| Sustainability Declaration       | Mandiri               | Tidak terhubung dokumen lain        |
-| Delivery Note                    | Mandiri               | Tidak terhubung dokumen lain        |
+| Dokumen                           | Dihasilkan dari       | Keterangan                          |
+| --------------------------------- | --------------------- | ----------------------------------- |
+| Shipping Instructions (SI)        | Boking / Jadwal Kapal | Nomor SI dibuat otomatis            |
+| Final Shipping Instructions (FSI) | SI                    | Menjadi kunci dokumen hilir         |
+| Packing List (PL)                 | FSI                   | Terdapat varian cetak untuk pembeli |
+| Commercial Invoice (CI)           | FSI                   | Berstatus draf hingga difinalisasi  |
+| Weight Bridge Ticket (WBT)        | Packing List          | Memuat unggahan tiket timbangan     |
+| Certificate of Origin (COO)       | Weight Bridge Ticket  | Rincian kontainer dan segel         |
+| Annex VII                         | FSI                   | Dokumen pergerakan lintas batas     |
+| Sustainability Declaration        | Mandiri               | Tidak terhubung dokumen lain        |
+| Delivery Note                     | Mandiri               | Tidak terhubung dokumen lain        |
 
 [Sisipkan tangkapan layar: Bagan alur pembuatan dokumen ekspor]
 
@@ -158,9 +158,9 @@ Menu Stuffing memantau dan mencatat progres pengisian kontainer sesuai jadwal ka
 
 Daftar menampilkan seluruh jadwal kapal beserta kolom **Container (Seal)** yang menggabungkan data seluruh kontainer yang telah dicatat. Status progres ditandai dengan warna pada baris:
 
-- **Merah** — pengisian kontainer belum dimulai (belum ada catatan kontainer).
-- **Kuning** — pengisian belum lengkap (jumlah kontainer belum sesuai rencana).
-- **Hijau** — pengisian lengkap (jumlah kontainer sudah sesuai rencana).
+-   **Merah** — pengisian kontainer belum dimulai (belum ada catatan kontainer).
+-   **Kuning** — pengisian belum lengkap (jumlah kontainer belum sesuai rencana).
+-   **Hijau** — pengisian lengkap (jumlah kontainer sudah sesuai rencana).
 
 Daftar dapat difilter berdasarkan periode tanggal stuffing dan diekspor ke Excel.
 
@@ -194,9 +194,9 @@ Menu ini menyajikan seluruh catatan pengisian kontainer dari berbagai order dala
 
 ---
 
-## 5. Menu Export Management
+## 5. Menu Document Control
 
-Menu Export Management menampung seluruh dokumen ekspor. Setiap sub-bab berikut menjelaskan fungsi, kolom utama, dan hubungan antardokumen.
+Menu Document Control menampung seluruh dokumen ekspor. Setiap sub-bab berikut menjelaskan fungsi, kolom utama, dan hubungan antardokumen.
 
 ### 5.1 Shipping Instructions (SI)
 
@@ -204,10 +204,10 @@ Dokumen perintah pengiriman ekspor yang dibuat berdasarkan boking/jadwal kapal y
 
 Aksi yang tersedia antara lain:
 
-- **New SI** — membuat dokumen SI baru.
-- **Detail SI** — melihat dan memperbarui data SI.
-- **Print SI** — mencetak dokumen berformat PDF dengan kop dan kaki perusahaan.
-- **Create Final SI** — memfinalisasi SI menjadi **Final Shipping Instructions**.
+-   **New SI** — membuat dokumen SI baru.
+-   **Detail SI** — melihat dan memperbarui data SI.
+-   **Print SI** — mencetak dokumen berformat PDF dengan kop dan kaki perusahaan.
+-   **Create Final SI** — memfinalisasi SI menjadi **Final Shipping Instructions**.
 
 Status SI: **CREATED** (draf, masih tampil pada daftar SI) hingga **FINAL** (telah difinalisasi dan berpindah ke daftar FSI).
 
@@ -219,10 +219,10 @@ Dokumen finalisasi SI yang menjadi kunci referensi bagi dokumen ekspor lainnya. 
 
 Aksi yang tersedia antara lain:
 
-- **New Final SI** — memilih SI berstatus CREATED untuk difinalisasi.
-- **Print Final SI** — mencetak dokumen berformat PDF.
-- **Create Packing List** — membuat Packing List dari FSI.
-- **Create Commercial Invoice** — membuat Commercial Invoice dari FSI.
+-   **New Final SI** — memilih SI berstatus CREATED untuk difinalisasi.
+-   **Print Final SI** — mencetak dokumen berformat PDF.
+-   **Create Packing List** — membuat Packing List dari FSI.
+-   **Create Commercial Invoice** — membuat Commercial Invoice dari FSI.
 
 ### 5.3 Packing List
 
@@ -230,9 +230,9 @@ Dokumen yang merinci kontainer, segel, serta berat (tare, netto, dan gross) per 
 
 Aksi yang tersedia antara lain:
 
-- **New Packing List** — membuat dari FSI terpilih.
-- **Detail Packing List** — melihat dan memperbarui data.
-- **Print Packing List** — mencetak dokumen; tersedia varian untuk pembeli.
+-   **New Packing List** — membuat dari FSI terpilih.
+-   **Detail Packing List** — melihat dan memperbarui data.
+-   **Print Packing List** — mencetak dokumen; tersedia varian untuk pembeli.
 
 ### 5.4 Commercial Invoice
 
@@ -269,29 +269,32 @@ Dokumen pergerakan lintas batas (Annex VII) sesuai ketentuan peraturan pengangku
 ## 6. Menu Quality Control
 
 Menu ini mengelola hasil analisis laboratorium kualitas produk UCO. Modul Quality Control terbagi menjadi dua sub-menu utama:
+
 1. **Quality Control External** — mencatat pengujian mutu pada transaksi/sampel pihak eksternal.
 2. **Quality Control Internal** — mencatat pengujian mutu pada fasilitas/tangki internal.
 
 Pada masing-masing sub-menu di atas, pengguna dapat membuat dua jenis pemeriksaan mutu (**Jenis QC**):
-- **Inbound (Pemeriksaan Barang Masuk)**: menguji 4 parameter standar:
-  - **FFA As Palmitic (%)** — kandungan asam lemak bebas sebagai asam palmitat.
-  - **FFA As Oleic (%)** — kandungan asam lemak bebas sebagai asam oleat.
-  - **MC (%)** — Moisture Content / kadar air.
-  - **IMP (%)** — Impurities / kadar kotoran.
-- **Outbound (Pemeriksaan Barang Keluar / Ekspor)**: menguji 9 parameter lengkap (4 parameter standar ditambah 5 parameter ekspor):
-  - **IV (g I2/100g)** — Iodine Value / bilangan iodium.
-  - **Sulphur (ppm)** — kandungan belerang.
-  - **Phosphorus (ppm)** — kandungan fosfor.
-  - **Total Chlorides (ppm)** — kadar klorida total.
-  - **Total Metals (ppm)** — kadar logam total.
+
+-   **Inbound (Pemeriksaan Barang Masuk)**: menguji 4 parameter standar:
+    -   **FFA As Palmitic (%)** — kandungan asam lemak bebas sebagai asam palmitat.
+    -   **FFA As Oleic (%)** — kandungan asam lemak bebas sebagai asam oleat.
+    -   **MC (%)** — Moisture Content / kadar air.
+    -   **IMP (%)** — Impurities / kadar kotoran.
+-   **Outbound (Pemeriksaan Barang Keluar / Ekspor)**: menguji 9 parameter lengkap (4 parameter standar ditambah 5 parameter ekspor):
+    -   **IV (g I2/100g)** — Iodine Value / bilangan iodium.
+    -   **Sulphur (ppm)** — kandungan belerang.
+    -   **Phosphorus (ppm)** — kandungan fosfor.
+    -   **Total Chlorides (ppm)** — kadar klorida total.
+    -   **Total Metals (ppm)** — kadar logam total.
 
 Pengambilan sampel dilakukan pada tiga level tangki, yaitu **Top**, **Middle**, dan **Bottom**, di mana sistem secara otomatis menghitung nilai rata-rata (**Average**) untuk seluruh parameter.
 
 Daftar disusun per tanggal dan jenis QC dengan filter aktivitas (**Semua / Inbound / Outbound**). Aksi yang tersedia antara lain:
-- **Create** — membuat catatan kualitas baru (Inbound atau Outbound) beserta lampiran CoA/lab.
-- **Detail** — melihat rincian dan memperbarui hasil pengujian.
-- **Delete** — menghapus catatan kualitas terpilih.
-- **Print** — mencetak formulir laporan pengujian berformat Word (`template-form-qc.docx` untuk Inbound dan `template-form-qc-outbound.docx` untuk Outbound).
+
+-   **Create** — membuat catatan kualitas baru (Inbound atau Outbound) beserta lampiran CoA/lab.
+-   **Detail** — melihat rincian dan memperbarui hasil pengujian.
+-   **Delete** — menghapus catatan kualitas terpilih.
+-   **Print** — mencetak formulir laporan pengujian berformat Word (`template-form-qc.docx` untuk Inbound dan `template-form-qc-outbound.docx` untuk Outbound).
 
 > Catatan: Catatan kualitas yang dibuat melalui menu **Inventory Pelindo** tidak ditampilkan pada daftar Quality Control, karena keduanya menggunakan satu tabel penyimpanan yang sama namun dipisahkan berdasarkan sumber pembuatannya.
 
@@ -307,10 +310,10 @@ Menu ini digunakan untuk membuat dan mengelola pesanan penjualan produk UCO. Set
 
 Aksi yang tersedia antara lain:
 
-- **New Sales Order** — membuat pesanan penjualan baru.
-- **Detail Sales Order** — melihat rincian pesanan.
-- **Print Sales Order** — mencetak dokumen pesanan berformat A4.
-- **Export Excel** — mengunduh daftar dalam format Excel.
+-   **New Sales Order** — membuat pesanan penjualan baru.
+-   **Detail Sales Order** — melihat rincian pesanan.
+-   **Print Sales Order** — mencetak dokumen pesanan berformat A4.
+-   **Export Excel** — mengunduh daftar dalam format Excel.
 
 Sales Order merupakan dokumen penjualan yang berdiri sendiri dan tidak terkait dengan rangkaian dokumen ekspor pada menu Export Management.
 
@@ -324,16 +327,16 @@ Menu ISCC Sustainability pada saat ini memiliki satu fitur utama, yaitu **Tracea
 
 Data pada fitur ini berasal dari dua sumber:
 
-- **NATURAL** — data riil titik pengumpulan yang tercatat dari proses operasional (master POO), dirangkai dengan Work Order, Pickup Order, dan Delivery Order.
-- **EXTERNAL** — data pengiriman pemasok eksternal yang dihasilkan melalui proses impor dan simulasi, dipecah menjadi fragment-fragment yang mewakili titik pengumpulan.
+-   **NATURAL** — data riil titik pengumpulan yang tercatat dari proses operasional (master POO), dirangkai dengan Work Order, Pickup Order, dan Delivery Order.
+-   **EXTERNAL** — data pengiriman pemasok eksternal yang dihasilkan melalui proses impor dan simulasi, dipecah menjadi fragment-fragment yang mewakili titik pengumpulan.
 
 ### 8.1 Halaman Indeks Traceability
 
 Halaman ini menampilkan seluruh data keterlacakan dari kedua sumber dalam satu daftar. Filter yang tersedia:
 
-- **Sumber (Source)** — seluruh sumber, NATURAL, atau EXTERNAL.
-- **Kota / Kabupaten** — membatasi data pada kota atau kabupaten tertentu.
-- **Rentang Tanggal** — membatasi data berdasarkan tanggal.
+-   **Sumber (Source)** — seluruh sumber, NATURAL, atau EXTERNAL.
+-   **Kota / Kabupaten** — membatasi data pada kota atau kabupaten tertentu.
+-   **Rentang Tanggal** — membatasi data berdasarkan tanggal.
 
 Kolom yang ditampilkan antara lain: No, Source, POO Name, Type, City, Province, Qty (Kg), PO Qty, WO Code, WO Date, WO Status, PO Code, PO Date, PO Status, Surat Jalan Code, Surat Jalan Date, Surat Jalan Status, dan **Split** (penanda bahwa satu pengiriman dipecah menjadi beberapa fragment).
 
@@ -373,9 +376,9 @@ Bagian ini menjelaskan tiga logika utama pembentukan data eksternal.
 
 **a. Fragmentasi Jumlah (Split Quantity)**
 
-- Apabila total kuantitas **kurang dari 225 kg**, pengiriman menjadi satu fragment utuh.
-- Apabila total kuantitas kurang dari dua kali batas bawah rentang jenis, pengiriman tetap menjadi satu fragment.
-- Apabila tidak, jumlah fragment (n) dihitung dengan rumus:
+-   Apabila total kuantitas **kurang dari 225 kg**, pengiriman menjadi satu fragment utuh.
+-   Apabila total kuantitas kurang dari dua kali batas bawah rentang jenis, pengiriman tetap menjadi satu fragment.
+-   Apabila tidak, jumlah fragment (n) dihitung dengan rumus:
 
 > n = min( maks(2, ⌈total / mid⌉), 20, ⌊total / min⌋ )
 
@@ -525,8 +528,8 @@ Menu ini menampilkan perusahaan yang berperan sebagai **penerima barang (consign
 | ------------------ | -------------------------------------------------------------------------------------- |
 | UCO                | Used Cooking Oil atau minyak jelantah, komoditas utama rantai pasok                    |
 | ISCC               | International Sustainability and Carbon Certification, skema sertifikasi keberlanjutan |
-| SI                 | Shipping Instructions, perintah pengiriman ekspor                                     |
-| FSI                | Final Shipping Instructions, finalisasi SI dan kunci dokumen hilir                    |
+| SI                 | Shipping Instructions, perintah pengiriman ekspor                                      |
+| FSI                | Final Shipping Instructions, finalisasi SI dan kunci dokumen hilir                     |
 | PL                 | Packing List, daftar kemasan/kontainer pengiriman                                      |
 | CI                 | Commercial Invoice, faktur komersial ekspor                                            |
 | WBT                | Weight Bridge Ticket, tiket timbangan pengiriman                                       |

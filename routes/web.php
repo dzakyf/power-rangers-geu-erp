@@ -54,6 +54,11 @@ use App\Http\Controllers\CNS\MasterTankController;
 use App\Http\Controllers\CNS\FlexibagInventoryController as CNSFlexibagInventoryController;
 use App\Http\Controllers\CNS\GoodsReceiptController;
 use App\Http\Controllers\CNS\NonUcoInventoryController;
+use App\Http\Controllers\CNS\ExportChecklistController as CNSExportChecklistController;
+use App\Http\Controllers\CNS\ShipmentCostAllocationController as CNSShipmentCostAllocationController;
+use App\Http\Controllers\CNS\ProductAllocationController;
+use App\Http\Controllers\CNS\SalesForecastController;
+use App\Http\Controllers\Finance\ExportInvoicingController;
 use App\Http\Controllers\HCGA\MasterApprovalController as HCGAMasterApprovalController;
 use App\Http\Controllers\HCGA\MasterWorkCalendarController as HCGAMasterWorkCalendarController;
 use App\Http\Controllers\HCGA\EmploymentFormController as HCGAEmploymentFormController;
@@ -5488,6 +5493,8 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::post("$masterCompanyPref-new-submit", [MasterCompanyController::class, "newMasterCompanySubmit"]);
     Route::get("$masterCompanyPref-detail", [MasterCompanyController::class, "detailMasterCompany"]);
     Route::post("$masterCompanyPref-detail-submit", [MasterCompanyController::class, "detailMasterCompanySubmit"]);
+    Route::get("$masterCompanyPref-import-template", [MasterCompanyController::class, "downloadImportTemplate"])->middleware('can:cns.master_company.edit');
+    Route::post("$masterCompanyPref-import", [MasterCompanyController::class, "importMasterCompany"])->middleware('can:cns.master_company.edit');
 
     $masterSupplierPref = "cns-master-supplier";
     Route::get("$masterSupplierPref", [MasterSupplierController::class, "indexMasterSupplier"]);
@@ -5589,6 +5596,8 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$packingListPref-detail", [CNSPackingListController::class, 'detailPackingList']);
     Route::post("$packingListPref-detail-submit", [CNSPackingListController::class, 'detailPackingListSubmit']);
     Route::post("$packingListPref-approve", [CNSPackingListController::class, 'approvePackingList']);
+    Route::post("$packingListPref-get-bc", [CNSPackingListController::class, 'getStuffingByBc'])->middleware('can:cns.packing_list.create');
+    Route::get("$packingListPref-final-new", [CNSPackingListController::class, 'newFinalPackingList'])->middleware('can:cns.packing_list.create');
 
 
 
@@ -5640,6 +5649,7 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::post("$dnPref-new-submit", [CNSDeliveryNoteController::class, 'newDeliveryNoteSubmit']);
     Route::get("$dnPref-detail", [CNSDeliveryNoteController::class, 'detailDeliveryNote']);
     Route::post("$dnPref-detail-submit", [CNSDeliveryNoteController::class, 'detailDeliveryNoteSubmit']);
+    Route::post("$dnPref-approve", [CNSDeliveryNoteController::class, 'approveDeliveryNote'])->middleware('can:cns.delivery_note.approve');
 
     $cnsInventoryPref = "cns-inventory-tracking";
     Route::get("$cnsInventoryPref-index", [UCOLogisticController::class, 'trackExportedStockIndex'])->name($cnsInventoryPref . '.index');
@@ -5776,6 +5786,16 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$salesOrderCNSPref-detail", [CNSSalesOrderController::class, 'detailSalesOrder']);
     Route::post("$salesOrderCNSPref-detail-submit", [CNSSalesOrderController::class, 'detailSalesOrderSubmit']);
     Route::get("$salesOrderCNSPref-print", [CNSSalesOrderController::class, 'printSalesOrder']);
+    Route::get("$salesOrderCNSPref-surat-jalan-print", [CNSSalesOrderController::class, 'printSuratJalan'])->middleware('can:cns.sales_order.view');
+    Route::group(['middleware' => 'can:cns.sales_order.approve_gudang'], function () use ($salesOrderCNSPref) {
+        Route::post("$salesOrderCNSPref-approve-gudang/{id}", [CNSSalesOrderController::class, 'approveGudang']);
+    });
+    Route::group(['middleware' => 'can:cns.sales_order.approve_buyer'], function () use ($salesOrderCNSPref) {
+        Route::post("$salesOrderCNSPref-approve-buyer/{id}", [CNSSalesOrderController::class, 'approveBuyer']);
+    });
+    Route::group(['middleware' => 'can:cns.sales_order.approve_manager'], function () use ($salesOrderCNSPref) {
+        Route::post("$salesOrderCNSPref-approve/{id}", [CNSSalesOrderController::class, 'approveSalesOrder']);
+    });
 
     $procPref = "cns-procurement";
 
@@ -5901,6 +5921,93 @@ Route::group(['middleware' => 'log.access'], function () {
     });
     Route::group(['middleware' => 'can:cns.customer_compliance_kyc.delete'], function () use ($kycPref) {
         Route::post("$kycPref-delete/{id}", [CustomerKycController::class, 'destroy'])->name($kycPref . '.delete');
+    });
+    Route::group(['middleware' => 'can:cns.customer_compliance_kyc.approve'], function () use ($kycPref) {
+        Route::post("$kycPref-approve/{id}", [CustomerKycController::class, 'approve'])->name($kycPref . '.approve');
+        Route::post("$kycPref-reject/{id}", [CustomerKycController::class, 'reject'])->name($kycPref . '.reject');
+    });
+
+    // Export Checklist
+    $exportChecklistPref = "cns-export-checklist";
+    Route::group(['middleware' => 'can:cns.export_checklist.view'], function () use ($exportChecklistPref) {
+        Route::get("$exportChecklistPref", [CNSExportChecklistController::class, 'index']);
+        Route::get("xml-$exportChecklistPref", [CNSExportChecklistController::class, 'indexXml']);
+        Route::get("$exportChecklistPref-detail", [CNSExportChecklistController::class, 'detail']);
+    });
+    Route::group(['middleware' => 'can:cns.export_checklist.edit'], function () use ($exportChecklistPref) {
+        Route::post("$exportChecklistPref-detail-submit", [CNSExportChecklistController::class, 'saveChecklist']);
+        Route::post("$exportChecklistPref-approve-payment", [CNSExportChecklistController::class, 'approvePayment']);
+    });
+
+    // Cost Allocation per Shipment
+    $costAllocPref = "cns-export-cost-allocation";
+    Route::group(['middleware' => 'can:cns.cost_allocation_shipment.view'], function () use ($costAllocPref) {
+        Route::get("$costAllocPref", [CNSShipmentCostAllocationController::class, 'index'])->name("$costAllocPref.index");
+        Route::get("$costAllocPref-edit/{id}", [CNSShipmentCostAllocationController::class, 'edit'])->name("$costAllocPref.edit");
+        Route::get("$costAllocPref-export-csv", [CNSShipmentCostAllocationController::class, 'exportCsv'])->name("$costAllocPref.export-csv");
+    });
+    Route::group(['middleware' => 'can:cns.cost_allocation_shipment.create'], function () use ($costAllocPref) {
+        Route::get("$costAllocPref-create", [CNSShipmentCostAllocationController::class, 'create'])->name("$costAllocPref.create");
+        Route::post("$costAllocPref-store", [CNSShipmentCostAllocationController::class, 'store'])->name("$costAllocPref.store");
+    });
+    Route::group(['middleware' => 'can:cns.cost_allocation_shipment.edit'], function () use ($costAllocPref) {
+        Route::post("$costAllocPref-update/{id}", [CNSShipmentCostAllocationController::class, 'update'])->name("$costAllocPref.update");
+        Route::post("$costAllocPref-finalize/{id}", [CNSShipmentCostAllocationController::class, 'finalize'])->name("$costAllocPref.finalize");
+        Route::post("$costAllocPref-reopen/{id}", [CNSShipmentCostAllocationController::class, 'reopen'])->name("$costAllocPref.reopen");
+    });
+    Route::group(['middleware' => 'can:cns.cost_allocation_shipment.delete'], function () use ($costAllocPref) {
+        Route::delete("$costAllocPref-delete/{id}", [CNSShipmentCostAllocationController::class, 'destroy'])->name("$costAllocPref.delete");
+    });
+
+    // Product Allocation & Volume Planning
+    $productAllocationPref = "cns-product-allocation";
+    Route::group(['middleware' => 'can:cns.product_allocation.view'], function () use ($productAllocationPref) {
+        Route::get("$productAllocationPref", [ProductAllocationController::class, 'index'])->name($productAllocationPref . '.index');
+        Route::get("$productAllocationPref-data", [ProductAllocationController::class, 'dataAjax'])->name($productAllocationPref . '.data');
+        Route::get("xml-$productAllocationPref", [ProductAllocationController::class, 'indexAllocationXml'])->name($productAllocationPref . '.xml');
+        Route::get("xml-cns-upcoming-export", [ProductAllocationController::class, 'indexUpcomingXml'])->name('cns-upcoming-export.xml');
+        Route::get("$productAllocationPref-excel", [ProductAllocationController::class, 'exportExcel'])->name($productAllocationPref . '.export-excel');
+    });
+    Route::group(['middleware' => 'can:cns.product_allocation.create'], function () use ($productAllocationPref) {
+        Route::post("$productAllocationPref", [ProductAllocationController::class, 'store'])->name($productAllocationPref . '.store');
+    });
+    Route::group(['middleware' => 'can:cns.product_allocation.edit'], function () use ($productAllocationPref) {
+        Route::post("$productAllocationPref/{id}/update", [ProductAllocationController::class, 'update'])->name($productAllocationPref . '.update');
+    });
+    Route::group(['middleware' => 'can:cns.product_allocation.delete'], function () use ($productAllocationPref) {
+        Route::post("$productAllocationPref/{id}/delete", [ProductAllocationController::class, 'destroy'])->name($productAllocationPref . '.destroy');
+    });
+
+    // Sales Forecast & Pipeline Tracking
+    $salesForecastPref = "cns-sales-forecast";
+    Route::group(['middleware' => 'can:cns.sales_forecast.view'], function () use ($salesForecastPref) {
+        Route::get("$salesForecastPref", [SalesForecastController::class, 'index'])->name($salesForecastPref . '.index');
+        Route::get("$salesForecastPref-data", [SalesForecastController::class, 'dataAjax'])->name($salesForecastPref . '.data');
+    });
+    Route::group(['middleware' => 'can:cns.sales_forecast.create'], function () use ($salesForecastPref) {
+        Route::post("$salesForecastPref", [SalesForecastController::class, 'store'])->name($salesForecastPref . '.store');
+    });
+    Route::group(['middleware' => 'can:cns.sales_forecast.edit'], function () use ($salesForecastPref) {
+        Route::post("$salesForecastPref/{id}/update", [SalesForecastController::class, 'update'])->name($salesForecastPref . '.update');
+    });
+    Route::group(['middleware' => 'can:cns.sales_forecast.delete'], function () use ($salesForecastPref) {
+        Route::post("$salesForecastPref/{id}/delete", [SalesForecastController::class, 'destroy'])->name($salesForecastPref . '.destroy');
+    });
+
+    // Export Invoicing
+    $exportInvoicingPref = "finance-export-invoicing";
+    Route::group(['middleware' => 'can:cns.export_invoicing.view'], function () use ($exportInvoicingPref) {
+        Route::get("$exportInvoicingPref", [ExportInvoicingController::class, 'index'])->name($exportInvoicingPref);
+        Route::get("$exportInvoicingPref-xml", [ExportInvoicingController::class, 'indexXml'])->name($exportInvoicingPref . '-xml');
+        Route::get("$exportInvoicingPref-detail/{id}", [ExportInvoicingController::class, 'detail'])->name($exportInvoicingPref . '-detail');
+        Route::get("$exportInvoicingPref-file/{id}/{type}", [ExportInvoicingController::class, 'downloadFile'])->name($exportInvoicingPref . '-file');
+    });
+    Route::group(['middleware' => 'can:cns.export_invoicing.create'], function () use ($exportInvoicingPref) {
+        Route::post("$exportInvoicingPref-submit", [ExportInvoicingController::class, 'submit'])->name($exportInvoicingPref . '-submit');
+    });
+    Route::group(['middleware' => 'can:cns.export_invoicing.approve'], function () use ($exportInvoicingPref) {
+        Route::post("$exportInvoicingPref-approve/{id}", [ExportInvoicingController::class, 'approve'])->name($exportInvoicingPref . '-approve');
+        Route::post("$exportInvoicingPref-reject/{id}", [ExportInvoicingController::class, 'reject'])->name($exportInvoicingPref . '-reject');
     });
 
     // Dashboard Export Volume

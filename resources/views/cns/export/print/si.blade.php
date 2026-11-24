@@ -294,7 +294,7 @@
           </tr>
           <tr>
             <td style="font-size:7.5pt;padding:1px 0;">
-              Container condition: A.&nbsp;&nbsp;&nbsp;{{ Str::contains(strtoupper($v['package_type']), 'FT') ? 'Good, Clean and Suitable for Flexibag' : 'Good and Clean' }}
+              {!! nl2br(e($v['remarks'] ?? '')) !!}
             </td>
           </tr>
         </table>

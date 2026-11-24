@@ -14,42 +14,47 @@ $Saya =  Auth::user()->username;
 
 @section('content-wrapper')
 @csrf
-<!-- Main Content Header -->
-<div class="main-content-header">
-	<h1>Partner</h1>
-	<ol class="breadcrumb">
-		<li class="breadcrumb-item">
-			<a href="/">Annex VII</a>
-		</li>
-		<li class="breadcrumb-item active">
-			<span class="active">Annex VII List</span>
-		</li>
-	</ol>
-</div>
+@include('cns.partials.page-header', [
+	'title' => 'Annex VII',
+	'breadcrumbs' => [
+		['label' => 'Export Management'],
+		['label' => 'Annex VII'],
+	],
+])
 
-<div>
-	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">ANNEX VII LIST</div>
-	<div class="card">
-		<div class="card-body">
-			<div class="mb-2">
-				Periode : <input type="date" id="tgl1" name="tgl1" value="{{ date('Y-m-01', strtotime('-7 days')) }}" class="form-control-sm" />
-				s/d <input type="date" id="tgl2" name="tgl2" value="{{ date('Y-m-d') }}" class="form-control-sm" />
-				<button onclick="refreshdata()" class="btn btn-primary p-2">Refresh</button>
-			</div>
-			<div id="AnnexVii" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
-			<div>
-				<input type="button" id="ekselAnnexViiDet" name="ekselAnnexViiDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="AnnexVii.toExcel('./export/generate.php');" />
-				<input type="button" id="newSchedule" name="newSchedule" value="New Annex" class="btn btn-primary mt-2 mr-2" onclick="AnnexViiNewBtn()" />
-				<input type="button" id="DetailSchedule" name="DetailSchedule" value="Detail Annex" class="btn btn-info mt-2 mr-2" onclick="AnnexViiKlik()" />
-				<input type="button" id="printAnnex" name="printAnnex" value="Print Annex" class="btn btn-secondary mt-2 mr-2" onclick="PrintAnnex()" />
-				<input type="button" id="printAnnexSample" name="printAnnexSample" value="Print Annex Sample" class="btn btn-secondary mt-2 mr-2" onclick="PrintAnnexSample()" />
-			</div>
+<div class="card cns-card">
+	<div class="card-header">
+		<h5 class="card-title mb-0">Annex VII List</h5>
+		<div class="d-flex align-items-center flex-wrap" style="gap: 0.5rem;">
+			<input type="button" id="newSchedule" name="newSchedule" value="New Annex" class="btn btn-sm btn-primary" onclick="AnnexViiNewBtn()" />
+			<input type="button" id="DetailSchedule" name="DetailSchedule" value="Detail Annex" class="btn btn-sm btn-info" onclick="AnnexViiKlik()" />
+			<input type="button" id="printAnnex" name="printAnnex" value="Print Annex" class="btn btn-sm btn-secondary" onclick="PrintAnnex()" />
+			<input type="button" id="printAnnexSample" name="printAnnexSample" value="Print Annex Sample" class="btn btn-sm btn-secondary" onclick="PrintAnnexSample()" />
+			<input type="button" id="ekselAnnexViiDet" name="ekselAnnexViiDet" class="btn btn-sm btn-warning" value="Export Excel" onclick="AnnexVii.toExcel('./export/generate.php');" />
+			<button type="button" onclick="refreshdata()" class="btn btn-sm btn-outline-secondary">Refresh</button>
 		</div>
 	</div>
-	<div id="divlistOpportunity"></div>
-	<div id="DivProcess"></div>
-
+	<div class="card-body">
+		<div class="cns-filter-bar">
+			<div>
+				<label for="tgl1" class="d-block mb-1"><small>Dari Tanggal</small></label>
+				<input type="date" id="tgl1" name="tgl1" value="{{ date('Y-m-01', strtotime('-7 days')) }}" class="form-control form-control-sm" style="width:auto;" />
+			</div>
+			<div>
+				<label for="tgl2" class="d-block mb-1"><small>Sampai Tanggal</small></label>
+				<input type="date" id="tgl2" name="tgl2" value="{{ date('Y-m-d') }}" class="form-control form-control-sm" style="width:auto;" />
+			</div>
+			<div>
+				<button type="button" onclick="refreshdata()" class="btn btn-sm btn-primary">Filter</button>
+			</div>
+		</div>
+		<div class="cns-grid-wrapper">
+			<div id="AnnexVii" class="cns-grid" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
+		</div>
+	</div>
 </div>
+<div id="divlistOpportunity"></div>
+<div id="DivProcess"></div>
 
 <script>
 	function PrintAnnex()
@@ -58,7 +63,7 @@ $Saya =  Auth::user()->username;
 		if (AnnexViiID != null) {
 			window.open('cns-export-annex-print?Task=' + AnnexVii.cells(AnnexViiID, 2).getValue(), '_blank');
 		}else {
-			alert("Pilih baris data");
+			swal('Perhatian', 'Pilih baris data', 'warning');
 		}
 		return true;
 	 }
@@ -77,7 +82,7 @@ $Saya =  Auth::user()->username;
 		if (AnnexViiID != null) {
 			LoadM('divlistOpportunity', 'cns-export-annex-detail?Task=' + AnnexVii.cells(AnnexViiID, 2).getValue());
 		}else {
-			alert("Pilih baris data");
+			swal('Perhatian', 'Pilih baris data', 'warning');
 		}
 		return true;
 	}
@@ -104,18 +109,44 @@ $Saya =  Auth::user()->username;
 	);
 
 	AnnexVii.setColTypes(
-		"ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro"
+		"ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,cns_badge"
 	);
-	AnnexVii.enableSmartRendering(true, 150);
-	// AnnexVii.setNumberFormat("0,000", 7, ".", ",");
+	var AnnexPagination;
 	AnnexVii.attachEvent("onRowDblClicked", AnnexViiKlik);
 	AnnexVii.setSkin("dhx_skyblue");
 	AnnexVii.init();
+
+	AnnexPagination = initCnsGridPagination(AnnexVii, {
+		pageSize: 25,
+		pageSizeOptions: [10, 25, 50, 100],
+		getUrl: function (params) {
+			var q = [];
+			q.push('posStart=' + params.posStart);
+			q.push('count=' + params.count);
+			q.push('tgl1=' + encodeURIComponent($('#tgl1').val()));
+			q.push('tgl2=' + encodeURIComponent($('#tgl2').val()));
+
+			if (params.sortCol !== null && params.sortCol !== undefined) {
+				q.push('sort_col=' + params.sortCol);
+				q.push('sort_dir=' + (params.sortDir || 'asc'));
+			}
+
+			if (params.filters) {
+				for (var colIdx in params.filters) {
+					q.push('filters[' + colIdx + ']=' + encodeURIComponent(params.filters[colIdx]));
+				}
+			}
+
+			return 'xml-cns-export-annex?' + q.join('&');
+		}
+	});
+
 	refreshdata();
 
 	function refreshdata() {
-		AnnexVii.clearAndLoad('xml-cns-export-annex?tgl1=' + $('#tgl1').val() + "&tgl2=" + $('#tgl2').val());
-
+		if (AnnexPagination) {
+			AnnexPagination.reload(true);
+		}
 	}
 </script>
 @endsection

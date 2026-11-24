@@ -353,11 +353,16 @@ class ExportVolumeDashboardController extends Controller
         $totalVolumeMt = 0.0;
         $totalContainers = 0;
         $uniqueConsignees = [];
+        $totalPending = 0;
 
         foreach ($filteredShipments as $s) {
             $totalVolumeMt += $s['volume_mt'];
             $totalContainers += $s['containers'];
             $uniqueConsignees[$s['consignee_name']] = true;
+            $st = strtoupper($s['status']);
+            if ($st === 'DRAFT' || $st === 'CREATED') {
+                $totalPending++;
+            }
         }
 
         $kpis = [
@@ -365,6 +370,33 @@ class ExportVolumeDashboardController extends Controller
             'total_containers' => $totalContainers,
             'total_shipments'  => count($filteredShipments),
             'total_consignees' => count($uniqueConsignees),
+            'total_pending'    => $totalPending,
+        ];
+
+        // 6b. Compute Today's Activity Stats
+        $todayDate = date('Y-m-d');
+        $todayShipments = 0;
+        $todayContainers = 0;
+        $todayVolumeMt = 0.0;
+        $todayApproved = 0;
+
+        foreach ($allShipments as $s) {
+            if ($s['export_date'] === $todayDate) {
+                $todayShipments++;
+                $todayContainers += $s['containers'];
+                $todayVolumeMt += $s['volume_mt'];
+                if (in_array(strtoupper($s['status']), ['APPROVED', 'FINAL', 'COMPLETED'])) {
+                    $todayApproved++;
+                }
+            }
+        }
+
+        $todayStats = [
+            'shipments'   => $todayShipments,
+            'containers'  => $todayContainers,
+            'volume_mt'   => round($todayVolumeMt, 2),
+            'approved'    => $todayApproved,
+            'last_update' => date('H:i:s'),
         ];
 
         // 7. Aggregate Monthly Trend (12 Months for selected year)
@@ -451,10 +483,28 @@ class ExportVolumeDashboardController extends Controller
             'series'     => array_map(function ($v) { return round($v, 2); }, array_values($topCountries)),
         ];
 
+        // 11. Aggregate Shipment Status Breakdown (Donut Chart)
+        $statusTotals = [];
+        foreach ($filteredShipments as $s) {
+            $st = strtoupper($s['status']) ?: 'DRAFT';
+            if (!isset($statusTotals[$st])) {
+                $statusTotals[$st] = 0;
+            }
+            $statusTotals[$st]++;
+        }
+        arsort($statusTotals);
+
+        $statusChart = [
+            'labels' => array_keys($statusTotals),
+            'series' => array_values($statusTotals),
+        ];
+
         return [
             'kpis'                => $kpis,
+            'todayStats'          => $todayStats,
             'monthlyTrend'        => $monthlyTrend,
             'incotermChart'       => $incotermChart,
+            'statusChart'         => $statusChart,
             'topConsigneesChart'  => $topConsigneesChart,
             'countryChart'        => $countryChart,
             'shipments'           => array_values($filteredShipments),

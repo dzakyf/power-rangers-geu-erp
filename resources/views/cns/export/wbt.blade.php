@@ -14,41 +14,46 @@ $Saya =  Auth::user()->username;
 
 @section('content-wrapper')
 @csrf
-<!-- Main Content Header -->
-<div class="main-content-header">
-	<h1>Partner</h1>
-	<ol class="breadcrumb">
-		<li class="breadcrumb-item">
-			<a href="/">Weight Bridge Ticket</a>
-		</li>
-		<li class="breadcrumb-item active">
-			<span class="active">Weight Bridge Ticket List</span>
-		</li>
-	</ol>
-</div>
+@include('cns.partials.page-header', [
+	'title' => 'Weight Bridge Ticket',
+	'breadcrumbs' => [
+		['label' => 'Export Management'],
+		['label' => 'Weight Bridge Ticket'],
+	],
+])
 
-<div>
-	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">WEIGHT BRIDGE TICKET LIST</div>
-	<div class="card">
-		<div class="card-body">
-			<div class="mb-2">
-				Periode : <input type="date" id="tgl1" name="tgl1" value="{{ date('Y-m-01', strtotime('-7 days')) }}" class="form-control-sm" />
-				s/d <input type="date" id="tgl2" name="tgl2" value="{{ date('Y-m-d') }}" class="form-control-sm" />
-				<button onclick="refreshdata()" class="btn btn-primary p-2">Refresh</button>
-			</div>
-			<div id="ShipmentInstruction" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
-			<div>
-				<input type="button" id="newSchedule" name="newSchedule" value="New WBT" class="btn btn-primary mt-2 mr-2" onclick="ShipmentInstructionNewBtn()" />
-				<input type="button" id="DetailSchedule" name="DetailSchedule" value="Detail WBT" class="btn btn-info mt-2 mr-2" onclick="ShipmentInstructionKlik()" />
-				<input type="button" id="printWBT" name="printWBT" value="Print WBT" class="btn btn-secondary mt-2 mr-2" onclick="PrintWBT()" />
-				<input type="button" id="ekselShipmentInstructionDet" name="ekselShipmentInstructionDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="ShipmentInstruction.toExcel('./export/generate.php');" />
-			</div>
+<div class="card cns-card">
+	<div class="card-header">
+		<h5 class="card-title mb-0">Weight Bridge Ticket List</h5>
+		<div class="d-flex align-items-center flex-wrap" style="gap: 0.5rem;">
+			<input type="button" id="newSchedule" name="newSchedule" value="New WBT" class="btn btn-sm btn-primary" onclick="ShipmentInstructionNewBtn()" />
+			<input type="button" id="DetailSchedule" name="DetailSchedule" value="Detail WBT" class="btn btn-sm btn-info" onclick="ShipmentInstructionKlik()" />
+			<input type="button" id="printWBT" name="printWBT" value="Print WBT" class="btn btn-sm btn-secondary" onclick="PrintWBT()" />
+			<input type="button" id="ekselShipmentInstructionDet" name="ekselShipmentInstructionDet" class="btn btn-sm btn-warning" value="Export Excel" onclick="ShipmentInstruction.toExcel('./export/generate.php');" />
+			<button type="button" onclick="refreshdata()" class="btn btn-sm btn-outline-secondary">Refresh</button>
 		</div>
 	</div>
-	<div id="divlistOpportunity"></div>
-	<div id="DivProcess"></div>
-
+	<div class="card-body">
+		<div class="cns-filter-bar">
+			<div>
+				<label for="tgl1" class="d-block mb-1"><small>Dari Tanggal</small></label>
+				<input type="date" id="tgl1" name="tgl1" value="{{ date('Y-m-01', strtotime('-7 days')) }}" class="form-control form-control-sm" style="width:auto;" />
+			</div>
+			<div>
+				<label for="tgl2" class="d-block mb-1"><small>Sampai Tanggal</small></label>
+				<input type="date" id="tgl2" name="tgl2" value="{{ date('Y-m-d') }}" class="form-control form-control-sm" style="width:auto;" />
+			</div>
+			<div>
+				<button type="button" onclick="refreshdata()" class="btn btn-sm btn-primary">Filter</button>
+			</div>
+		</div>
+		<div class="cns-grid-wrapper">
+			<div id="ShipmentInstruction" class="cns-grid" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
+		</div>
+	</div>
 </div>
+<div id="divlistOpportunity"></div>
+<div id="DivProcess"></div>
 
 <script>
 	function PrintWBT()
@@ -57,7 +62,7 @@ $Saya =  Auth::user()->username;
 		if (ShipmentInstructionID != null) {
 			window.open("{{ url('cns-export-weight-bridge-ticket-print') }}?Task=" + encodeURIComponent(ShipmentInstructionID), '_blank');
 		}else {
-			alert("Pilih baris data");
+			swal('Perhatian', 'Pilih baris data', 'warning');
 		}
 		return true;
 	 }
@@ -72,28 +77,46 @@ $Saya =  Auth::user()->username;
 		if (ShipmentInstructionID != null) {
 			LoadM('divlistOpportunity', 'cns-export-weight-bridge-ticket-detail?Task=' + encodeURIComponent(ShipmentInstructionID));
 		}else {
-			alert("Pilih baris data");
+			swal('Perhatian', 'Pilih baris data', 'warning');
 		}
 		return true;
 	}
 	ShipmentInstruction = new dhtmlXGridObject('ShipmentInstruction');
 	ShipmentInstruction.setImagePath("./dhtmlx/imgs/");
-	ShipmentInstruction.setHeader("No,Packing List No, Final SI No, Contract No, Voyage, Departure Date, B/L No, Container, Created By, Created Date");
-	ShipmentInstruction.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
+	ShipmentInstruction.setHeader("No,Packing List No, Final SI No, Contract No, Voyage, Departure Date, B/L No, Container, Nopol, Created By, Created Date");
+	ShipmentInstruction.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
 	// ShipmentInstruction.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total");
-	ShipmentInstruction.setInitWidths("60,150,150,150,150,150,150,1000,150,150");
-	ShipmentInstruction.setColAlign("center,left,left,left,left,left,left,left,left,left");
-	ShipmentInstruction.setColSorting("int,str,str,str,str,str,str,str,str,str");
-	ShipmentInstruction.setColTypes("ron,ro,ro,ro,ro,ro,ro,ro,ro,ro");
-	ShipmentInstruction.enableSmartRendering(true, 150);
+	ShipmentInstruction.setInitWidths("60,150,150,150,150,150,150,1000,150,150,150");
+	ShipmentInstruction.setColAlign("center,left,left,left,left,left,left,left,left,left,left");
+	ShipmentInstruction.setColSorting("int,str,str,str,str,str,str,str,str,str,str");
+	ShipmentInstruction.setColTypes("ron,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
 	// ShipmentInstruction.setNumberFormat("0,000", 7, ".", ",");
 	ShipmentInstruction.attachEvent("onRowDblClicked", ShipmentInstructionKlik);
 	ShipmentInstruction.setSkin("dhx_skyblue");
 	ShipmentInstruction.init();
+
+	var WbtPagination = initCnsGridPagination(ShipmentInstruction, {
+		pageSize: 25,
+		pageSizeOptions: [10, 25, 50, 100],
+		serverFilter: false,
+		getUrl: function (params) {
+			var q = [
+				'posStart=' + params.posStart,
+				'count=' + params.count,
+				'tgl1=' + encodeURIComponent($('#tgl1').val()),
+				'tgl2=' + encodeURIComponent($('#tgl2').val())
+			];
+			if (params.sortCol !== null && params.sortCol !== undefined) {
+				q.push('sort_col=' + params.sortCol);
+				q.push('sort_dir=' + (params.sortDir || 'asc'));
+			}
+			return 'xml-cns-export-weight-bridge-ticket?' + q.join('&');
+		}
+	});
 	refreshdata();
 
 	function refreshdata() {
-		ShipmentInstruction.clearAndLoad('xml-cns-export-weight-bridge-ticket?tgl1=' + $('#tgl1').val() + "&tgl2=" + $("#tgl2").val());
+		WbtPagination.reload(1);
 	}
 </script>
 @endsection

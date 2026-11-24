@@ -2,19 +2,6 @@
     $isEdit = isset($kyc);
 @endphp
 
-@if(session('success'))
-    <div class="alert alert-success alert-dismissible fade show" role="alert">
-        {{ session('success') }}
-        <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-    </div>
-@endif
-@if(session('error'))
-    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-        {{ session('error') }}
-        <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-    </div>
-@endif
-
 @if ($errors->any())
     <div class="alert alert-danger alert-dismissible fade show" role="alert">
         <strong>Terdapat kesalahan pengisian data:</strong>
@@ -308,13 +295,42 @@
                     var email = selectedOption.getAttribute('data-email');
 
                     var compNameInput = document.getElementById('company_name');
-                    if (compNameInput && (!compNameInput.value || confirm('Isi Nama Perusahaan dari Partner terpilih?'))) {
-                        compNameInput.value = name || '';
-                    }
-
                     var regAddrInput = document.getElementById('registered_address');
-                    if (regAddrInput && address && (!regAddrInput.value || confirm('Isi Registered Address dari alamat Partner?'))) {
-                        regAddrInput.value = address || '';
+
+                    var fillAddress = function () {
+                        if (regAddrInput && address) {
+                            if (!regAddrInput.value) {
+                                regAddrInput.value = address || '';
+                            } else {
+                                swal({
+                                    title: 'Konfirmasi',
+                                    text: 'Isi Registered Address dari alamat Partner?',
+                                    icon: 'warning',
+                                    buttons: ['Batal', 'Ya']
+                                }).then(function (ok) {
+                                    if (ok) regAddrInput.value = address || '';
+                                });
+                            }
+                        }
+                    };
+
+                    if (compNameInput) {
+                        if (!compNameInput.value) {
+                            compNameInput.value = name || '';
+                            fillAddress();
+                        } else {
+                            swal({
+                                title: 'Konfirmasi',
+                                text: 'Isi Nama Perusahaan dari Partner terpilih?',
+                                icon: 'warning',
+                                buttons: ['Batal', 'Ya']
+                            }).then(function (ok) {
+                                if (ok) compNameInput.value = name || '';
+                                fillAddress();
+                            });
+                        }
+                    } else {
+                        fillAddress();
                     }
 
                     var tradingContactDetails = document.getElementById('trading_contact_details');

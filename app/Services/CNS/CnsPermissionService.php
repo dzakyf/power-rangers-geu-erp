@@ -22,6 +22,7 @@ class CnsPermissionService
         'SM00062' => 'folder_procurement',
         'SM00063' => 'folder_inventory',
         'SM00064' => 'folder_master_data',
+        'SM00069' => 'folder_finance_accounting',
         'SM00080' => 'folder_dashboard',
 
         // Level 3: Sub Folders
@@ -31,6 +32,7 @@ class CnsPermissionService
         'SS00080' => 'folder_sub_shipping_management',
         'SS00081' => 'folder_sub_stuffing',
         'SS00082' => 'folder_sub_export_management',
+        'SS00097' => 'folder_cost_control',
         'SS00083' => 'folder_sub_quality_control',
         'SS00084' => 'folder_sub_sales_commercial',
         'SS00085' => 'folder_sub_sustainability',
@@ -38,6 +40,7 @@ class CnsPermissionService
         'SS00087' => 'folder_inventory_uco',
         'SS00091' => 'folder_inventory_non_uco',
         'SS00088' => 'folder_sub_master_data',
+        'SS00099' => 'folder_sub_finance_accounting',
         'SS00150' => 'folder_sub_dashboard',
 
         // Level 4: Leaf Pages / Actions
@@ -55,6 +58,10 @@ class CnsPermissionService
         'SI00314' => 'sustainability_declaration',
         'SI00315' => 'delivery_note',
         'SI00325' => 'annex_vii',
+        'SI00350' => 'export_checklist',
+        'SI00351' => 'cost_allocation_shipment',
+        'SI00352' => 'product_allocation',
+        'SI00354' => 'sales_forecast',
         'SI00316' => 'quality_control',
         'SI00318' => 'sales_order',
         'SI00330' => 'traceability',
@@ -74,6 +81,7 @@ class CnsPermissionService
         'SI01074' => 'master_tank',
         'SI00342' => 'master_kemasan',
         'SI01150' => 'export_volume',
+        'SI00353' => 'export_invoicing',
     ];
 
     public static function allMenuSlugs(): array

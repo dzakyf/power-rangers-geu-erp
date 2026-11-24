@@ -14,8 +14,8 @@ $consigneeAddr = !empty($shipment->Consignee_Address) ? $shipment->Consignee_Add
 $notifyAddr = !empty($shipment->Notify_Address) ? $shipment->Notify_Address : ($companiesKeyed->get($shipment->Notify)->Address ?? '');
 ?>
 <div class="mt-3">
-	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">FINAL SHIPPING INSTRUCTIONS</div>
-	<div class="card">
+	<div class="cns-section-header">FINAL SHIPPING INSTRUCTIONS</div>
+	<div class="card cns-card">
 		<div class="card-body">
 			<div id="ContentPages">
 				<div class="FormInput_Form_Content">
@@ -213,6 +213,12 @@ $notifyAddr = !empty($shipment->Notify_Address) ? $shipment->Notify_Address : ($
                                 </select>
                             </div>
                         </div>
+                        <div class="col-12">
+                            <div class="form-group">
+                                <label for="Remarks">Remarks</label>
+                                <textarea name="Remarks" id="Remarks" rows="3" class="form-control" placeholder="Remarks">{{ $shipment->Remarks }}</textarea>
+                            </div>
+                        </div>
                         @foreach ($shipment->orderDetails as $item)
                         <div class="col-md-6 col-12">
                             <div class="form-group">
@@ -309,7 +315,7 @@ $notifyAddr = !empty($shipment->Notify_Address) ? $shipment->Notify_Address : ($
                 $.unblockUI();
             },
             error:function() {
-                alert('Error fetching order details. Please try again.');
+                swal('Error', 'Error fetching order details. Please try again.', 'error');
                 $.unblockUI();
             }
         });
@@ -353,20 +359,20 @@ $notifyAddr = !empty($shipment->Notify_Address) ? $shipment->Notify_Address : ($
 			success: function(data, textStatus, jqXHR) {
 				var dataPos = data.indexOf("success");
 				if (dataPos != '-1') {
-					alert('Data Final SI Updated!');
+					swal('Berhasil!', 'Data Final SI Updated!', 'success');
                     refreshdata();
                     $('#divlistOpportunity').html('');
 				} else {
-					alert('Final SI Failed to Update!');
+					swal('Error', 'Final SI Failed to Update!', 'error');
 				}
 			},
 			error: function(jqXHR, textStatus, errorThrown) {
 				if (jqXHR.responseJSON && jqXHR.responseJSON.errors) {
-					alert(Object.values(jqXHR.responseJSON.errors).flat().join('\n'));
+					swal('Perhatian', Object.values(jqXHR.responseJSON.errors).flat().join('\n'), 'warning');
 				} else if (jqXHR.responseJSON && jqXHR.responseJSON.message) {
-					alert(jqXHR.responseJSON.message);
+					swal('Error', jqXHR.responseJSON.message, 'error');
 				} else {
-					alert("Error Internal! Please Try again!");
+					swal('Error', 'Error Internal! Please Try again!', 'error');
 				}
 			}
 		});
@@ -379,9 +385,9 @@ $notifyAddr = !empty($shipment->Notify_Address) ? $shipment->Notify_Address : ($
 			if ((type == "checkbox" || type == "radio") && this.checked) {
 				inputValues.push($(this).attr("name") + "=" + $(this).val());
 			} else if (type != "button" && type != "submit" && type != "radio" && type != "checkbox") {
-				inputValues.push($(this).attr("id") + "=" + $(this).val());
+				inputValues.push($(this).attr("id") + "=" + encodeURIComponent($(this).val() ?? ''));
 			} else if ($(this).is("textarea")) {
-				inputValues.push($(this).attr("id") + "=" + $(this).val());
+				inputValues.push($(this).attr("id") + "=" + encodeURIComponent($(this).val() ?? ''));
 			}
 		})
 		return inputValues.join('&');

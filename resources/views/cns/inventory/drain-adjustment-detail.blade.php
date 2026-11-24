@@ -1,18 +1,18 @@
-<div class="ml-2">
-    <div class="JudulContent" style="color:#699;">DETAIL DRAIN ADJUSTMENT: {{ $adjustment->adjustment_code }}</div>
-    <div class="card">
-        <div class="card-body pt-2">
+<div class="mt-3">
+    <div class="cns-section-header">DETAIL DRAIN ADJUSTMENT: {{ $adjustment->adjustment_code }}</div>
+    <div class="card cns-card">
+        <div class="card-body pt-3">
             <div class="d-flex justify-content-between align-items-center mb-3 p-2 bg-light border rounded">
                 <div>
                     <strong>Status: </strong>
                     @if($adjustment->approval_status === 'APPROVED')
-                        <span class="badge badge-success px-2 py-1" style="font-size:13px;">APPROVED</span>
+                        <span class="badge rounded-pill cns-status-badge bg-success">APPROVED</span>
                         <span class="text-muted ml-2 small">Oleh: {{ $adjustment->approved_by }} ({{ $adjustment->approved_at ? $adjustment->approved_at->format('d/m/Y H:i') : '-' }})</span>
                     @elseif($adjustment->approval_status === 'REJECTED')
                         <span class="badge badge-danger px-2 py-1" style="font-size:13px;">REJECTED</span>
                         <span class="text-muted ml-2 small">Oleh: {{ $adjustment->approved_by }} ({{ $adjustment->approved_at ? $adjustment->approved_at->format('d/m/Y H:i') : '-' }})</span>
                     @else
-                        <span class="badge badge-warning px-2 py-1" style="font-size:13px;">PENDING APPROVAL</span>
+                        <span class="badge rounded-pill cns-status-badge bg-warning text-dark">PENDING APPROVAL</span>
                         <span class="text-muted ml-2 small">Menunggu persetujuan Supervisor / Manager</span>
                     @endif
                 </div>
@@ -232,53 +232,72 @@
             contentType: false,
             headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
             success: function(res) {
-                alert(res.message || 'Drain Adjustment berhasil diperbarui.');
-                $('#DrainAdjustmentDet').empty();
-                refreshDrainAdjData();
+                swal('Berhasil!', res.message || 'Drain Adjustment berhasil diperbarui.', 'success').then(function () {
+                    $('#DrainAdjustmentDet').empty();
+                    refreshDrainAdjData();
+                });
             },
             error: function(xhr) {
                 var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Gagal memperbarui data.';
-                alert(msg);
+                swal('Error', msg, 'error');
                 $('#btnUpdateDrainAdjustment').prop('disabled', false).html('Simpan Perubahan');
             }
         });
     }
 
     function deleteDrainAdjustment(id) {
-        if (!confirm('Apakah Anda yakin ingin menghapus data Drain Adjustment ini?')) return;
+        swal({
+            title: 'Konfirmasi',
+            text: 'Apakah Anda yakin ingin menghapus data Drain Adjustment ini?',
+            icon: 'warning',
+            buttons: ['Batal', 'Ya'],
+            dangerMode: true
+        }).then(function (confirmed) {
+            if (!confirmed) return;
 
-        $.ajax({
-            url: 'cns-drain-adjustment-delete/' + id,
-            type: 'POST',
-            headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
-            success: function(res) {
-                alert(res.message || 'Data berhasil dihapus.');
-                $('#DrainAdjustmentDet').empty();
-                refreshDrainAdjData();
-            },
-            error: function(xhr) {
-                var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Gagal menghapus data.';
-                alert(msg);
-            }
+            $.ajax({
+                url: 'cns-drain-adjustment-delete/' + id,
+                type: 'POST',
+                headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
+                success: function(res) {
+                    swal('Berhasil!', res.message || 'Data berhasil dihapus.', 'success').then(function () {
+                        $('#DrainAdjustmentDet').empty();
+                        refreshDrainAdjData();
+                    });
+                },
+                error: function(xhr) {
+                    var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Gagal menghapus data.';
+                    swal('Error', msg, 'error');
+                }
+            });
         });
     }
 
     function approveDrainAdjustment(id) {
-        if (!confirm('Approve Drain Adjustment ini? Setelah di-approve, saldo sistem tangki akan otomatis disesuaikan sesuai Qty Timbang.')) return;
+        swal({
+            title: 'Konfirmasi',
+            text: 'Approve Drain Adjustment ini? Setelah di-approve, saldo sistem tangki akan otomatis disesuaikan sesuai Qty Timbang.',
+            icon: 'warning',
+            buttons: ['Batal', 'Ya'],
+            dangerMode: false
+        }).then(function (confirmed) {
+            if (!confirmed) return;
 
-        $.ajax({
-            url: 'cns-drain-adjustment-approve/' + id,
-            type: 'POST',
-            headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
-            success: function(res) {
-                alert(res.message || 'Drain Adjustment berhasil di-approve.');
-                LoadM('DrainAdjustmentDet', 'cns-drain-adjustment-detail?ID=' + id);
-                refreshDrainAdjData();
-            },
-            error: function(xhr) {
-                var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Gagal approve Drain Adjustment.';
-                alert(msg);
-            }
+            $.ajax({
+                url: 'cns-drain-adjustment-approve/' + id,
+                type: 'POST',
+                headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
+                success: function(res) {
+                    swal('Berhasil!', res.message || 'Drain Adjustment berhasil di-approve.', 'success').then(function () {
+                        LoadM('DrainAdjustmentDet', 'cns-drain-adjustment-detail?ID=' + id);
+                        refreshDrainAdjData();
+                    });
+                },
+                error: function(xhr) {
+                    var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Gagal approve Drain Adjustment.';
+                    swal('Error', msg, 'error');
+                }
+            });
         });
     }
 
@@ -287,7 +306,7 @@
         if (reason === null) return;
         reason = $.trim(reason);
         if (!reason) {
-            alert('Alasan penolakan wajib diisi.');
+            swal('Perhatian', 'Alasan penolakan wajib diisi.', 'warning');
             return;
         }
 
@@ -297,13 +316,14 @@
             data: { reason: reason },
             headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
             success: function(res) {
-                alert(res.message || 'Drain Adjustment ditolak.');
-                LoadM('DrainAdjustmentDet', 'cns-drain-adjustment-detail?ID=' + id);
-                refreshDrainAdjData();
+                swal('Berhasil!', res.message || 'Drain Adjustment ditolak.', 'success').then(function () {
+                    LoadM('DrainAdjustmentDet', 'cns-drain-adjustment-detail?ID=' + id);
+                    refreshDrainAdjData();
+                });
             },
             error: function(xhr) {
                 var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Gagal menolak Drain Adjustment.';
-                alert(msg);
+                swal('Error', msg, 'error');
             }
         });
     }

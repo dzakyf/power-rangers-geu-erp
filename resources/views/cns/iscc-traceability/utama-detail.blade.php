@@ -3,40 +3,48 @@
 	.frag-row.selected { background-color: #d9edf7 !important; }
 </style>
 <div class="mt-3">
-	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">TRACEABILITY DETAIL</div>
-	<div class="card">
+	<div class="card cns-card">
+		<div class="card-header">
+			<h5 class="card-title">Traceability Detail</h5>
+			<div class="d-flex flex-wrap" style="gap: 8px;">
+				<button type="button" id="editDetailBtn" class="btn btn-warning btn-sm" onclick="editSelectedDetail()" disabled>
+					<i class="fa fa-edit"></i> Edit Data
+				</button>
+				<button type="button" id="printDetailBtn" class="btn btn-info btn-sm" onclick="printSelectedDetail()" disabled>
+					<i class="fa fa-print"></i> Print Doc
+				</button>
+			</div>
+		</div>
 		<div class="card-body">
-			<table id="deliveryFragTable" class="table table-striped table-bordered" style="width:100%">
-				<thead>
-										<tr>
-						<th>No</th>
-						<th>Source</th>
-						<th>POO Name</th>
-						<th>Type</th>
-						<th>Site</th>
-						<th>City</th>
-						<th>Province</th>
-						<th>Plat Nomor</th>
-						<th>Driver Name</th>
-						<th>Qty (Kg)</th>
-						<th>Unit</th>
-						<th>Price</th>
-						<th>Total Price</th>
-						<th>WO Code</th>
-						<th>WO Date</th>
-						<th>WO Status</th>
-						<th>PO Code</th>
-						<th>PO Date</th>
-						<th>PO Status</th>
-						<th>Surat Jalan Code</th>
-						<th>Surat Jalan Date</th>
-						<th>Surat Jalan Status</th>
-					</tr>
-				</thead>
-			</table>
-			<div class="mt-2">
-				<button type="button" id="editDetailBtn" class="btn btn-warning mr-2" onclick="editSelectedDetail()" disabled>Edit Data</button>
-				<button type="button" id="printDetailBtn" class="btn btn-info" onclick="printSelectedDetail()" disabled>Print Doc</button>
+			<div class="table-responsive">
+				<table id="deliveryFragTable" class="table table-striped table-bordered" style="width:100%">
+					<thead>
+						<tr>
+							<th>No</th>
+							<th>Source</th>
+							<th>POO Name</th>
+							<th>Type</th>
+							<th>Site</th>
+							<th>City</th>
+							<th>Province</th>
+							<th>Plat Nomor</th>
+							<th>Driver Name</th>
+							<th>Qty (Kg)</th>
+							<th>Unit</th>
+							<th>Price</th>
+							<th>Total Price</th>
+							<th>WO Code</th>
+							<th>WO Date</th>
+							<th>WO Status</th>
+							<th>PO Code</th>
+							<th>PO Date</th>
+							<th>PO Status</th>
+							<th>Surat Jalan Code</th>
+							<th>Surat Jalan Date</th>
+							<th>Surat Jalan Status</th>
+						</tr>
+					</thead>
+				</table>
 			</div>
 		</div>
 	</div>

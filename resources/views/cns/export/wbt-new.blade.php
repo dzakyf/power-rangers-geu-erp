@@ -52,8 +52,8 @@ $Saya =  Auth::user()->username;
 
 ?>
 <div class="mt-3">
-	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">WEIGHT BRIDGE TICKET</div>
-	<div class="card">
+	<div class="cns-section-header">WEIGHT BRIDGE TICKET</div>
+	<div class="card cns-card">
 		<div class="card-body">
 			<div id="ContentPages">
 				<form action="cns-export-weight-bridge-ticket-new-submit" enctype="multipart/form-data" class="FormInput_Form_Content" id="formWBT">
@@ -90,7 +90,13 @@ $Saya =  Auth::user()->username;
 						</div>
                         <div class="col-12">
                             <div class="row" id="containerList">
-                                <div class="col-12">
+                                <div class="col-md-3 col-12">
+                                    <div class="form-group">
+                                        <label for="Nopol1">Nopol</label>
+                                        <input type="text" id="Nopol1" class="form-control bg-white shadow-sm" value="-" readonly>
+                                    </div>
+                                </div>
+                                <div class="col-md-9 col-12">
                                     <div class="form-group">
                                         <label for="Container1">Container 1</label>
                                         <div class="custom-file mb-3">
@@ -162,15 +168,24 @@ $Saya =  Auth::user()->username;
             },
             success: function(response) {
                 $('#containerList').html('');
-                let counter = 1;
-                let string = "";
-				if(response.length == 0) $.unblockUI();
-				$('#Voyage').val(response.Voyage)
-				$('#BL_No').val(response.BL_No)
+				if (!response || Array.isArray(response) || !response.orderDetails) {
+					$('#Voyage').val('');
+					$('#BL_No').val('');
+					$.unblockUI();
+					return;
+				}
+				$('#Voyage').val(response.Voyage || '');
+				$('#BL_No').val(response.BL_No || '');
 				if (response.orderDetails.length > 0) {
 					response.orderDetails.forEach(function(container, index) {
 						$('#containerList').append(`
-							<div class="col-12">
+							<div class="col-md-3 col-12">
+								<div class="form-group">
+									<label for="Nopol${container.ID}">Nopol</label>
+									<input type="text" id="Nopol${container.ID}" class="form-control bg-white shadow-sm" value="${container.Police_No ? container.Police_No : '-'}" readonly>
+								</div>
+							</div>
+							<div class="col-md-9 col-12">
 								<div class="form-group">
 									<label for="Container${container.ID}">Container ${index + 1} ${container.Container} (${container.Seal})</label>
 									<div class="custom-file mb-3">
@@ -181,11 +196,13 @@ $Saya =  Auth::user()->username;
 							</div>
 						`);
 					});
+				} else {
+					$('#containerList').html('<div class="col-12"><div class="alert alert-warning mb-0">Data kontainer stuffing tidak ditemukan untuk Packing List ini.</div></div>');
 				}
                 $.unblockUI();
             },
             error:function() {
-                alert('Error fetching order details. Please try again.');
+                swal('Error', 'Error fetching order details. Please try again.', 'error');
                 $.unblockUI();
             }
         });
@@ -221,25 +238,25 @@ $Saya =  Auth::user()->username;
 		ids.forEach(ele => {
 			formData.append(ele, $('#' + ele)[0].files[0]);
 			if ($('#' + ele)[0].files[0] && !isValidImage($('#' + ele)[0].files[0])) {
-				dhtmlx.alert('File Kop Surat harus jpg, jpeg, atau png');
+				swal('Perhatian', 'File Kop Surat harus jpg, jpeg, atau png', 'warning');
 			}
 		});
 
 		// formData.append('Footer', $('#Footer')[0].files[0]);
 		// if ($('#Footer')[0].files[0] && !isValidImage($('#Footer')[0].files[0])) {
-		// 	dhtmlx.alert('File Footer harus jpg, jpeg, atau png');
+		// 	swal('Perhatian', 'File Footer harus jpg, jpeg, atau png', 'warning');
 		// }
 		// formData.append('Logo', $('#Logo')[0].files[0]);
 		// if ($('#Logo')[0].files[0] && !isValidImage($('#Logo')[0].files[0])) {
-		// 	dhtmlx.alert('File Logo harus jpg, jpeg, atau png');
+		// 	swal('Perhatian', 'File Logo harus jpg, jpeg, atau png', 'warning');
 		// }
 		// formData.append('Logo_Inverse', $('#Logo_Inverse')[0].files[0]);
 		// if ($('#Logo_Inverse')[0].files[0] && !isValidImage($('#Logo_Inverse')[0].files[0])) {
-		// 	dhtmlx.alert('File Logo Inverse harus jpg, jpeg, atau png');
+		// 	swal('Perhatian', 'File Logo Inverse harus jpg, jpeg, atau png', 'warning');
 		// }
 		// formData.append('Stamps', $('#Stamps')[0].files[0]);
 		// if ($('#Stamps')[0].files[0] && !isValidImage($('#Stamps')[0].files[0])) {
-		// 	dhtmlx.alert('File Stamps harus jpg, jpeg, atau png');
+		// 	swal('Perhatian', 'File Stamps harus jpg, jpeg, atau png', 'warning');
 		// }
 
 		$.ajax({
@@ -256,17 +273,17 @@ $Saya =  Auth::user()->username;
 				var dataPos = data.indexOf("success");
 				if (dataPos != '-1') {
 					var cariAWB = data.split(":");
-					alert('Data Weight Bridge Ticket Submitted!');
+					swal('Berhasil!', 'Data Weight Bridge Ticket Submitted!', 'success');
 					setTimeout(() => {
 						refreshdata();
 						$('#divlistOpportunity').html('')
 					}, 200);
 				} else {
-					alert('Weight Bridge Ticket Failed to Submit!');
+					swal('Error', 'Weight Bridge Ticket Failed to Submit!', 'error');
 				}
 			},
 			error: function(jqXHR, textStatus, errorThrown) {
-				alert("Error Internal! Please Try again!");
+				swal('Error', 'Error Internal! Please Try again!', 'error');
 
 			}
 		});

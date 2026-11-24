@@ -44,9 +44,9 @@
 @endphp
 
 <div class="mt-3">
-    <div class="JudulContent" style="color:#699;">{{ $isEdit ? 'DETAIL COMPANY' : 'NEW COMPANY' }}</div>
-    <div class="card">
-        <div class="card-body pt-2">
+    <div class="cns-section-header">{{ $isEdit ? 'DETAIL COMPANY' : 'NEW COMPANY' }}</div>
+    <div class="card cns-card">
+        <div class="card-body pt-3">
             <p class="text-muted mb-3">{{ $isEdit ? 'Perbarui data company di bawah ini.' : 'Isi form berikut untuk membuat company baru.' }}</p>
 
             <div id="ContentPages">

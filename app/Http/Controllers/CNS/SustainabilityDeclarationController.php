@@ -4,6 +4,8 @@ namespace App\Http\Controllers\CNS;
 
 use App\SustainabilityDeclaration;
 use App\Http\Controllers\Controller;
+use App\Services\CNS\CnsCodeGenerator;
+use App\Support\DhtmlxGridPagination;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -14,42 +16,52 @@ class SustainabilityDeclarationController extends Controller
         return view('cns.export.sd');
     }
 
-    public function indexSustainabilityDeclarationXml()
+    public function indexSustainabilityDeclarationXml(Request $request)
     {
-        if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
-            header("Content-type: application/xhtml+xml");
-        } else {
-            header("Content-type: text/xml");
-        }
-        echo ("<?xml version='1.0' encoding='iso-8859-1'?>\n");
-
-        echo "<rows>";
-
         $company = DB::table('supplier')->where("Location", auth()->user()->Location)->get();
+        $companies = [];
         foreach ($company as $value) {
             $companies[$value->Supplier_ID] = $value->Company_Name;
         }
 
-        $nomor = 1;
-        $sds = SustainabilityDeclaration::get();
-        foreach ($sds as $value) {
+        $query = SustainabilityDeclaration::query();
+
+        $colMap = [
+            1 => 'SD_No',
+            2 => 'Issue_Date',
+            4 => 'Contract_No',
+            5 => 'Dispatch_Date',
+            6 => 'Quantity',
+            7 => 'Country_Of_Origin',
+            8 => 'Status',
+        ];
+
+        $paginated = DhtmlxGridPagination::paginateQuery($query, $request, [
+            'col_map' => $colMap,
+            'default_page_size' => 25,
+        ]);
+
+        $bodyXml = '';
+        $nomor = $paginated['posStart'] + 1;
+
+        foreach ($paginated['rows'] as $value) {
             $consigneeName = $companies[$value->Consignee] ?? $value->Consignee;
-            echo "<row id=\"$value->ID\">";
-                echo "<cell>$nomor</cell>";
-                echo "<cell>".htmlspecialchars($value->SD_No)."</cell>";
-                echo "<cell>".htmlspecialchars($value->Issue_Date)."</cell>";
-                echo "<cell>".htmlspecialchars($consigneeName)."</cell>";
-                echo "<cell>".htmlspecialchars($value->Contract_No)."</cell>";
-                echo "<cell>".htmlspecialchars($value->Dispatch_Date)."</cell>";
-                echo "<cell>".htmlspecialchars($value->Quantity)."</cell>";
-                echo "<cell>".htmlspecialchars($value->Country_Of_Origin)."</cell>";
-                echo "<cell>".htmlspecialchars($value->Status)."</cell>";
-            echo "</row>";
+            $bodyXml .= "<row id=\"$value->ID\">";
+            $bodyXml .= "<cell>$nomor</cell>";
+            $bodyXml .= "<cell>".htmlspecialchars($value->SD_No)."</cell>";
+            $bodyXml .= "<cell>".htmlspecialchars($value->Issue_Date)."</cell>";
+            $bodyXml .= "<cell>".htmlspecialchars($consigneeName)."</cell>";
+            $bodyXml .= "<cell>".htmlspecialchars($value->Contract_No)."</cell>";
+            $bodyXml .= "<cell>".htmlspecialchars($value->Dispatch_Date)."</cell>";
+            $bodyXml .= "<cell>".htmlspecialchars($value->Quantity)."</cell>";
+            $bodyXml .= "<cell>".htmlspecialchars($value->Country_Of_Origin)."</cell>";
+            $bodyXml .= "<cell>".htmlspecialchars($value->Status)."</cell>";
+            $bodyXml .= "</row>\n";
 
             $nomor++;
         }
 
-        echo "</rows>";
+        return DhtmlxGridPagination::response($paginated['total'], $paginated['posStart'], $bodyXml);
     }
 
     public function printSustainabilityDeclaration(Request $request)
@@ -65,9 +77,7 @@ class SustainabilityDeclarationController extends Controller
     public function newSustainabilityDeclaration()
     {
         $companies = DB::table('supplier')->where("Location", auth()->user()->Location)->get();
-
-        $counter   = SustainabilityDeclaration::whereYear('Issue_Date', date('Y'))->count();
-        $SdNo      = date('Y') . sprintf('%04d', $counter + 1) . date('Ymd');
+        $SdNo      = CnsCodeGenerator::nextSdNo();
 
         return view('cns.export.sd-new', compact('companies', 'SdNo'));
     }
@@ -92,7 +102,10 @@ class SustainabilityDeclarationController extends Controller
         $r['Created_Date'] = now();
         $r['Status']       = 'CREATED';
 
-        SustainabilityDeclaration::create($r);
+        DB::transaction(function () use ($r) {
+            $r['SD_No'] = CnsCodeGenerator::nextSdNo($r['Issue_Date'] ?? null, true);
+            SustainabilityDeclaration::create($r);
+        });
 
         echo "success";
     }

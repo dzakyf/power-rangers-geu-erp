@@ -6,6 +6,7 @@ use App\CnsMasterKemasan;
 use App\Http\Controllers\Controller;
 use App\SalesOrderCNS;
 use App\SalesOrderCNSDtl;
+use App\Services\CNS\CnsCodeGenerator;
 use App\SludgeMovement;
 use App\TankDraining;
 use Illuminate\Http\Request;
@@ -36,13 +37,101 @@ class SalesOrderController extends Controller
             echo "<cell>" . ($key + 1) . "</cell>";
             echo "<cell>" . htmlspecialchars($order->so_date) . "</cell>";
             echo "<cell>" . htmlspecialchars($order->so_no) . "</cell>";
+            echo "<cell>" . htmlspecialchars($order->surat_jalan_no ?? '-') . "</cell>";
             echo "<cell>" . htmlspecialchars($order->site) . "</cell>";
             echo "<cell>" . htmlspecialchars($order->payment_term) . "</cell>";
-            echo "<cell>" . htmlspecialchars($order->status ?: 'PENDING') . "</cell>";
+            echo "<cell><![CDATA[" . $this->formatStatusStepperHtml($order) . "]]></cell>";
+            echo "<cell>" . htmlspecialchars($this->formatStatusLabel($order->status)) . "</cell>";
             echo "</row>";
         }
 
         echo "</rows>";
+    }
+
+    protected function formatStatusLabel(?string $status): string
+    {
+        $normalized = strtoupper((string) ($status ?: 'PENDING'));
+        $map = [
+            'PENDING'         => 'Menunggu approve gudang',
+            'APPROVED_GUDANG' => 'Menunggu ttd buyer',
+            'SIGNED_BUYER'    => 'Menunggu final approve manager',
+            'APPROVED'        => 'APPROVED',
+            'REJECTED'        => 'REJECTED',
+        ];
+
+        return $map[$normalized] ?? $normalized;
+    }
+
+    protected function formatStatusStepperHtml(SalesOrderCNS $order): string
+    {
+        $status = strtoupper((string) ($order->status ?: 'PENDING'));
+        $isRejected = $status === 'REJECTED';
+
+        $doneCount = 0;
+        if ($status === 'APPROVED_GUDANG') {
+            $doneCount = 1;
+        } elseif ($status === 'SIGNED_BUYER') {
+            $doneCount = 2;
+        } elseif ($status === 'APPROVED') {
+            $doneCount = 4;
+        } elseif ($isRejected) {
+            if (!empty($order->buyer_signed_date)) {
+                $doneCount = 2;
+            } elseif (!empty($order->gudang_approved_date)) {
+                $doneCount = 1;
+            }
+        }
+
+        $nodes = [
+            ['code' => 'GD', 'title' => 'Kepala Gudang'],
+            ['code' => 'BY', 'title' => 'TTD Buyer'],
+            ['code' => 'MG', 'title' => 'Manager CNS'],
+            ['code' => 'OK', 'title' => 'Final & Surat Jalan'],
+        ];
+
+        $stepsHtml = '';
+        foreach ($nodes as $idx => $node) {
+            $stepNum = $idx + 1;
+            if ($idx > 0) {
+                $lineColor = $stepNum <= $doneCount ? '#0d6efd' : '#d1d5db';
+                $stepsHtml .= "<span style=\"display:inline-block;width:14px;height:2px;background:{$lineColor};flex-shrink:0;\"></span>";
+            }
+
+            $isDone = $stepNum <= $doneCount;
+            $isFail = $isRejected && $stepNum === ($doneCount + 1);
+            $isActive = !$isRejected && $stepNum === ($doneCount + 1);
+
+            if ($isDone) {
+                $bg = '#dceeff';
+                $border = '#90caf9';
+                $color = '#0d6efd';
+                $icon = $stepNum === 4 ? '&#9873;' : '&#10003;';
+            } elseif ($isFail) {
+                $bg = '#fde8e8';
+                $border = '#f8b4b4';
+                $color = '#dc2626';
+                $icon = '&#10005;';
+            } elseif ($isActive) {
+                $bg = '#fff8e1';
+                $border = '#ffe082';
+                $color = '#b7791f';
+                $icon = '&#9679;';
+            } else {
+                $bg = '#f3f4f6';
+                $border = '#d1d5db';
+                $color = '#9ca3af';
+                $icon = $stepNum === 4 ? '&#9873;' : '&#9675;';
+            }
+
+            $stepsHtml .= "<span title=\"{$node['title']}\" style=\"display:inline-flex;flex-direction:column;align-items:center;justify-content:center;min-width:26px;padding:2px 4px;border-radius:5px;background:{$bg};border:1px solid {$border};color:{$color};line-height:1.05;\">"
+                . "<span style=\"font-size:9px;font-weight:700;\">{$icon}</span>"
+                . "<span style=\"font-size:9px;font-weight:700;letter-spacing:0.3px;\">{$node['code']}</span>"
+                . "</span>";
+        }
+
+        $safeStatus = htmlspecialchars($status);
+
+        return "<div class=\"so-mini-stepper\" data-status=\"{$safeStatus}\" style=\"display:inline-flex;align-items:center;justify-content:center;gap:0;white-space:nowrap;\">{$stepsHtml}</div>";
     }
 
     protected function getKemasanOptions()
@@ -513,8 +602,9 @@ class SalesOrderController extends Controller
             ? SalesOrderCNS::findOrFail($request->soId)
             : SalesOrderCNS::where('so_no', $request->soCode)->firstOrFail();
 
-        if (strtoupper((string) ($salesOrder->status ?? '')) === 'APPROVED') {
-            return response('Sales Order yang sudah di-approve tidak dapat diubah.', 422);
+        $currentStatus = strtoupper((string) ($salesOrder->status ?: 'PENDING'));
+        if ($currentStatus !== 'PENDING') {
+            return response('Sales Order hanya dapat diubah saat status PENDING.', 422);
         }
 
         $oldSoNo = $salesOrder->so_no;
@@ -577,16 +667,102 @@ class SalesOrderController extends Controller
         ]);
     }
 
+    public function approveGudang(Request $request, $id)
+    {
+        $so = SalesOrderCNS::findOrFail($id);
+        $status = strtoupper((string) ($so->status ?: 'PENDING'));
+
+        if ($status === 'REJECTED') {
+            return response()->json(['status' => 'error', 'message' => 'Sales Order yang sudah di-reject tidak dapat di-approve.'], 400);
+        }
+        if ($status !== 'PENDING') {
+            return response()->json(['status' => 'error', 'message' => 'Sales Order ini sudah melewati tahap approval Kepala Gudang.'], 400);
+        }
+
+        if (SalesOrderCNSDtl::where('so_no', $so->so_no)->count() === 0) {
+            return response()->json(['status' => 'error', 'message' => 'Detail Sales Order kosong.'], 400);
+        }
+
+        $actor = auth()->check() ? auth()->user()->username : 'admin';
+        $so->update([
+            'status'               => 'APPROVED_GUDANG',
+            'gudang_approved_by'   => $actor,
+            'gudang_approved_date' => now(),
+        ]);
+
+        return response()->json([
+            'status'  => 'success',
+            'message' => 'Approval Kepala Gudang berhasil. Lanjut ke TTD Buyer.',
+        ]);
+    }
+
+    public function approveBuyer(Request $request, $id)
+    {
+        $so = SalesOrderCNS::findOrFail($id);
+        $status = strtoupper((string) ($so->status ?: 'PENDING'));
+
+        if ($status === 'REJECTED') {
+            return response()->json(['status' => 'error', 'message' => 'Sales Order yang sudah di-reject tidak dapat ditandatangani.'], 400);
+        }
+        if ($status === 'PENDING') {
+            return response()->json(['status' => 'error', 'message' => 'Harus di-approve oleh Kepala Gudang terlebih dahulu.'], 422);
+        }
+        if ($status !== 'APPROVED_GUDANG') {
+            return response()->json(['status' => 'error', 'message' => 'Sales Order ini sudah memiliki TTD Buyer.'], 400);
+        }
+
+        $signatureData = (string) $request->input('signature', '');
+        if (!preg_match('/^data:image\/png;base64,(.+)$/', $signatureData, $matches)) {
+            return response()->json(['status' => 'error', 'message' => 'Format tanda tangan tidak valid.'], 422);
+        }
+
+        $decoded = base64_decode($matches[1], true);
+        if ($decoded === false || strlen($decoded) < 100) {
+            return response()->json(['status' => 'error', 'message' => 'Tanda tangan kosong atau rusak.'], 422);
+        }
+
+        $dir = public_path('uploads/so-signatures');
+        if (!is_dir($dir)) {
+            mkdir($dir, 0755, true);
+        }
+
+        $filename = 'so_' . $so->id . '_' . time() . '.png';
+        file_put_contents($dir . '/' . $filename, $decoded);
+
+        $actor = auth()->check() ? auth()->user()->username : 'admin';
+        $signerName = trim((string) $request->input('buyer_signed_by', ''));
+        if ($signerName === '') {
+            $signerName = (string) ($so->buyer_pic ?: $actor);
+        }
+
+        $so->update([
+            'status'               => 'SIGNED_BUYER',
+            'buyer_signed_by'      => $signerName,
+            'buyer_signed_date'    => now(),
+            'buyer_signature_path' => 'uploads/so-signatures/' . $filename,
+        ]);
+
+        return response()->json([
+            'status'  => 'success',
+            'message' => 'TTD Buyer berhasil disimpan. Lanjut ke Final Approve Manager CNS.',
+        ]);
+    }
+
     public function approveSalesOrder(Request $request, $id)
     {
         $so = SalesOrderCNS::findOrFail($id);
+        $status = strtoupper((string) ($so->status ?: 'PENDING'));
 
-        if (strtoupper((string) $so->status) === 'APPROVED') {
+        if ($status === 'APPROVED') {
             return response()->json(['status' => 'error', 'message' => 'Sales Order ini sudah di-approve sebelumnya.'], 400);
         }
 
-        if (strtoupper((string) $so->status) === 'REJECTED') {
+        if ($status === 'REJECTED') {
             return response()->json(['status' => 'error', 'message' => 'Sales Order yang sudah di-reject tidak dapat di-approve.'], 400);
+        }
+
+        if ($status !== 'SIGNED_BUYER') {
+            return response()->json(['status' => 'error', 'message' => 'Harus menyelesaikan Approval Kepala Gudang dan TTD Buyer terlebih dahulu.'], 422);
         }
 
         $details = SalesOrderCNSDtl::where('so_no', $so->so_no)->get();
@@ -603,83 +779,125 @@ class SalesOrderController extends Controller
                 : (strpos($productRef, 'M:') === 0 ? (int) substr($productRef, 2) : null);
             $drainingId = !empty($so->draining_id) ? (int) $so->draining_id : (is_numeric($productRef) ? (int) $productRef : null);
             $sludgeQty = (float) $details->sum('qty');
-            if ($error = $this->validateSludgeOrder($drainingId ?: null, $sludgeQty, (int) $so->id, $movementId ?: null)) {
-                return response()->json(['status' => 'error', 'message' => $error], 422);
-            }
 
             $actor = auth()->check() ? auth()->user()->username : 'admin';
-            $this->markSalesOrderApproved($so, $actor);
+            $sjNo = null;
 
-            return response()->json(['status' => 'success', 'message' => 'Sales Order Sludge berhasil di-approve.']);
+            try {
+                DB::transaction(function () use ($so, $drainingId, $sludgeQty, $movementId, $actor, &$sjNo) {
+                    $lockedSo = SalesOrderCNS::where('id', $so->id)->lockForUpdate()->firstOrFail();
+                    if (strtoupper((string) ($lockedSo->status ?: '')) === 'APPROVED') {
+                        throw new \DomainException('Sales Order ini sudah di-approve sebelumnya.');
+                    }
+
+                    if ($error = $this->validateSludgeOrder($drainingId ?: null, $sludgeQty, (int) $lockedSo->id, $movementId ?: null)) {
+                        throw new \InvalidArgumentException($error);
+                    }
+
+                    $sjNo = $this->markSalesOrderApproved($lockedSo, $actor);
+                });
+            } catch (\InvalidArgumentException $e) {
+                return response()->json(['status' => 'error', 'message' => $e->getMessage()], 422);
+            } catch (\DomainException $e) {
+                return response()->json(['status' => 'error', 'message' => $e->getMessage()], 400);
+            }
+
+            return response()->json([
+                'status'         => 'success',
+                'message'        => 'Sales Order Sludge berhasil di-approve. Surat Jalan ' . $sjNo . ' dibuat.',
+                'surat_jalan_no' => $sjNo,
+                'print_sj_url'   => url('cns-sales-order-surat-jalan-print?task=' . $so->id),
+            ]);
         }
 
         $inventoryService = app(\App\Services\CNS\KemasanInventoryService::class);
         $siteId = $so->site_id ? (int) $so->site_id : $this->resolveSiteIdByName($so->site);
         $siteName = (string) ($so->site ?: ($siteId ? ($inventoryService::getSites()[$siteId] ?? '') : ''));
-
-        foreach ($details as $dtl) {
-            $qty = (float) $dtl->qty;
-            if ($qty <= 0) {
-                continue;
-            }
-
-            $packagingId = !empty($dtl->product_code) ? (int) $dtl->product_code : null;
-            if (!$packagingId) {
-                $kemasan = $this->findKemasanByDescription($dtl->description);
-                $packagingId = $kemasan ? (int) $kemasan->Kemasan_ID : null;
-            }
-
-            $availableStock = $inventoryService->getAvailableSaleBalance($dtl->description, $packagingId, $siteId);
-            if ($qty > $availableStock) {
-                return response()->json([
-                    'status'  => 'error',
-                    'message' => "Stok kemasan '{$dtl->description}' tidak mencukupi di site {$siteName}. Tersedia: {$availableStock}, Diminta: {$qty}",
-                ], 422);
-            }
-        }
-
         $actor = auth()->check() ? auth()->user()->username : 'admin';
 
-        DB::transaction(function () use ($so, $details, $inventoryService, $siteId, $siteName, $actor) {
-            foreach ($details as $dtl) {
-                $qty = (float) $dtl->qty;
-                if ($qty <= 0) {
-                    continue;
+        $sjNo = null;
+        try {
+            DB::transaction(function () use ($so, $details, $inventoryService, $siteId, $siteName, $actor, &$sjNo) {
+                $lockedSo = SalesOrderCNS::where('id', $so->id)->lockForUpdate()->firstOrFail();
+                if (strtoupper((string) ($lockedSo->status ?: '')) === 'APPROVED') {
+                    throw new \DomainException('Sales Order ini sudah di-approve sebelumnya.');
                 }
 
-                $packagingId = !empty($dtl->product_code) ? (int) $dtl->product_code : null;
-                $kemasan = $packagingId ? CnsMasterKemasan::find($packagingId) : $this->findKemasanByDescription($dtl->description);
-                if (!$packagingId && $kemasan) {
-                    $packagingId = (int) $kemasan->Kemasan_ID;
+                foreach ($details as $dtl) {
+                    $qty = (float) $dtl->qty;
+                    if ($qty <= 0) {
+                        continue;
+                    }
+
+                    $packagingId = !empty($dtl->product_code) ? (int) $dtl->product_code : null;
+                    if (!$packagingId) {
+                        $kemasan = $this->findKemasanByDescription($dtl->description);
+                        $packagingId = $kemasan ? (int) $kemasan->Kemasan_ID : null;
+                    }
+
+                    $availableStock = $inventoryService->getAvailableSaleBalance($dtl->description, $packagingId, $siteId);
+                    if ($qty > $availableStock) {
+                        throw new \InvalidArgumentException("Stok kemasan '{$dtl->description}' tidak mencukupi di site {$siteName}. Tersedia: {$availableStock}, Diminta: {$qty}");
+                    }
                 }
 
-                $unit = $dtl->unit ?: ($kemasan ? $kemasan->Unit : 'Pcs');
+                foreach ($details as $dtl) {
+                    $qty = (float) $dtl->qty;
+                    if ($qty <= 0) {
+                        continue;
+                    }
 
-                $inventoryService->recordStockMutation(
-                    $dtl->description,
-                    $unit ?: 'Pcs',
-                    'OUT',
-                    $qty,
-                    $so->so_no,
-                    'Sales Order Approval',
-                    $actor,
-                    $packagingId,
-                    null,
-                    date('Y-m-d'),
-                    'PENJUALAN',
-                    $siteId,
-                    $siteName
-                );
-            }
+                    $packagingId = !empty($dtl->product_code) ? (int) $dtl->product_code : null;
+                    $kemasan = $packagingId ? CnsMasterKemasan::find($packagingId) : $this->findKemasanByDescription($dtl->description);
+                    if (!$packagingId && $kemasan) {
+                        $packagingId = (int) $kemasan->Kemasan_ID;
+                    }
 
-            $this->markSalesOrderApproved($so, $actor);
-        });
+                    $unit = $dtl->unit ?: ($kemasan ? $kemasan->Unit : 'Pcs');
 
-        return response()->json(['status' => 'success', 'message' => 'Sales Order berhasil di-approve dan stok telah dipotong.']);
+                    $inventoryService->recordStockMutation(
+                        $dtl->description,
+                        $unit ?: 'Pcs',
+                        'OUT',
+                        $qty,
+                        $lockedSo->so_no,
+                        'Sales Order Approval',
+                        $actor,
+                        $packagingId,
+                        null,
+                        date('Y-m-d'),
+                        'PENJUALAN',
+                        $siteId,
+                        $siteName
+                    );
+                }
+
+                $sjNo = $this->markSalesOrderApproved($lockedSo, $actor);
+            });
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 422);
+        } catch (\DomainException $e) {
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 400);
+        }
+
+        return response()->json([
+            'status'         => 'success',
+            'message'        => 'Sales Order berhasil di-approve, stok dipotong, dan Surat Jalan ' . $sjNo . ' dibuat.',
+            'surat_jalan_no' => $sjNo,
+            'print_sj_url'   => url('cns-sales-order-surat-jalan-print?task=' . $so->id),
+        ]);
     }
 
-    protected function markSalesOrderApproved(SalesOrderCNS $so, string $actor): void
+    protected function generateSuratJalanNo(bool $lock = false): string
     {
+        return CnsCodeGenerator::nextSuratJalanNo(null, $lock);
+    }
+
+    protected function markSalesOrderApproved(SalesOrderCNS $so, string $actor): string
+    {
+        $sjNo = $so->surat_jalan_no ?: $this->generateSuratJalanNo(true);
+        $sjDate = $so->surat_jalan_date ?: date('Y-m-d');
+
         $updateData = [];
         try {
             if (Schema::hasColumn('sales_order_cns', 'status')) {
@@ -691,24 +909,38 @@ class SalesOrderController extends Controller
             if (Schema::hasColumn('sales_order_cns', 'approved_date')) {
                 $updateData['approved_date'] = now();
             }
+            if (Schema::hasColumn('sales_order_cns', 'surat_jalan_no')) {
+                $updateData['surat_jalan_no'] = $sjNo;
+            }
+            if (Schema::hasColumn('sales_order_cns', 'surat_jalan_date')) {
+                $updateData['surat_jalan_date'] = $sjDate;
+            }
         } catch (\Throwable $e) {
             $updateData = [
-                'status' => 'APPROVED',
-                'approved_by' => $actor,
-                'approved_date' => now(),
+                'status'           => 'APPROVED',
+                'approved_by'      => $actor,
+                'approved_date'    => now(),
+                'surat_jalan_no'   => $sjNo,
+                'surat_jalan_date' => $sjDate,
             ];
         }
         if (!empty($updateData)) {
             $so->update($updateData);
         }
+
+        return $sjNo;
     }
 
     public function rejectSalesOrder(Request $request, $id)
     {
         $so = SalesOrderCNS::findOrFail($id);
+        $status = strtoupper((string) ($so->status ?: 'PENDING'));
 
-        if (strtoupper((string) $so->status) === 'APPROVED') {
+        if ($status === 'APPROVED') {
             return response()->json(['status' => 'error', 'message' => 'Sales Order yang sudah di-approve tidak dapat di-reject.'], 400);
+        }
+        if ($status === 'REJECTED') {
+            return response()->json(['status' => 'error', 'message' => 'Sales Order ini sudah di-reject sebelumnya.'], 400);
         }
 
         $actor = auth()->check() ? auth()->user()->username : 'admin';
@@ -789,9 +1021,23 @@ class SalesOrderController extends Controller
 
     public function printSalesOrder(Request $request)
     {
-        $salesOrder = SalesOrderCNS::where('id', $request->task)->first();
+        $salesOrder = SalesOrderCNS::where('id', $request->task)->firstOrFail();
         $details = SalesOrderCNSDtl::where('so_no', $salesOrder->so_no)->get();
+        $isSuratJalan = false;
 
-        return view('cns.sales.print.input-order', compact('salesOrder', 'details'));
+        return view('cns.sales.print.input-order', compact('salesOrder', 'details', 'isSuratJalan'));
+    }
+
+    public function printSuratJalan(Request $request)
+    {
+        $salesOrder = SalesOrderCNS::where('id', $request->task)->firstOrFail();
+        if (strtoupper((string) $salesOrder->status) !== 'APPROVED') {
+            abort(403, 'Surat Jalan hanya tersedia untuk Sales Order yang sudah Final Approved.');
+        }
+
+        $details = SalesOrderCNSDtl::where('so_no', $salesOrder->so_no)->get();
+        $isSuratJalan = true;
+
+        return view('cns.sales.print.input-order', compact('salesOrder', 'details', 'isSuratJalan'));
     }
 }

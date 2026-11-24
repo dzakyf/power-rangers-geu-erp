@@ -276,7 +276,7 @@
           </tr>
           <tr>
             <td style="font-size:7.5pt;padding:1px 0;">
-              -
+              {!! nl2br(e($shipment->Remarks ?? '')) !!}
             </td>
           </tr>
         </table>
@@ -321,7 +321,11 @@
           <!-- {{ $productTitle }} -->
         </td>
         <td class="td-data" style="border-right:1px solid #000;padding:4px 5px;line-height:1.35;font-size:7pt;font-weight:bold;">
-          REFINED USED COOKING OIL
+          @if (!empty($shipment->Description))
+            {!! nl2br(e($shipment->Description)) !!}
+          @else
+            REFINED USED COOKING OIL
+          @endif
           <!-- INCOTERM: {{ $incotermStr }}<br>
           OCEAN FREIGHT PREPAID<br>
           {{ $qtyCount }} {{ $packageUnit }}<br>

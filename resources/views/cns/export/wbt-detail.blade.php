@@ -52,8 +52,8 @@ $Saya =  Auth::user()->username;
 
 ?>
 <div class="mt-3">
-	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">WEIGHT BRIDGE TICKET</div>
-	<div class="card">
+	<div class="cns-section-header">WEIGHT BRIDGE TICKET</div>
+	<div class="card cns-card">
 		<div class="card-body">
 			<div id="ContentPages">
 				<form action="cns-export-weight-bridge-ticket-detail-submit" enctype="multipart/form-data" class="FormInput_Form_Content" id="formWBT">
@@ -66,7 +66,7 @@ $Saya =  Auth::user()->username;
                                 <select name="Packing_List_No" id="Packing_List_No" class="form-control shadow-sm" required>
                                     <option value="">-- Pilih Packing List No --</option>
                                     @foreach ($pls as $pl)
-                                        <option value="{{ $pl->Packing_List_No }}" {{ $wbt->Packing_List_No == $pl->Packing_List_No ? 'selected' : '' }}>{{ $pl->Packing_List_No }}</option>
+                                        <option value="{{ $pl->Packing_List_No }}" {{ trim((string) $wbt->Packing_List_No) === trim((string) $pl->Packing_List_No) ? 'selected' : '' }}>{{ $pl->Packing_List_No }}</option>
                                     @endforeach
                                 </select>
 							</div>
@@ -92,12 +92,27 @@ $Saya =  Auth::user()->username;
                         <div class="col-12">
                             <div class="row" id="containerList">
 								@foreach ($wbt->Details as $item)
-                                <div class="col-12">
+                                <div class="col-md-3 col-12">
+                                    <div class="form-group">
+                                        <label for="Nopol{{$item->VSD_ID}}">Nopol</label>
+                                        <input type="text" id="Nopol{{$item->VSD_ID}}" class="form-control bg-white shadow-sm" value="{{ $item->Police_No ?: '-' }}" readonly>
+                                    </div>
+                                </div>
+                                <div class="col-md-9 col-12">
                                     <div class="form-group">
                                         <label for="Container{{$item->VSD_ID}}">Container {{ $item->Container }} ({{ $item->Seal }})</label>
-                                        <div class="custom-file mb-3">
-                                            <input type="file" class="custom-file-input" id="Container{{$item->VSD_ID}}" name="Container{{$item->VSD_ID}}" required>
-                                            <label class="custom-file-label shadow-sm" for="Container{{$item->VSD_ID}}">Choose file...</label>
+                                        <div class="input-group mb-3">
+                                            <div class="custom-file">
+                                                <input type="file" class="custom-file-input" id="Container{{$item->VSD_ID}}" name="Container{{$item->VSD_ID}}" {{ empty($item->Path_Loc) ? 'required' : '' }}>
+                                                <label class="custom-file-label shadow-sm" for="Container{{$item->VSD_ID}}">{{ !empty($item->Path_Loc) ? basename($item->Path_Loc) : 'Choose file...' }}</label>
+                                            </div>
+                                            @if (!empty($item->Path_Loc))
+                                            <div class="input-group-append mt-2 wbt-existing-preview-btn">
+                                                <button type="button" class="btn btn-info btn-sm" onclick='window.cnsOpenDocPreview(@json(asset($item->Path_Loc)), @json("WBT - " . $item->Container))'>
+                                                    <i class="fa fa-eye"></i> Preview Dokumen
+                                                </button>
+                                            </div>
+                                            @endif
                                         </div>
                                     </div>
                                 </div>
@@ -165,15 +180,24 @@ $Saya =  Auth::user()->username;
             },
             success: function(response) {
                 $('#containerList').html('');
-                let counter = 1;
-                let string = "";
-				if(response.length == 0) $.unblockUI();
-				$('#Voyage').val(response.Voyage)
-				$('#BL_No').val(response.BL_No)
+				if (!response || Array.isArray(response) || !response.orderDetails) {
+					$('#Voyage').val('');
+					$('#BL_No').val('');
+					$.unblockUI();
+					return;
+				}
+				$('#Voyage').val(response.Voyage || '');
+				$('#BL_No').val(response.BL_No || '');
 				if (response.orderDetails.length > 0) {
 					response.orderDetails.forEach(function(container, index) {
 						$('#containerList').append(`
-							<div class="col-12">
+							<div class="col-md-3 col-12">
+								<div class="form-group">
+									<label for="Nopol${container.ID}">Nopol</label>
+									<input type="text" id="Nopol${container.ID}" class="form-control bg-white shadow-sm" value="${container.Police_No ? container.Police_No : '-'}" readonly>
+								</div>
+							</div>
+							<div class="col-md-9 col-12">
 								<div class="form-group">
 									<label for="Container${container.ID}">Container ${index + 1} ${container.Container} (${container.Seal})</label>
 									<div class="custom-file mb-3">
@@ -184,11 +208,13 @@ $Saya =  Auth::user()->username;
 							</div>
 						`);
 					});
+				} else {
+					$('#containerList').html('<div class="col-12"><div class="alert alert-warning mb-0">Data kontainer stuffing tidak ditemukan untuk Packing List ini.</div></div>');
 				}
                 $.unblockUI();
             },
             error:function() {
-                alert('Error fetching order details. Please try again.');
+                swal('Error', 'Error fetching order details. Please try again.', 'error');
                 $.unblockUI();
             }
         });
@@ -207,6 +233,15 @@ $Saya =  Auth::user()->username;
 	myCalendar = new dhtmlXCalendarObject(["Stuffing", "PEB_Date", "ETD", "ETA", "SI_Date"]);
 	myCalendar.setDateFormat("%Y-%m-%d");
 
+	$('#formWBT').on('change', '.custom-file-input', function() {
+		var $existingBtn = $(this).closest('.input-group').find('.wbt-existing-preview-btn');
+		if (this.files && this.files.length > 0) {
+			$existingBtn.hide();
+		} else {
+			$existingBtn.show();
+		}
+	});
+
 	$('#formWBT').submit(function(e) {
 		e.preventDefault(); // avoid to execute the actual submit of the form.
 
@@ -224,7 +259,7 @@ $Saya =  Auth::user()->username;
 		ids.forEach(ele => {
 			formData.append(ele, $('#' + ele)[0].files[0]);
 			if ($('#' + ele)[0].files[0] && !isValidImage($('#' + ele)[0].files[0])) {
-				dhtmlx.alert('File Kop Surat harus jpg, jpeg, atau png');
+				swal('Perhatian', 'File Kop Surat harus jpg, jpeg, atau png', 'warning');
 			}
 		});
 
@@ -242,17 +277,17 @@ $Saya =  Auth::user()->username;
 				var dataPos = data.indexOf("success");
 				if (dataPos != '-1') {
 					var cariAWB = data.split(":");
-					alert('Data Weight Bridge Ticket Submitted!');
+					swal('Berhasil!', 'Data Weight Bridge Ticket Submitted!', 'success');
 					setTimeout(() => {
 						refreshdata();
 						$('#divlistOpportunity').html('')
 					}, 200);
 				} else {
-					alert('Weight Bridge Ticket Failed to Submit!');
+					swal('Error', 'Weight Bridge Ticket Failed to Submit!', 'error');
 				}
 			},
 			error: function(jqXHR, textStatus, errorThrown) {
-				alert("Error Internal! Please Try again!");
+				swal('Error', 'Error Internal! Please Try again!', 'error');
 
 			}
 		});

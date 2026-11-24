@@ -21,8 +21,8 @@ use Illuminate\Database\Eloquent\Builder;
     $users = $users ?? \App\User::where('Status', 'ACTIVE')->orderBy('Name')->get();
 @endphp
 <div class="mt-3">
-	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">DETAIL PACKING LIST</div>
-	<div class="card">
+	<div class="cns-section-header">DETAIL PACKING LIST</div>
+	<div class="card cns-card">
 		<div class="card-body">
 			<div id="ContentPages">
 				<div class="FormInput_Form_Content">
@@ -216,6 +216,38 @@ use Illuminate\Database\Eloquent\Builder;
                                 </select>
                             </div>
                         </div>
+                        @if (!empty($pl->BC_No) || !empty($pl->Is_Final))
+                        <div class="col-md-4 col-12">
+                            <div class="form-group">
+                                <label for="BC_No">Nomor BC</label>
+                                <input type="text" name="BC_No" id="BC_No" value="{{ $pl->BC_No }}" class="form-control shadow-sm" readonly />
+                            </div>
+                        </div>
+                        <div class="col-md-4 col-12">
+                            <div class="form-group">
+                                <label for="Total_Netto_KG">Total Netto Weight (NW - KG)</label>
+                                <input type="number" step="0.01" name="Total_Netto_KG" id="Total_Netto_KG" value="{{ $pl->Total_Netto_KG }}" class="form-control shadow-sm" />
+                            </div>
+                        </div>
+                        <div class="col-md-4 col-12">
+                            <div class="form-group">
+                                <label for="Total_Gross_KG">Total Gross Weight (GW - KG)</label>
+                                <input type="number" step="0.01" name="Total_Gross_KG" id="Total_Gross_KG" value="{{ $pl->Total_Gross_KG }}" class="form-control shadow-sm" />
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-group">
+                                <label for="Description">Description</label>
+                                <textarea name="Description" id="Description" rows="4" class="form-control shadow-sm" placeholder="Description">{{ $pl->Description }}</textarea>
+                            </div>
+                        </div>
+                        @endif
+                        <div class="col-12">
+                            <div class="form-group">
+                                <label for="Remarks">Remarks</label>
+                                <textarea name="Remarks" id="Remarks" rows="3" class="form-control shadow-sm" placeholder="Remarks">{{ $pl->Remarks }}</textarea>
+                            </div>
+                        </div>
                         <div class="col-12">
                             <div class="row no-gutters" id="containerList">
                                 @if ($containers->isNotEmpty())
@@ -340,7 +372,7 @@ use Illuminate\Database\Eloquent\Builder;
                 $.unblockUI();
             },
             error:function() {
-                alert('Error fetching order details. Please try again.');
+                swal('Error', 'Error fetching order details. Please try again.', 'error');
                 $.unblockUI();
             }
         });
@@ -372,20 +404,20 @@ use Illuminate\Database\Eloquent\Builder;
 			success: function(data, textStatus, jqXHR) {
 				var dataPos = (typeof data === 'string') ? data.indexOf("success") : -1;
 				if (dataPos != '-1' || (data && data.success)) {
-					alert('Data Packing List berhasil disimpan!');
+					swal('Berhasil!', 'Data Packing List berhasil disimpan!', 'success');
                     refreshdata();
                     $('#divlistOpportunity').html('');
 				} else {
-					alert('Packing List gagal disimpan!');
+					swal('Error', 'Packing List gagal disimpan!', 'error');
 				}
 			},
 			error: function(jqXHR, textStatus, errorThrown) {
 				if (jqXHR.responseJSON && jqXHR.responseJSON.errors) {
-					alert(Object.values(jqXHR.responseJSON.errors).flat().join('\n'));
+					swal('Perhatian', Object.values(jqXHR.responseJSON.errors).flat().join('\n'), 'warning');
 				} else if (jqXHR.responseJSON && jqXHR.responseJSON.message) {
-					alert(jqXHR.responseJSON.message);
+					swal('Error', jqXHR.responseJSON.message, 'error');
 				} else {
-					alert("Error Internal! Please Try again!");
+					swal('Error', 'Error Internal! Please Try again!', 'error');
 				}
 			}
 		});
@@ -398,9 +430,9 @@ use Illuminate\Database\Eloquent\Builder;
 			if ((type == "checkbox" || type == "radio") && this.checked) {
 				inputValues.push($(this).attr("name") + "=" + $(this).val());
 			} else if (type != "button" && type != "submit" && type != "radio" && type != "checkbox") {
-				inputValues.push($(this).attr("id") + "=" + $(this).val());
+				inputValues.push($(this).attr("id") + "=" + encodeURIComponent($(this).val() ?? ''));
 			} else if ($(this).is("textarea")) {
-				inputValues.push($(this).attr("id") + "=" + $(this).val());
+				inputValues.push($(this).attr("id") + "=" + encodeURIComponent($(this).val() ?? ''));
 			}
 		})
 		return inputValues.join('&');

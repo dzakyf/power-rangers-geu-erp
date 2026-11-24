@@ -1,41 +1,27 @@
 @extends('layout.mainlayout-cns')
 
 @section('content-wrapper')
-<!-- Main Content Header -->
-<div class="main-content-header">
-	<h1>CNS</h1>
-	<ol class="breadcrumb">
-		<li class="breadcrumb-item">
-			<a href="/dashboard1">Master Company</a>
-		</li>
-		<li class="breadcrumb-item active">
-			<span class="active">Data</span>
-		</li>
-	</ol>
-</div>
-<!-- End Main Content Header -->
+@include('cns.partials.page-header', [
+	'title' => 'Master Supplier',
+	'breadcrumbs' => [
+		['label' => 'Master Data'],
+		['label' => 'Master Supplier'],
+	],
+])
 
-<!-- Stats Card -->
-<div class="badan mb-2">
-	<!-- <div class="row  m-1 align-items-end">
-		<div class="col-auto">
-			<label for="Region" class="d-block mb-1">Pilih Jenis</label>
-			<select id="filter_type" class="form-control d-inline-block w-auto mr-2">
-				<option value="">All</option>
-				<option value="CONSIGNEE">Consignee / Buyer</option>
-				<option value="SUPPLIER">Vendor / Supplier</option>
-			</select>
-
-			<button type="button" class="btn btn-primary" onclick="refreshdata()">Filter</button>
+<div class="card cns-card">
+	<div class="card-header">
+		<h5 class="card-title mb-0">Data Master Supplier</h5>
+		<div class="d-flex align-items-center flex-wrap" style="gap: 0.5rem;">
+			<button type="button" class="btn btn-sm btn-primary" id="NewProduct" onclick="NewCompany();">New Company</button>
+			<button type="button" class="btn btn-sm btn-success" id="ExportProduct" onclick="MasterCompany.toExcel('./export/generate.php');">Excel</button>
+			<button type="button" class="btn btn-sm btn-outline-secondary" onclick="refreshdata();">Refresh</button>
 		</div>
-	</div> -->
-
-	<div class="m-2">
-		<div id="MasterCompany" style="width:auto; height:400px;"></div>
 	</div>
-	<div class="m-2">
-		<button class="btn btn-primary" id="NewProduct" onclick="NewCompany();">New Company</button>
-		<button class="btn btn-success" id="ExportProduct" onclick="MasterCompany.toExcel('./export/generate.php');">Excel</button>
+	<div class="card-body">
+		<div class="cns-grid-wrapper">
+			<div id="MasterCompany" class="cns-grid" style="width:auto; height:400px;"></div>
+		</div>
 	</div>
 </div>
 <script>
@@ -50,10 +36,12 @@
 		LoadM('MasterCompanyDet', 'cns-master-company-detail?ID=' + MasterCompanyID);
 	}
 
+	var MasterCompanyPagination;
+
 	function refreshdata() {
-		const type = 'SUPPLIER';
-		const url = type ? `xml-cns-master-company?type=${type}` : 'xml-cns-master-company';
-		MasterCompany.clearAndLoad(url);
+		if (MasterCompanyPagination) {
+			MasterCompanyPagination.reload(true);
+		}
 	}
 
 	MasterCompany = new dhtmlXGridObject('MasterCompany');
@@ -66,10 +54,29 @@
 	MasterCompany.setColTypes("dyn,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
 	MasterCompany.attachEvent("onRowDblClicked", DetailCompany);
 	MasterCompany.setColSorting("int,str,str,str,str,str,str,str,str,str,str,str,str,str,str,str,str,str,str,str");
-	MasterCompany.enableSmartRendering(true, 50);
 	MasterCompany.enableMultiline(true);
 	MasterCompany.setSkin("dhx_skyblue");
 	MasterCompany.init();
+	MasterCompanyPagination = initCnsGridPagination(MasterCompany, {
+		pageSize: 25,
+		pageSizeOptions: [10, 25, 50, 100],
+		getUrl: function (params) {
+			var q = new URLSearchParams();
+			q.append('posStart', params.posStart);
+			q.append('count', params.count);
+			q.append('type', 'SUPPLIER');
+			if (params.sortCol !== null && params.sortCol !== undefined) {
+				q.append('sort_col', params.sortCol);
+				q.append('sort_dir', params.sortDir || 'asc');
+			}
+			if (params.filters) {
+				Object.keys(params.filters).forEach(function (colIdx) {
+					q.append('filter[' + colIdx + ']', params.filters[colIdx]);
+				});
+			}
+			return 'xml-cns-master-company?' + q.toString();
+		}
+	});
 	refreshdata();
 </script>
 <div id="MasterCompanyDet"></div>

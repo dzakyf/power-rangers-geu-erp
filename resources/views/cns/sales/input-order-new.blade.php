@@ -402,8 +402,8 @@ $Saya =  Auth::user()->username;
   }
 </style>
 <div class="mt-3">
-  <div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">SALES ORDER NEW</div>
-  <div class="card">
+  <div class="cns-section-header">SALES ORDER NEW</div>
+  <div class="card cns-card">
     <div class="card-body">
       <div id="ContentPages">
         <input type="hidden" id="soType" name="soType" value="" />

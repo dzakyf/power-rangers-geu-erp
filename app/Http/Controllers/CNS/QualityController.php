@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\CNS;
 
 use App\Http\Controllers\Controller;
+use App\Support\DhtmlxGridPagination;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -275,9 +276,35 @@ class QualityController extends Controller
             $query->whereDate('qc.Inspection_Date', Carbon::parse($r->Date)->toDateString());
         }
 
-        $headers = $query->orderBy('qc.Inspection_Date', 'desc')
-            ->orderBy('qc.id', 'desc')
-            ->get();
+        // Column filters from dhtmlx header
+        if ($r->has('filters') && is_array($r->query('filters'))) {
+            foreach ($r->query('filters') as $colIdx => $val) {
+                $val = trim((string) $val);
+                if ($val === '') continue;
+                if ($colIdx == 1) $query->where('qc.Kode_QC', 'like', "%{$val}%");
+                if ($colIdx == 2) $query->whereDate('qc.Inspection_Date', $val);
+                if ($colIdx == 3) $query->where('qc.QC_Type', $val);
+                if ($colIdx == 4) $query->where('qc.QC_Category', $val);
+                if ($colIdx == 5) $query->where('qc.SOURCE', 'like', "%{$val}%");
+            }
+        }
+
+        $colMap = [
+            1 => 'qc.Kode_QC',
+            2 => 'qc.Inspection_Date',
+            3 => 'qc.QC_Type',
+            4 => 'qc.QC_Category',
+            5 => 'qc.SOURCE',
+        ];
+
+        $paginated = DhtmlxGridPagination::paginateQuery($query, $r, [
+            'col_map' => $colMap,
+            'default_page_size' => 25,
+        ]);
+
+        $headers = $paginated['rows'];
+        $total = $paginated['total'];
+        $posStart = $paginated['posStart'];
 
         $headerIds = $headers->pluck('id')->all();
         $details = DB::table('cns_quality_control_details')
@@ -285,8 +312,8 @@ class QualityController extends Controller
             ->get()
             ->groupBy('Quality_Control_ID');
 
-        $xml = new SimpleXMLElement('<rows/>');
-        $counter = 1;
+        $xml = new SimpleXMLElement("<rows total_count=\"{$total}\" pos=\"{$posStart}\"/>");
+        $counter = $posStart + 1;
 
         foreach ($headers as $header) {
             $dtl = $details->get($header->id, collect())->keyBy('Sample_Level');

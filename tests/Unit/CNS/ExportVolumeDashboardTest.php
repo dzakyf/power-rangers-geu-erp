@@ -74,8 +74,10 @@ class ExportVolumeDashboardTest extends TestCase
 
         $data = $response->getData(true);
         $this->assertArrayHasKey('kpis', $data);
+        $this->assertArrayHasKey('todayStats', $data);
         $this->assertArrayHasKey('monthlyTrend', $data);
         $this->assertArrayHasKey('incotermChart', $data);
+        $this->assertArrayHasKey('statusChart', $data);
         $this->assertArrayHasKey('topConsigneesChart', $data);
         $this->assertArrayHasKey('countryChart', $data);
         $this->assertArrayHasKey('shipments', $data);
@@ -84,6 +86,12 @@ class ExportVolumeDashboardTest extends TestCase
         $this->assertArrayHasKey('total_containers', $data['kpis']);
         $this->assertArrayHasKey('total_shipments', $data['kpis']);
         $this->assertArrayHasKey('total_consignees', $data['kpis']);
+        $this->assertArrayHasKey('total_pending', $data['kpis']);
+
+        $this->assertArrayHasKey('shipments', $data['todayStats']);
+        $this->assertArrayHasKey('containers', $data['todayStats']);
+        $this->assertArrayHasKey('volume_mt', $data['todayStats']);
+        $this->assertArrayHasKey('last_update', $data['todayStats']);
 
         $this->assertCount(12, $data['monthlyTrend']['categories']);
         $this->assertCount(12, $data['monthlyTrend']['volume']);

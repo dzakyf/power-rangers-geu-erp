@@ -20,23 +20,21 @@ $PR_No = strtoupper("PR-EXP/" . sprintf("%03d", $count) . '/' .  $date);
 @extends('layout.mainlayout-cns')
 
 @section('content-wrapper')
-<!-- Main Content Header -->
-<div class="main-content-header">
-	<h1>PROCUREMENT</h1>
-	<ol class="breadcrumb">
-		<li class="breadcrumb-item">
-			<a href="/dashboard1">PURCHASING REQUEST</a>
-		</li>
-		<li class="breadcrumb-item active">
-			<span class="active">New Request</span>
-		</li>
-	</ol>
-</div>
-<!-- End Main Content Header -->
+@include('cns.partials.page-header', [
+	'title' => 'New Purchase Request',
+	'breadcrumbs' => [
+		['label' => 'Procurement'],
+		['label' => 'Purchase Request'],
+		['label' => 'New Request'],
+	],
+])
 
-<!-- Stats Card -->
-<div class="row">
-	<div id="ContentPages">
+<div class="card cns-card">
+	<div class="card-header">
+		<h5 class="card-title mb-0">Form New Purchase Request</h5>
+	</div>
+	<div class="card-body">
+		<div id="ContentPages">
 		<div class="FormInput_Form_Content">
 			<div class="FormInput_left">
 
@@ -245,7 +243,9 @@ $PR_No = strtoupper("PR-EXP/" . sprintf("%03d", $count) . '/' .  $date);
 - Payment 50% before delivery and 50% 14 days after delivery (valid on working days)
 - The product be received in PT PEL not later than April 25, 2026</textarea>
 			</div>
-			<div id="gridPRNewDetail" style="width:auto;height:200px; background-color:white;overflow:hidden"></div>
+			<div class="cns-grid-wrapper">
+				<div id="gridPRNewDetail" class="cns-grid" style="width:auto;height:200px;background-color:white;overflow:hidden"></div>
+			</div>
 			<div id="divtom">
 				<input type="button" id="AddPRNewDetail" class="btn btn-info mt-2 mr-2" NAME="AddPRNewDetail" value="Add New" />
 				<input type="button" id="DelPRNewDetail" class="btn btn-danger mt-2 mr-2" NAME="DelPRNewDetail" value="Delete" />
@@ -255,8 +255,8 @@ $PR_No = strtoupper("PR-EXP/" . sprintf("%03d", $count) . '/' .  $date);
 
 
 		</div>
+		</div>
 	</div>
-
 </div>
 <div id="PRSupplierDet"></div>
 
@@ -400,7 +400,7 @@ $PR_No = strtoupper("PR-EXP/" . sprintf("%03d", $count) . '/' .  $date);
 		$("#SubmitPRNewDetail").click(function() {
 			var count = PRNewDetail.getRowsNum();
 			if (count == 0) {
-				alert('Masukkan Item Request Terlebih Dahulu! ');
+				swal('Perhatian', 'Masukkan Item Request Terlebih Dahulu! ', 'warning');
 				return false;
 			} else {
 				Reference = $("#Reference").val();
@@ -418,11 +418,11 @@ $PR_No = strtoupper("PR-EXP/" . sprintf("%03d", $count) . '/' .  $date);
 				Estimated_Budget = $("#Estimated_Budget").val();
 
 				if (Note == '') {
-					alert("Kolom catatan (Note) Harus Diisi!");
+					swal('Perhatian', 'Kolom catatan (Note) Harus Diisi!', 'warning');
 					$("#Note").focus();
 					return false;
 				} else if (Note.length < 5) {
-					alert("Kolom catatan (Note) minimal 5 karakter!");
+					swal('Perhatian', 'Kolom catatan (Note) minimal 5 karakter!', 'warning');
 					$("#Note").focus();
 					return false;
 				} else {
@@ -450,21 +450,18 @@ $PR_No = strtoupper("PR-EXP/" . sprintf("%03d", $count) . '/' .  $date);
 						data: dapat,
 						success: function(data, textStatus, jqXHR) {
 							if (data == 'success') {
-								alert('Purchase Request Submitted with no  <?php echo $PR_No ?>!');
-
-								setTimeout(function() {
-
-
-									$.unblockUI();
+								$.unblockUI();
+								swal('Berhasil!', 'Purchase Request Submitted with no  <?php echo $PR_No ?>!', 'success').then(function() {
 									location.href = 'po-outstanding';
-								}, 1000);
+								});
 
 							} else {
 
 							}
 						},
 						error: function(jqXHR, textStatus, errorThrown) {
-							alert("error");
+							$.unblockUI();
+							swal('Error', 'error', 'error');
 
 						}
 					});

@@ -11,42 +11,15 @@
         return number_format((float) $val, 2, '.', ',');
     };
 @endphp
-<div class="main-content-header">
-    <h1>Inventory</h1>
-    <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="{{ url('home-cns') }}">Home</a></li>
-        <li class="breadcrumb-item"><a href="#">Inventory Non UCO</a></li>
-        <li class="breadcrumb-item active"><span class="active">Inventory Kemasan</span></li>
-    </ol>
-</div>
+@include('cns.partials.page-header', [
+    'title' => 'Inventory Kemasan',
+    'breadcrumbs' => [
+        ['label' => 'Inventory Non UCO'],
+        ['label' => 'Inventory Kemasan'],
+    ],
+])
 
 <style>
-    #KemasanGrid .xhdr {
-        height: auto !important;
-        min-height: 0 !important;
-    }
-    #KemasanGrid table.hdr td,
-    #KemasanGrid .hdr tr:first-child td {
-        background-color: #174375 !important;
-        color: #000000   !important;
-        font-weight: bold !important;
-        text-align: center !important;
-        vertical-align: middle !important;
-        border-right: 1px solid #ffffff !important;
-        font-size: 12px !important;
-        padding: 4px 6px !important;
-        line-height: 1.2 !important;
-        height: auto !important;
-    }
-    #KemasanGrid table.hdr td div.hdrcell {
-        padding: 0 4px !important;
-        line-height: 1.2 !important;
-        white-space: nowrap !important;
-    }
-    #KemasanGrid td {
-        font-size: 12px !important;
-        vertical-align: middle !important;
-    }
     .badge-balance-card {
         background-color: #ffffff;
         border: 1px solid #ced4da;
@@ -109,7 +82,7 @@
         border: none !important;
         border-bottom: 3px solid transparent !important;
         color: #6c757d;
-        padding: 12px 24px;
+        padding: 10px 20px;
         font-size: 13px;
         border-radius: 0;
         background: transparent;
@@ -127,140 +100,89 @@
     }
 </style>
 
-<div class="row m-1">
-    <div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">INVENTORY KEMASAN (MUTASI STOK KEMASAN)</div>
+@if(isset($errors) && $errors->any())
+    <div class="alert alert-danger alert-dismissible fade show w-100" role="alert">
+        {{ $errors->first() }}
+        <button type="button" class="close" data-dismiss="alert" data-bs-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+        </button>
+    </div>
+@endif
 
-    @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show w-100" role="alert">
-            {{ session('success') }}
-            <button type="button" class="close" data-dismiss="alert" data-bs-dismiss="alert" aria-label="Close">
-                <span aria-hidden="true">&times;</span>
+<div class="card cns-card">
+    <div class="card-header">
+        <h5 class="card-title">Inventory Kemasan (Mutasi Stok Kemasan)</h5>
+        <div id="kemasanMonitoringActions" class="{{ $activeTab === 'monitoring' ? 'd-flex' : 'd-none' }} align-items-center flex-wrap" style="gap: 0.5rem;">
+            <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#modalManualMutation" data-toggle="modal" data-target="#modalManualMutation" onclick="$('#modalManualMutation').modal('show');">
+                Catat Mutasi Stok Kemasan
             </button>
         </div>
-    @endif
-    @if(session('error'))
-        <div class="alert alert-danger alert-dismissible fade show w-100" role="alert">
-            {{ session('error') }}
-            <button type="button" class="close" data-dismiss="alert" data-bs-dismiss="alert" aria-label="Close">
-                <span aria-hidden="true">&times;</span>
+        <div id="kemasanReportActions" class="{{ $activeTab === 'report' ? 'd-flex' : 'd-none' }} align-items-center flex-wrap" style="gap: 0.5rem;">
+            <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalSiteLimits" data-toggle="modal" data-target="#modalSiteLimits" onclick="$('#modalSiteLimits').modal('show');">
+                Atur Max Stok Site
             </button>
         </div>
-    @endif
-    @if(isset($errors) && $errors->any())
-        <div class="alert alert-danger alert-dismissible fade show w-100" role="alert">
-            {{ $errors->first() }}
-            <button type="button" class="close" data-dismiss="alert" data-bs-dismiss="alert" aria-label="Close">
-                <span aria-hidden="true">&times;</span>
-            </button>
-        </div>
-    @endif
+    </div>
+    <div class="card-body">
+        <ul class="nav nav-tabs card-header-tabs mb-3 mx-0 border-bottom" id="kemasanTabs" role="tablist">
+            <li class="nav-item">
+                <a class="nav-link font-weight-bold {{ $activeTab === 'monitoring' ? 'active' : '' }}" id="tab-monitoring-link" data-bs-toggle="tab" data-bs-target="#tab-monitoring" data-toggle="tab" href="#tab-monitoring" role="tab" aria-controls="tab-monitoring" aria-selected="{{ $activeTab === 'monitoring' ? 'true' : 'false' }}" onclick="switchKemasanTab('monitoring'); return false;">
+                    <i class="fa fa-line-chart text-primary mr-2"></i> Monitoring Mutasi
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link font-weight-bold {{ $activeTab === 'report' ? 'active' : '' }}" id="tab-report-link" data-bs-toggle="tab" data-bs-target="#tab-report" data-toggle="tab" href="#tab-report" role="tab" aria-controls="tab-report" aria-selected="{{ $activeTab === 'report' ? 'true' : 'false' }}" onclick="switchKemasanTab('report'); return false;">
+                    <i class="fa fa-table text-success mr-2"></i> Report Inventory Kemasan
+                </a>
+            </li>
+        </ul>
 
-    <!-- Main Card Container with Header Tabs (matching Inbound Movement) -->
-    <div class="card w-100 shadow-sm mt-2" style="border: 1px solid #ced4da; border-radius: 4px;">
-        <div class="card-header bg-white border-bottom p-0">
-            <ul class="nav nav-tabs card-header-tabs m-0 border-bottom-0" id="kemasanTabs" role="tablist">
-                <li class="nav-item">
-                    <a class="nav-link font-weight-bold {{ $activeTab === 'monitoring' ? 'active' : '' }}" id="tab-monitoring-link" data-bs-toggle="tab" data-bs-target="#tab-monitoring" data-toggle="tab" href="#tab-monitoring" role="tab" aria-controls="tab-monitoring" aria-selected="{{ $activeTab === 'monitoring' ? 'true' : 'false' }}" onclick="switchKemasanTab('monitoring'); return false;">
-                        <i class="fa fa-line-chart text-primary mr-2"></i> Monitoring Mutasi
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link font-weight-bold {{ $activeTab === 'report' ? 'active' : '' }}" id="tab-report-link" data-bs-toggle="tab" data-bs-target="#tab-report" data-toggle="tab" href="#tab-report" role="tab" aria-controls="tab-report" aria-selected="{{ $activeTab === 'report' ? 'true' : 'false' }}" onclick="switchKemasanTab('report'); return false;">
-                        <i class="fa fa-table text-success mr-2"></i> Report Inventory Kemasan
-                    </a>
-                </li>
-            </ul>
-        </div>
-        <div class="card-body p-3">
-            <div class="tab-content" id="kemasanTabContent">
-                <!-- Tab 1: Monitoring Mutasi -->
-                <div class="tab-pane fade {{ $activeTab === 'monitoring' ? 'show active' : '' }}" id="tab-monitoring" role="tabpanel" aria-labelledby="tab-monitoring-link" style="display:{{ $activeTab === 'monitoring' ? 'block' : 'none' }};">
-            <!-- @if(count($summaries) > 0)
-            <div class="d-flex flex-wrap gap-2 w-100 mb-3 mt-3">
-                @foreach($summaries as $sum)
-                    <div class="badge-balance-card mr-2 mb-2" style="min-width: 220px;">
-                        <div class="badge-balance-title mb-1">
-                            @if(!empty($sum['site_name']))
-                                <span class="badge badge-dark">{{ $sum['site_name'] }}</span>
-                            @endif
-                            @if(!empty($sum['is_ampas']))
-                                <span class="badge badge-warning border">Ampas</span>
-                            @else
-                                <span class="badge badge-primary border">Kemasan</span>
-                            @endif
-                            {{ $sum['label'] ?? $sum['item_name'] }}
-                        </div>
-                        @if(empty($sum['is_ampas']) && isset($sum['max_stock']) && $sum['max_stock'] !== null)
-                            <div class="d-flex justify-content-between text-center mt-1" style="gap: 10px;">
-                                <div>
-                                    <small class="text-muted d-block">Max Stock</small>
-                                    <span class="font-weight-bold text-secondary">{{ number_format((float) $sum['max_stock'], 2, '.', ',') }}</span>
-                                </div>
-                                <div>
-                                    <small class="text-muted d-block">Qty</small>
-                                    <span class="font-weight-bold text-primary">{{ number_format((float) ($sum['qty_balance'] ?? $sum['current_balance']), 2, '.', ',') }}</span>
-                                </div>
-                                <div>
-                                    <small class="text-muted d-block">Excess</small>
-                                    <span class="font-weight-bold text-danger">{{ number_format((float) ($sum['excess_balance'] ?? 0), 2, '.', ',') }}</span>
-                                </div>
-                            </div>
-                        @else
-                            <div class="badge-balance-val">
-                                {{ number_format((float) ($sum['qty_balance'] ?? $sum['current_balance']), 2, '.', ',') }} <small class="text-muted" style="font-size: 13px;">{{ $sum['unit'] }}</small>
-                            </div>
-                        @endif
+        <div class="tab-content" id="kemasanTabContent">
+            <!-- Tab 1: Monitoring Mutasi -->
+            <div class="tab-pane fade {{ $activeTab === 'monitoring' ? 'show active' : '' }}" id="tab-monitoring" role="tabpanel" aria-labelledby="tab-monitoring-link" style="display:{{ $activeTab === 'monitoring' ? 'block' : 'none' }};">
+                <div class="cns-filter-bar">
+                    <div>
+                        <label class="d-block mb-1"><small>Dari Tanggal</small></label>
+                        <input type="date" id="filterStartDate" class="form-control form-control-sm" style="width:140px;" />
                     </div>
-                @endforeach
-            </div>
-            @endif -->
+                    <div>
+                        <label class="d-block mb-1"><small>Sampai Tanggal</small></label>
+                        <input type="date" id="filterEndDate" class="form-control form-control-sm" style="width:140px;" />
+                    </div>
+                    <div>
+                        <label class="d-block mb-1"><small>Site</small></label>
+                        <select id="filterSite" class="form-control form-control-sm" style="width:150px;" onchange="applyFilters()">
+                            <option value="">Semua Site</option>
+                            @foreach($sites as $siteId => $siteName)
+                                <option value="{{ $siteId }}">{{ $siteName }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label class="d-block mb-1"><small>Nama Kemasan</small></label>
+                        <select id="filterItemName" class="form-control form-control-sm" style="width:220px;" onchange="applyFilters()">
+                            <option value="">Semua Kemasan</option>
+                            @foreach($masterPackagings as $mp)
+                                @php
+                                    $volText = \App\Services\CNS\KemasanInventoryService::formatVolume($mp->Volume);
+                                @endphp
+                                <option value="pkg:{{ $mp->Kemasan_ID }}">{{ $mp->Name }} ({{ $volText }} L)</option>
+                            @endforeach
+                            @foreach($existingItems as $ei)
+                                <option value="manual:{{ $ei }}">{{ $ei }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <button type="button" class="btn btn-sm btn-primary" onclick="applyFilters()">Filter</button>
+                        <button type="button" class="btn btn-sm btn-secondary ml-1" onclick="resetFilters()">Reset</button>
+                    </div>
+                </div>
 
-            <div class="d-flex align-items-end flex-wrap gap-2 mb-3">
-                <div class="m-1">
-                    <label class="d-block mb-1"><small>Dari Tanggal</small></label>
-                    <input type="date" id="filterStartDate" class="form-control form-control-sm" style="width:140px;" />
-                </div>
-                <div class="m-1">
-                    <label class="d-block mb-1"><small>Sampai Tanggal</small></label>
-                    <input type="date" id="filterEndDate" class="form-control form-control-sm" style="width:140px;" />
-                </div>
-                <div class="m-1">
-                    <label class="d-block mb-1"><small>Site</small></label>
-                    <select id="filterSite" class="form-control form-control-sm" style="width:150px;" onchange="applyFilters()">
-                        <option value="">Semua Site</option>
-                        @foreach($sites as $siteId => $siteName)
-                            <option value="{{ $siteId }}">{{ $siteName }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="m-1">
-                    <label class="d-block mb-1"><small>Nama Kemasan</small></label>
-                    <select id="filterItemName" class="form-control form-control-sm" style="width:220px;" onchange="applyFilters()">
-                        <option value="">Semua Kemasan</option>
-                        @foreach($masterPackagings as $mp)
-                            @php
-                                $volText = \App\Services\CNS\KemasanInventoryService::formatVolume($mp->Volume);
-                            @endphp
-                            <option value="pkg:{{ $mp->Kemasan_ID }}">{{ $mp->Name }} ({{ $volText }} L)</option>
-                        @endforeach
-                        @foreach($existingItems as $ei)
-                            <option value="manual:{{ $ei }}">{{ $ei }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="m-1">
-                    <button class="btn btn-sm btn-primary" onclick="applyFilters()">Filter</button>
-                    <button class="btn btn-sm btn-secondary ml-1" onclick="resetFilters()">Reset</button>
+                <div class="cns-grid-wrapper">
+                    <div id="KemasanGrid" class="cns-grid" style="width:100%;height:450px; background-color:white;overflow:hidden"></div>
                 </div>
             </div>
-
-            <div id="KemasanGrid" style="width:100%;height:450px; background-color:white;overflow:hidden" class="mt-2 border"></div>
-            <div class="mt-3 d-flex flex-wrap gap-2">
-                <button type="button" class="btn btn-md btn-primary mr-2" data-bs-toggle="modal" data-bs-target="#modalManualMutation" data-toggle="modal" data-target="#modalManualMutation" onclick="$('#modalManualMutation').modal('show');">
-                    Catat Mutasi Stok Kemasan
-                </button>
-            </div>
-        </div>
 
         <!-- Tab 2: Report Inventory Kemasan -->
         <div class="tab-pane fade {{ $activeTab === 'report' ? 'show active' : '' }}" id="tab-report" role="tabpanel" aria-labelledby="tab-report-link" style="display:{{ $activeTab === 'report' ? 'block' : 'none' }};">
@@ -349,14 +271,7 @@
                     @endif
                 </table>
             </div>
-
-            <div class="mt-3 d-flex flex-wrap gap-2">
-                <button type="button" class="btn btn-md btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalSiteLimits" data-toggle="modal" data-target="#modalSiteLimits" onclick="$('#modalSiteLimits').modal('show');">
-                    Atur Max Stok Site
-                </button>
-            </div>
         </div>
-            </div>
         </div>
     </div>
 </div>
@@ -418,22 +333,16 @@
                         </div>
                     </div>
 
+                    <input type="hidden" name="type" value="OUT" />
                     <div class="form-row">
-                        <div class="form-group col-md-4">
-                            <label class="font-weight-bold">Tipe Mutasi <span class="text-danger">*</span></label>
-                            <select name="type" id="selectMutationType" class="form-control form-control-sm" onchange="toggleOutTypeField()" required>
-                                <option value="IN">IN (Masuk / Penerimaan)</option>
-                                <option value="OUT">OUT (Keluar / Pemakaian)</option>
-                            </select>
-                        </div>
-                        <div class="form-group col-md-4" id="groupOutType" style="display:none;">
+                        <div class="form-group col-md-6" id="groupOutType">
                             <label class="font-weight-bold">Tipe OUT <span class="text-danger">*</span></label>
-                            <select name="out_type" id="selectOutType" class="form-control form-control-sm" disabled>
+                            <select name="out_type" id="selectOutType" class="form-control form-control-sm" required>
                                 <option value="DROP">Drop (Kurangi Qty)</option>
                                 <option value="PENJUALAN">Penjualan (Kurangi Excess)</option>
                             </select>
                         </div>
-                        <div class="form-group col-md-4">
+                        <div class="form-group col-md-6">
                             <label class="font-weight-bold">Kuantiti <span class="text-danger">*</span></label>
                             <input type="text" inputmode="decimal" name="qty" class="form-control form-control-sm font-weight-bold text-right cns-decimal" required />
                         </div>
@@ -546,11 +455,15 @@
             $('#tab-report-link').addClass('active').attr('aria-selected', 'true');
             $('#tab-monitoring').removeClass('show active').css('display', 'none');
             $('#tab-report').addClass('show active').css('display', 'block');
+            $('#kemasanMonitoringActions').removeClass('d-flex').addClass('d-none');
+            $('#kemasanReportActions').removeClass('d-none').addClass('d-flex');
         } else {
             $('#tab-report-link').removeClass('active').attr('aria-selected', 'false');
             $('#tab-monitoring-link').addClass('active').attr('aria-selected', 'true');
             $('#tab-report').removeClass('show active').css('display', 'none');
             $('#tab-monitoring').addClass('show active').css('display', 'block');
+            $('#kemasanReportActions').removeClass('d-flex').addClass('d-none');
+            $('#kemasanMonitoringActions').removeClass('d-none').addClass('d-flex');
 
             setTimeout(function() {
                 if (KemasanGrid) {
@@ -579,12 +492,6 @@
         }
     }
 
-    function toggleOutTypeField() {
-        var isOut = $('#selectMutationType').val() === 'OUT';
-        $('#groupOutType').toggle(isOut);
-        $('#selectOutType').prop('disabled', !isOut).prop('required', isOut);
-    }
-
     function fitKemasanColumnsToHeader() {
         if (!KemasanGrid || !$('#KemasanGrid').is(':visible')) return;
         var colCount = KemasanGrid.getColumnsNum();
@@ -595,6 +502,8 @@
         kemasanHeadersFitted = true;
     }
 
+    var KemasanPagination;
+
     function initKemasanGrid() {
         KemasanGrid = new dhtmlXGridObject('KemasanGrid');
         KemasanGrid.setImagePath("./dhtmlx/imgs/");
@@ -604,36 +513,57 @@
         KemasanGrid.setColAlign("center,center,center,left,left,center,center,center,right,right,right,right,right,left,left");
         KemasanGrid.setColSorting("int,date,str,str,str,str,str,str,int,int,int,int,int,str,str");
         KemasanGrid.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
-        KemasanGrid.enableSmartRendering(true);
         KemasanGrid.init();
         fitKemasanColumnsToHeader();
         KemasanGrid.setSizes();
+
+        KemasanPagination = initCnsGridPagination(KemasanGrid, {
+            pageSize: 25,
+            pageSizeOptions: [10, 25, 50, 100],
+            getUrl: function (params) {
+                var q = [];
+                q.push('posStart=' + params.posStart);
+                q.push('count=' + params.count);
+
+                var start     = $('#filterStartDate').val();
+                var end       = $('#filterEndDate').val();
+                var siteId    = $('#filterSite').val();
+                var filterVal = $('#filterItemName').val();
+
+                if (start)  q.push('start_date=' + encodeURIComponent(start));
+                if (end)    q.push('end_date=' + encodeURIComponent(end));
+                if (siteId) q.push('site_id=' + encodeURIComponent(siteId));
+                if (filterVal) {
+                    if (filterVal.indexOf('pkg:') === 0) {
+                        q.push('packaging_id=' + encodeURIComponent(filterVal.substring(4)));
+                    } else if (filterVal.indexOf('manual:') === 0) {
+                        q.push('item_name=' + encodeURIComponent(filterVal.substring(7)));
+                        q.push('manual=1');
+                    } else {
+                        q.push('item_name=' + encodeURIComponent(filterVal));
+                    }
+                }
+
+                if (params.sortCol !== null && params.sortCol !== undefined) {
+                    q.push('sort_col=' + params.sortCol);
+                    q.push('sort_dir=' + (params.sortDir || 'asc'));
+                }
+
+                if (params.filters) {
+                    for (var colIdx in params.filters) {
+                        q.push('filters[' + colIdx + ']=' + encodeURIComponent(params.filters[colIdx]));
+                    }
+                }
+
+                return "{{ route('cns-inventory-kemasan.xml') }}?" + q.join('&');
+            }
+        });
     }
 
     function loadGridData() {
-        var params = [];
-        var start     = $('#filterStartDate').val();
-        var end       = $('#filterEndDate').val();
-        var siteId    = $('#filterSite').val();
-        var filterVal = $('#filterItemName').val();
-
-        if (start)  params.push('start_date=' + encodeURIComponent(start));
-        if (end)    params.push('end_date=' + encodeURIComponent(end));
-        if (siteId) params.push('site_id=' + encodeURIComponent(siteId));
-        if (filterVal) {
-            if (filterVal.indexOf('pkg:') === 0) {
-                params.push('packaging_id=' + encodeURIComponent(filterVal.substring(4)));
-            } else if (filterVal.indexOf('manual:') === 0) {
-                params.push('item_name=' + encodeURIComponent(filterVal.substring(7)));
-                params.push('manual=1');
-            } else {
-                params.push('item_name=' + encodeURIComponent(filterVal));
-            }
+        if (KemasanPagination) {
+            KemasanPagination.reload(true);
         }
-
-        var url = "{{ route('cns-inventory-kemasan.xml') }}" + (params.length ? '?' + params.join('&') : '');
-        KemasanGrid.clearAll();
-        KemasanGrid.load(url);
     }
 
     function applyFilters() {

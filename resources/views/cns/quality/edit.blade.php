@@ -3,10 +3,12 @@
     $tanks = $tanks ?? collect();
     $category = $category ?? 'EXTERNAL';
 @endphp
-<div id="FormEditQualityControl" class="row m-1" style="display:none;">
-    <div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">EDIT QUALITY CONTROL</div>
-    <div class="card w-100 shadow-sm">
-        <div class="card-body">
+<div id="FormEditQualityControl" class="card cns-card" style="display:none;">
+    <div class="card-header">
+        <h5 class="card-title">Edit Quality Control</h5>
+        <button type="button" class="close" onclick="cancelEditQC()" aria-label="Close">&times;</button>
+    </div>
+    <div class="card-body">
             <form id="QualityControlEditForm" enctype="multipart/form-data">
                 @csrf
                 <div class="row mb-3">
@@ -141,7 +143,6 @@
                 </div>
             </form>
         </div>
-    </div>
 </div>
 
 <script>
@@ -281,12 +282,12 @@
         var kodeQc = form.Kode_QC ? form.Kode_QC.value : '';
 
         if (!createdAt) {
-            alert('Tanggal Pemeriksaan wajib diisi');
+            swal('Perhatian', 'Tanggal Pemeriksaan wajib diisi', 'warning');
             return;
         }
 
         if (qcType === 'DAILY_QC' && !form.Tank_ID.value) {
-            alert('Nama Tangki wajib dipilih untuk Daily QC');
+            swal('Perhatian', 'Nama Tangki wajib dipilih untuk Daily QC', 'warning');
             return;
         }
 
@@ -306,16 +307,17 @@
             contentType: false,
             success: function(res) {
                 if (res.status === 'success') {
-                    alert('Data Quality Control berhasil diperbarui');
-                    cancelEditQC();
-                    loadQualityGrid();
+                    swal('Berhasil!', 'Data Quality Control berhasil diperbarui', 'success').then(function() {
+                        cancelEditQC();
+                        loadQualityGrid();
+                    });
                 } else {
-                    alert(res.message || 'Gagal mengupdate data Quality Control');
+                    swal('Error', res.message || 'Gagal mengupdate data Quality Control', 'error');
                 }
             },
             error: function(xhr) {
                 var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Gagal mengupdate data Quality Control';
-                alert(msg);
+                swal('Error', msg, 'error');
             }
         });
     }

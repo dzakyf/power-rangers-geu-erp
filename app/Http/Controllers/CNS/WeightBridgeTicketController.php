@@ -5,6 +5,7 @@ namespace App\Http\Controllers\CNS;
 use App\Http\Controllers\Controller;
 use App\PackingList;
 use App\ShippingInstruction;
+use App\Support\DhtmlxGridPagination;
 use App\VesselSchedule;
 use App\VesselScheduleDtl;
 use App\WeightBridgeTicket;
@@ -21,40 +22,61 @@ class WeightBridgeTicketController extends Controller
 
     public function indexWeightBridgeTicketXml(Request $request)
     {
-        if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
-            header("Content-type: application/xhtml+xml");
-        } else {
-            header("Content-type: text/xml");
-        }
-        echo ("<?xml version='1.0' encoding='iso-8859-1'?>\n");
+        $query = WeightBridgeTicket::whereBetween('Departure_Date', [$request->tgl1, $request->tgl2]);
 
-        echo "<rows>";
-        $nomor = 1;
-        $wbt = WeightBridgeTicket::whereBetween('Departure_Date', [$request->tgl1, $request->tgl2])->get();
-        foreach ($wbt as $key => $value) {
-            $vsd = VesselScheduleDtl::active()->where("SI_No", $value->SI_No)->get();
-            foreach ($vsd as $k => $v) {
-                $value->Container .= $v->Container . " (" . $v->Seal . "),";
+        $colMap = [
+            1 => 'Packing_List_No',
+            2 => 'Final_SI_No',
+            3 => 'Contract_No',
+            4 => 'Voyage',
+            5 => 'Departure_Date',
+            6 => 'BL_No',
+            9 => 'Created_By',
+            10 => 'Created_Date',
+        ];
+
+        $paginated = DhtmlxGridPagination::paginateQuery($query, $request, [
+            'col_map' => $colMap,
+            'default_page_size' => 25,
+        ]);
+
+        $wbt = $paginated['rows'];
+        $siNos = $wbt->pluck('SI_No')->filter()->unique()->values()->all();
+        $vsdsBySi = count($siNos)
+            ? VesselScheduleDtl::active()->whereIn('SI_No', $siNos)->get()->groupBy('SI_No')
+            : collect();
+
+        $bodyXml = '';
+        $nomor = $paginated['posStart'] + 1;
+
+        foreach ($wbt as $value) {
+            $vsd = $vsdsBySi->get($value->SI_No, collect());
+            $nopols = [];
+            $containers = [];
+            foreach ($vsd as $v) {
+                $containers[] = $v->Container . " (" . $v->Seal . ")";
+                $nopols[] = trim((string) $v->Police_No) !== '' ? $v->Police_No : '-';
             }
-            if (isset($value->Container) && $value->Container != '') {
-                $value->Container = substr($value->Container, 0, -1);
-            }
-            echo "<row id=\"$value->WBT_No\">";
-                echo "<cell>".htmlspecialchars($nomor)."</cell>";
-                echo "<cell>".htmlspecialchars($value->Packing_List_No)."</cell>";
-                echo "<cell>".htmlspecialchars($value->Final_SI_No)."</cell>";
-                echo "<cell>".htmlspecialchars($value->Contract_No)."</cell>";
-                echo "<cell>".htmlspecialchars($value->Voyage)."</cell>";
-                echo "<cell>".htmlspecialchars(date("d F Y", strtotime($value->Departure_Date)))."</cell>";
-                echo "<cell>".htmlspecialchars($value->BL_No)."</cell>";
-                echo "<cell>".htmlspecialchars($value->Container)."</cell>";
-                echo "<cell>".htmlspecialchars($value->Created_By)."</cell>";
-                echo "<cell>".htmlspecialchars($value->Created_Date)."</cell>";
-            echo "</row>";
+            $containerText = count($containers) > 0 ? implode(',', $containers) : (string) $value->Container;
+            $nopolText = count($nopols) > 0 ? implode(', ', $nopols) : '-';
+
+            $bodyXml .= "<row id=\"$value->WBT_No\">";
+            $bodyXml .= "<cell>".htmlspecialchars($nomor)."</cell>";
+            $bodyXml .= "<cell>".htmlspecialchars($value->Packing_List_No)."</cell>";
+            $bodyXml .= "<cell>".htmlspecialchars($value->Final_SI_No)."</cell>";
+            $bodyXml .= "<cell>".htmlspecialchars($value->Contract_No)."</cell>";
+            $bodyXml .= "<cell>".htmlspecialchars($value->Voyage)."</cell>";
+            $bodyXml .= "<cell>".htmlspecialchars(date("d F Y", strtotime($value->Departure_Date)))."</cell>";
+            $bodyXml .= "<cell>".htmlspecialchars($value->BL_No)."</cell>";
+            $bodyXml .= "<cell>".htmlspecialchars($containerText)."</cell>";
+            $bodyXml .= "<cell>".htmlspecialchars($nopolText)."</cell>";
+            $bodyXml .= "<cell>".htmlspecialchars($value->Created_By)."</cell>";
+            $bodyXml .= "<cell>".htmlspecialchars($value->Created_Date)."</cell>";
+            $bodyXml .= "</row>\n";
             $nomor++;
         }
 
-        echo "</rows>";
+        return DhtmlxGridPagination::response($paginated['total'], $paginated['posStart'], $bodyXml);
     }
 
     public function printWeightBridgeTicket(Request $request)
@@ -113,24 +135,37 @@ class WeightBridgeTicketController extends Controller
         }
 
         if (!empty($wbt->Shipper) && !isset($companies[$wbt->Shipper])) {
-            $shipperRow = DB::table('supplier')->where('Supplier_ID', $wbt->Shipper)->first();
+            $shipperRow = DB::table('supplier')
+                ->where('Supplier_ID', $wbt->Shipper)
+                ->orWhere('ID', $wbt->Shipper)
+                ->first();
             if ($shipperRow) {
                 $companies[$wbt->Shipper] = $shipperRow;
             }
         }
 
         if (empty($wbt->Shipper) || !isset($companies[$wbt->Shipper])) {
-            $fallback = DB::table('supplier')->where('Is_Company', 1)->first() ?? DB::table('supplier')->first();
+            $fallback = DB::table('supplier')
+                ->where('Is_Company', 1)
+                ->when(auth()->check() && !empty(auth()->user()->Location), function ($q) {
+                    $q->where('Location', auth()->user()->Location);
+                })
+                ->first()
+                ?? DB::table('supplier')->where('Is_Company', 1)->whereNotNull('Letterhead')->first()
+                ?? DB::table('supplier')->where('Is_Company', 1)->first()
+                ?? DB::table('supplier')->whereNotNull('Letterhead')->first()
+                ?? DB::table('supplier')->first();
             if ($fallback) {
-                $wbt->Shipper = $fallback->Supplier_ID;
-                $companies[$fallback->Supplier_ID] = $fallback;
+                $key = $fallback->Supplier_ID ?: $fallback->ID;
+                $wbt->Shipper = $key;
+                $companies[$key] = $fallback;
             }
         }
 
         // Ambil detail foto timbangan kontainer
         $details = WeightBridgeTicketDtl::where("WBT_No", $wbt->WBT_No)
             ->leftJoin('vessel_schedule_dtls', 'weight_bridge_ticket_dtl.VSD_ID', '=', 'vessel_schedule_dtls.id')
-            ->select('weight_bridge_ticket_dtl.*', 'vessel_schedule_dtls.Container as Container', 'vessel_schedule_dtls.Seal as Seal')
+            ->select('weight_bridge_ticket_dtl.*', 'vessel_schedule_dtls.Container as Container', 'vessel_schedule_dtls.Seal as Seal', 'vessel_schedule_dtls.Police_No as Police_No')
             ->get();
 
         // Jika belum ada foto di weight_bridge_ticket_dtl, fallback ke daftar kontainer dari vessel_schedule_dtls
@@ -141,6 +176,7 @@ class WeightBridgeTicketController extends Controller
                 $synthetic->push((object)[
                     'Container' => $v->Container,
                     'Seal' => $v->Seal,
+                    'Police_No' => $v->Police_No,
                     'Path_Loc' => '',
                 ]);
             }
@@ -154,7 +190,13 @@ class WeightBridgeTicketController extends Controller
 
     public function newWeightBridgeTicket()
     {
-        $pls = PackingList::where('Status', "CREATED")->get();
+        $pls = PackingList::where('Status', "APPROVED")
+            ->whereNotExists(function ($q) {
+                $q->select(DB::raw(1))
+                    ->from('weight_bridge_ticket')
+                    ->whereColumn('weight_bridge_ticket.Packing_List_No', 'packing_lists.Packing_List_No');
+            })
+            ->get();
         return view('cns.export.wbt-new', compact('pls'));
     }
 
@@ -162,7 +204,14 @@ class WeightBridgeTicketController extends Controller
     {
         $pl = PackingList::where("Packing_List_No", $request->input("Packing_List_No"))->first();
         if ($pl) {
-            $si = VesselScheduleDtl::active()->where('SI_No', $pl->SI_No)->get();
+            $si = !empty($pl->SI_No)
+                ? VesselScheduleDtl::active()->where('SI_No', $pl->SI_No)->get()
+                : collect();
+
+            if ($si->isEmpty() && !empty($pl->Order_No)) {
+                $si = VesselScheduleDtl::active()->where('Order_No', $pl->Order_No)->get();
+            }
+
             $pl->orderDetails = $si;
             return response()->json($pl);
         } else {
@@ -214,8 +263,10 @@ class WeightBridgeTicketController extends Controller
 
     public function newWeightBridgeTicketSubmit(Request $request)
     {
-        $pl = PackingList::where("Packing_List_No", $request->Packing_List_No)->first();
-        if (!$pl) {
+        $pl = PackingList::where("Packing_List_No", $request->Packing_List_No)
+            ->where("Status", "APPROVED")
+            ->first();
+        if (!$pl || WeightBridgeTicket::where("Packing_List_No", $pl->Packing_List_No)->exists()) {
             echo "error";
             exit;
         }
@@ -278,8 +329,28 @@ class WeightBridgeTicketController extends Controller
         if (!$wbt) {
             return redirect()->back()->with('error', 'Data not found');
         }
-        $pls = PackingList::where('Status', "CREATED")->get();
-        $wbt->Details = WeightBridgeTicketDtl::where("WBT_No", $wbt->WBT_No)->join('vessel_schedule_dtls', 'weight_bridge_ticket_dtl.VSD_ID', '=', 'vessel_schedule_dtls.id')->select('weight_bridge_ticket_dtl.*', 'vessel_schedule_dtls.Container as Container', 'vessel_schedule_dtls.Seal as Seal')->get();
+        $pls = PackingList::where('Status', 'CREATED')
+            ->when(!empty($wbt->Packing_List_No), function ($q) use ($wbt) {
+                $q->orWhere('Packing_List_No', $wbt->Packing_List_No);
+            })
+            ->get();
+        $wbt->Details = WeightBridgeTicketDtl::where("WBT_No", $wbt->WBT_No)
+            ->join('vessel_schedule_dtls', 'weight_bridge_ticket_dtl.VSD_ID', '=', 'vessel_schedule_dtls.id')
+            ->select('weight_bridge_ticket_dtl.*', 'vessel_schedule_dtls.Container as Container', 'vessel_schedule_dtls.Seal as Seal', 'vessel_schedule_dtls.Police_No as Police_No')
+            ->get();
+
+        if ($wbt->Details->isEmpty() && !empty($wbt->SI_No)) {
+            $vsds = VesselScheduleDtl::active()->where("SI_No", $wbt->SI_No)->get();
+            $wbt->Details = $vsds->map(function ($v) {
+                return (object) [
+                    'VSD_ID' => $v->ID,
+                    'Container' => $v->Container,
+                    'Seal' => $v->Seal,
+                    'Police_No' => $v->Police_No,
+                    'Path_Loc' => '',
+                ];
+            });
+        }
         return view('cns.export.wbt-detail', compact('wbt', 'pls'));
     }
 

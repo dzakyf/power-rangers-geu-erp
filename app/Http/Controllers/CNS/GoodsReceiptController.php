@@ -3,12 +3,15 @@
 namespace App\Http\Controllers\CNS;
 
 use App\CnsGoodsReceipt;
+use App\CnsKemasanSerialNumber;
 use App\Http\Controllers\Controller;
 use App\Services\CNS\GoodsReceiptService;
+use App\Support\DhtmlxGridPagination;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Exception;
 
 class GoodsReceiptController extends Controller
@@ -38,7 +41,7 @@ class GoodsReceiptController extends Controller
         $endDate   = $request->query('end_date');
         $status    = $request->query('status');
 
-        $query = CnsGoodsReceipt::with('details')->orderBy('id', 'desc');
+        $query = CnsGoodsReceipt::query()->orderBy('id', 'desc');
 
         if ($startDate) {
             $query->whereDate('receipt_date', '>=', $startDate);
@@ -50,19 +53,59 @@ class GoodsReceiptController extends Controller
             $query->where('status', $status);
         }
 
-        $records = $query->get();
+        // Column filters from dhtmlx header
+        if ($request->has('filters') && is_array($request->query('filters'))) {
+            foreach ($request->query('filters') as $colIdx => $val) {
+                $val = trim((string) $val);
+                if ($val === '') continue;
+                if ($colIdx == 1) $query->where('gr_no', 'like', "%{$val}%");
+                if ($colIdx == 2) $query->where('po_no', 'like', "%{$val}%");
+                if ($colIdx == 4) $query->whereDate('receipt_date', $val);
+                if ($colIdx == 5) $query->where('delivery_note_no', 'like', "%{$val}%");
+                if ($colIdx == 6) $query->where(function($q) use ($val) {
+                    $q->where('driver_name', 'like', "%{$val}%")
+                      ->orWhere('vehicle_no', 'like', "%{$val}%");
+                });
+                if ($colIdx == 8) $query->where('status', $val);
+                if ($colIdx == 9) $query->where('received_by', 'like', "%{$val}%");
+                if ($colIdx == 10) $query->where('approved_by', 'like', "%{$val}%");
+            }
+        }
 
-        header('Content-Type: text/xml');
-        echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>";
-        echo "<rows>";
+        $colMap = [
+            1 => 'gr_no',
+            2 => 'po_no',
+            4 => 'receipt_date',
+            5 => 'delivery_note_no',
+            8 => 'status',
+            9 => 'received_by',
+            10 => 'approved_by',
+        ];
 
-        $no = 1;
+        $paginated = DhtmlxGridPagination::paginateQuery($query, $request, [
+            'col_map' => $colMap,
+            'default_page_size' => 25,
+        ]);
+
+        $records = $paginated['rows'];
+        $records->load('details');
+        $total = $paginated['total'];
+        $posStart = $paginated['posStart'];
+
+        // Batch load PO and suppliers for the page
+        $poNos = $records->pluck('po_no')->unique()->filter()->all();
+        $pos = DB::table('purchase_order_cns')->whereIn('PO_No', $poNos)->get()->keyBy('PO_No');
+        $supplierIds = $pos->pluck('Supplier')->unique()->filter()->all();
+        $suppliers = DB::table('supplier')->whereIn('Supplier_ID', $supplierIds)->get()->keyBy('Supplier_ID');
+
+        $bodyXml = "";
+        $no = $posStart + 1;
         foreach ($records as $row) {
             $date = $row->receipt_date ? Carbon::parse($row->receipt_date)->format('d/m/Y') : '-';
-            $po = DB::table('purchase_order_cns')->where('PO_No', $row->po_no)->first();
+            $po = $pos->get($row->po_no);
             $supplierName = '-';
             if ($po && !empty($po->Supplier)) {
-                $supp = DB::table('supplier')->where('Supplier_ID', $po->Supplier)->first();
+                $supp = $suppliers->get($po->Supplier);
                 $supplierName = $supp->Company_Name ?? $po->Supplier;
             }
 
@@ -72,23 +115,22 @@ class GoodsReceiptController extends Controller
 
             $statusBadge = $row->status;
 
-            echo '<row id="' . $row->id . '">';
-            echo '<cell>' . $no++ . '</cell>';
-            echo '<cell>' . htmlspecialchars($row->gr_no) . '</cell>';
-            echo '<cell>' . htmlspecialchars($row->po_no) . '</cell>';
-            echo '<cell>' . htmlspecialchars($supplierName) . '</cell>';
-            echo '<cell>' . htmlspecialchars($date) . '</cell>';
-            echo '<cell>' . htmlspecialchars($row->delivery_note_no ?: '-') . '</cell>';
-            echo '<cell>' . htmlspecialchars(($row->driver_name ?: '-') . ($row->vehicle_no ? ' / ' . $row->vehicle_no : '')) . '</cell>';
-            echo '<cell>' . htmlspecialchars($itemSummary ?: '-') . '</cell>';
-            echo '<cell>' . htmlspecialchars($statusBadge) . '</cell>';
-            echo '<cell>' . htmlspecialchars($row->received_by ?: '-') . '</cell>';
-            echo '<cell>' . htmlspecialchars($row->approved_by ?: '-') . '</cell>';
-            echo '</row>';
+            $bodyXml .= '<row id="' . $row->id . '">';
+            $bodyXml .= '<cell>' . $no++ . '</cell>';
+            $bodyXml .= '<cell>' . htmlspecialchars($row->gr_no) . '</cell>';
+            $bodyXml .= '<cell>' . htmlspecialchars($row->po_no) . '</cell>';
+            $bodyXml .= '<cell>' . htmlspecialchars($supplierName) . '</cell>';
+            $bodyXml .= '<cell>' . htmlspecialchars($date) . '</cell>';
+            $bodyXml .= '<cell>' . htmlspecialchars($row->delivery_note_no ?: '-') . '</cell>';
+            $bodyXml .= '<cell>' . htmlspecialchars(($row->driver_name ?: '-') . ($row->vehicle_no ? ' / ' . $row->vehicle_no : '')) . '</cell>';
+            $bodyXml .= '<cell>' . htmlspecialchars($itemSummary ?: '-') . '</cell>';
+            $bodyXml .= '<cell>' . htmlspecialchars($statusBadge) . '</cell>';
+            $bodyXml .= '<cell>' . htmlspecialchars($row->received_by ?: '-') . '</cell>';
+            $bodyXml .= '<cell>' . htmlspecialchars($row->approved_by ?: '-') . '</cell>';
+            $bodyXml .= '</row>' . "\n";
         }
 
-        echo "</rows>";
-        exit;
+        return DhtmlxGridPagination::response($total, $posStart, $bodyXml);
     }
 
     /**
@@ -177,7 +219,65 @@ class GoodsReceiptController extends Controller
             'items'            => 'required|array|min:1',
             'items.*.item_name'=> 'required|string',
             'items.*.qty_received' => 'required|numeric|min:0',
+            'items.*.serial_number' => 'nullable|string',
         ]);
+
+        $seenSerials = [];
+        $allFlexibagSerials = [];
+
+        foreach ($request->input('items', []) as $idx => $item) {
+            $itemName = (string) ($item['item_name'] ?? '');
+            $qtyReceived = (float) ($item['qty_received'] ?? 0);
+            $serialNumber = trim((string) ($item['serial_number'] ?? ''));
+
+            if (stripos($itemName, 'flexibag') !== false && $qtyReceived > 0) {
+                if (abs($qtyReceived - round($qtyReceived)) > 0.0001) {
+                    return back()
+                        ->withInput()
+                        ->withErrors(["items.{$idx}.qty_received" => "Qty Diterima untuk {$itemName} harus bilangan bulat."]);
+                }
+
+                $expectedQty = (int) round($qtyReceived);
+                $parsed = array_values(array_filter(array_map('trim', preg_split('/[\r\n,]+/', $serialNumber)), function ($sn) {
+                    return $sn !== '';
+                }));
+
+                if (count($parsed) === 0) {
+                    return back()
+                        ->withInput()
+                        ->withErrors(["items.{$idx}.serial_number" => "Serial Number wajib diisi untuk item {$itemName}."]);
+                }
+
+                if (count($parsed) !== $expectedQty) {
+                    return back()
+                        ->withInput()
+                        ->withErrors(["items.{$idx}.serial_number" => "Jumlah Serial Number (" . count($parsed) . ") harus sama dengan Qty Diterima ({$expectedQty}) untuk item {$itemName}."]);
+                }
+
+                foreach ($parsed as $sn) {
+                    $key = mb_strtolower($sn);
+                    if (isset($seenSerials[$key])) {
+                        return back()
+                            ->withInput()
+                            ->withErrors(["items.{$idx}.serial_number" => "Serial Number duplikat di form: {$sn}."]);
+                    }
+                    $seenSerials[$key] = true;
+                    $allFlexibagSerials[] = $sn;
+                }
+            }
+        }
+
+        if (!empty($allFlexibagSerials) && Schema::hasTable('cns_kemasan_serial_numbers')) {
+            $existing = CnsKemasanSerialNumber::whereIn('serial_number', $allFlexibagSerials)
+                ->pluck('serial_number')
+                ->all();
+
+            if (!empty($existing)) {
+                return back()
+                    ->withInput()
+                    ->withErrors(['items' => 'Serial Number sudah terdaftar di sistem: ' . implode(', ', $existing)]);
+            }
+        }
 
         try {
             $gr = $this->service->createDraft(

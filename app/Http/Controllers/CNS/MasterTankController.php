@@ -5,6 +5,7 @@ namespace App\Http\Controllers\CNS;
 use App\Http\Controllers\Controller;
 use App\MasterTank;
 use App\MasterTankLog;
+use App\Support\DhtmlxGridPagination;
 use App\UCOStoragePelindo;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -39,7 +40,7 @@ class MasterTankController extends Controller
         $endDate   = $request->query('end_date');
         $name      = $request->query('name');
 
-        $query = MasterTank::query()->orderBy('name', 'asc');
+        $query = MasterTank::query();
         if ($status) {
             $query->where('status', $status);
         }
@@ -52,33 +53,51 @@ class MasterTankController extends Controller
         if ($name) {
             $query->where('name', 'like', "%{$name}%");
         }
+        if (!$request->filled('sort_col')) {
+            $query->orderBy('name', 'asc');
+        }
 
-        $tanks = $query->get();
+        $paginated = DhtmlxGridPagination::paginateQuery($query, $request, [
+            'default_page_size' => 25,
+            'col_map' => [
+                1 => 'name',
+                2 => 'capacity',
+                5 => 'status',
+                6 => 'notes',
+                7 => 'created_by',
+                8 => 'created_at',
+            ],
+            'filter_map' => [
+                1 => 'name',
+                2 => 'capacity',
+                5 => 'status',
+                6 => 'notes',
+                7 => 'created_by',
+                8 => 'created_at',
+            ],
+        ]);
 
-        header("Content-type: text/xml");
-        echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
-        echo "<rows>\n";
-
-        $no = 1;
-        foreach ($tanks as $tank) {
+        $bodyXml = '';
+        $no = $paginated['posStart'] + 1;
+        foreach ($paginated['rows'] as $tank) {
             $currentStock = $this->calculateTankBalance($tank->name);
             $utilization = $tank->capacity > 0 ? round(($currentStock / $tank->capacity) * 100, 1) : 0;
 
-            echo "<row id=\"{$tank->id}\">\n";
-            echo "<cell>{$no}</cell>\n";
-            echo "<cell>" . htmlspecialchars($tank->name) . "</cell>\n";
-            echo "<cell>" . number_format((float) $tank->capacity, 2, '.', ',') . " KG</cell>\n";
-            echo "<cell>" . number_format((float) $currentStock, 2, '.', ',') . " KG</cell>\n";
-            echo "<cell>{$utilization}%</cell>\n";
-            echo "<cell>" . htmlspecialchars($tank->status) . "</cell>\n";
-            echo "<cell>" . htmlspecialchars($tank->notes ?? '-') . "</cell>\n";
-            echo "<cell>" . htmlspecialchars($tank->created_by ?? '-') . "</cell>\n";
-            echo "<cell>" . ($tank->created_at ? $tank->created_at->format('d/m/Y H:i') : '-') . "</cell>\n";
-            echo "</row>\n";
+            $bodyXml .= "<row id=\"{$tank->id}\">";
+            $bodyXml .= "<cell>{$no}</cell>";
+            $bodyXml .= "<cell>" . htmlspecialchars((string) $tank->name) . "</cell>";
+            $bodyXml .= "<cell>" . number_format((float) $tank->capacity, 2, '.', ',') . " KG</cell>";
+            $bodyXml .= "<cell>" . number_format((float) $currentStock, 2, '.', ',') . " KG</cell>";
+            $bodyXml .= "<cell>{$utilization}%</cell>";
+            $bodyXml .= "<cell>" . htmlspecialchars((string) $tank->status) . "</cell>";
+            $bodyXml .= "<cell>" . htmlspecialchars((string) ($tank->notes ?? '-')) . "</cell>";
+            $bodyXml .= "<cell>" . htmlspecialchars((string) ($tank->created_by ?? '-')) . "</cell>";
+            $bodyXml .= "<cell>" . ($tank->created_at ? $tank->created_at->format('d/m/Y H:i') : '-') . "</cell>";
+            $bodyXml .= "</row>";
             $no++;
         }
 
-        echo "</rows>";
+        return DhtmlxGridPagination::response($paginated['total'], $paginated['posStart'], $bodyXml);
     }
 
     public function store(Request $request)

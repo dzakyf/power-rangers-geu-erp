@@ -223,6 +223,54 @@ class StuffingPhotoChecklistTest extends TestCase
     }
 
     /** @test */
+    public function it_allows_updating_rilis_npe_only_when_done_kapal_berangkat_is_set_and_npe_is_not(): void
+    {
+        $vs = $this->makeVesselSchedule();
+
+        $this->actingAs($this->testUser())
+            ->post('/cns-stuffing-detail-checklist?task=' . $vs->id, [
+                'Checklist_Pickup_Container' => 1,
+                'Checklist_Stuffing_Process' => 1,
+                'Checklist_Rilis_NPE' => 0,
+                'Checklist_Get_In_CY' => 1,
+                'Checklist_Done_Kapal_Berangkat' => 1,
+            ])
+            ->assertOk()
+            ->assertJson(['status' => 'success']);
+
+        $page = $this->actingAs($this->testUser())
+            ->get('/cns-stuffing-detail?task=' . $vs->id);
+        $page->assertOk();
+        $page->assertSee('id="Checklist_Rilis_NPE"  />', false);
+        $page->assertSee('id="SaveStuffingChecklist" >Simpan Checklist</button>', false);
+
+        $this->actingAs($this->testUser())
+            ->post('/cns-stuffing-detail-checklist?task=' . $vs->id, [
+                'Checklist_Pickup_Container' => 0,
+                'Checklist_Stuffing_Process' => 0,
+                'Checklist_Rilis_NPE' => 1,
+                'Checklist_Get_In_CY' => 0,
+                'Checklist_Done_Kapal_Berangkat' => 0,
+            ])
+            ->assertOk()
+            ->assertJson(['status' => 'success']);
+
+        $schedule = DB::table('vessel_schedules')->where('id', $vs->id)->first();
+        $this->assertSame(1, (int) $schedule->Checklist_Pickup_Container);
+        $this->assertSame(1, (int) $schedule->Checklist_Stuffing_Process);
+        $this->assertSame(1, (int) $schedule->Checklist_Rilis_NPE);
+        $this->assertSame(1, (int) $schedule->Checklist_Get_In_CY);
+        $this->assertSame(1, (int) $schedule->Checklist_Done_Kapal_Berangkat);
+
+        $this->actingAs($this->testUser())
+            ->post('/cns-stuffing-detail-checklist?task=' . $vs->id, [
+                'Checklist_Rilis_NPE' => 0,
+            ])
+            ->assertStatus(422)
+            ->assertJson(['status' => 'error']);
+    }
+
+    /** @test */
     public function it_returns_existing_photos_in_the_container_edit_data(): void
     {
         $vs = $this->makeVesselSchedule();

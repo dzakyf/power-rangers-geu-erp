@@ -13,8 +13,8 @@
 @endphp
 
 <div class="mt-3">
-    <div class="JudulContent" style="color:#699;">{{ $isEdit ? 'DETAIL CONTRACT BUYER (UCO)' : 'NEW CONTRACT BUYER (UCO)' }}</div>
-    <div class="card">
+    <div class="cns-section-header">{{ $isEdit ? 'DETAIL CONTRACT BUYER (UCO)' : 'NEW CONTRACT BUYER (UCO)' }}</div>
+    <div class="card cns-card">
         <div class="card-body">
             <div id="ContentPagesContract">
 
@@ -22,20 +22,41 @@
                     <input type="hidden" name="ID" id="ID" value="{{ $contract->ID }}" />
                 @endif
 
-                <h6 class="font-weight-bold border-bottom pb-1 mt-2" style="color:#1a56a0;">Buyer</h6>
+                <h6 class="font-weight-bold border-bottom pb-1 mt-2" style="color:#1a56a0;">Buyer &amp; KYC</h6>
                 <div class="row">
                     <div class="col-md-5">
                         <div class="form-group">
-                            <label>Nama Buyer</label>
-                            <select name="Supplier_ID" id="Supplier_ID" class="text-black form-control shadow-sm" required>
-                                <option value="">-- Pilih Buyer --</option>
+                            <label>KYC (Approved) <span class="text-danger">*</span></label>
+                            <select name="kyc_id" id="kyc_id" class="text-black form-control shadow-sm" required>
+                                <option value="">-- Pilih KYC (Approved) --</option>
+                                @foreach($approvedKycs as $kycItem)
+                                    <option value="{{ $kycItem->id }}" {{ (string) old('kyc_id', $contract->kyc_id ?? '') === (string) $kycItem->id ? 'selected' : '' }}>
+                                        {{ $kycItem->kyc_no }} - {{ $kycItem->company_name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            <small class="text-muted">Hanya KYC berstatus APPROVED yang dapat dipilih.</small>
+                        </div>
+                    </div>
+                    <div class="col-md-7 d-flex align-items-center">
+                        <a href="{{ route('cns-customer-compliance-kyc.index') }}" target="_blank" class="btn btn-outline-info btn-sm">
+                            Kelola KYC
+                        </a>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-5">
+                        <div class="form-group">
+                            <label>Nama Buyer (Master Company)</label>
+                            <select name="Supplier_ID" id="Supplier_ID" class="text-black form-control shadow-sm">
+                                <option value="">-- Pilih Buyer (Opsional) --</option>
                                 @foreach($buyers as $buyer)
                                     <option value="{{ $buyer->ID }}" {{ (string) old('Supplier_ID', $contract->Supplier_ID ?? '') === (string) $buyer->ID ? 'selected' : '' }}>
                                         {{ $buyer->Company_Name }}
                                     </option>
                                 @endforeach
                             </select>
-                            <small class="text-muted">Buyer diambil dari Master Company (Consignee / Buyer).</small>
+                            <small class="text-muted">Opsional jika KYC standalone. Jika dipilih, telepon &amp; email ditarik dari Master Company.</small>
                         </div>
                     </div>
                     <div class="col-md-7 d-flex align-items-center">
@@ -46,20 +67,20 @@
                     </div>
                     <div class="col-md-4">
                         <div class="form-group">
-                            <label>Nama Buyer (Snapshot Kontrak)</label>
+                            <label>Nama Buyer (dari KYC)</label>
                             <input type="text" name="Buyer_Name" id="Buyer_Name" value="{{ old('Buyer_Name', $contract->Buyer_Name ?? '') }}" class="text-black form-control shadow-sm" readonly required />
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="form-group">
                             <label>Nomor Telepon</label>
-                            <input type="text" name="Buyer_Phone" id="Buyer_Phone" value="{{ old('Buyer_Phone', $contract->Buyer_Phone ?? '') }}" class="text-black form-control shadow-sm" readonly required />
+                            <input type="text" name="Buyer_Phone" id="Buyer_Phone" value="{{ old('Buyer_Phone', $contract->Buyer_Phone ?? '') }}" class="text-black form-control shadow-sm" {{ !empty($contract->Supplier_ID) ? 'readonly' : '' }} required />
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="form-group">
                             <label>Alamat</label>
-                            <textarea name="Buyer_Address" id="Buyer_Address" rows="2" class="text-black form-control shadow-sm" readonly required>{{ old('Buyer_Address', $contract->Buyer_Address ?? '') }}</textarea>
+                            <textarea name="Buyer_Address" id="Buyer_Address" rows="2" class="text-black form-control shadow-sm" {{ !empty($contract->Supplier_ID) ? 'readonly' : '' }} required>{{ old('Buyer_Address', $contract->Buyer_Address ?? '') }}</textarea>
                         </div>
                     </div>
                 </div>
@@ -69,11 +90,11 @@
                     <div id="UcoEmailRows">
                         @foreach($emails as $email)
                             <div class="input-group mb-2 uco-email-row">
-                                <input type="email" name="Buyer_Emails[]" value="{{ $email }}" class="text-black form-control shadow-sm" placeholder="nama@domain.com" readonly />
+                                <input type="email" name="Buyer_Emails[]" value="{{ $email }}" class="text-black form-control shadow-sm" placeholder="nama@domain.com" {{ !empty($contract->Supplier_ID) ? 'readonly' : '' }} />
                             </div>
                         @endforeach
                     </div>
-                    <small class="text-muted d-block">Email diambil dari Master Company.</small>
+                    <small class="text-muted d-block">Otomatis dari Master Company jika dipilih, atau isi manual jika KYC standalone.</small>
                 </div>
 
                 <h6 class="font-weight-bold border-bottom pb-1 mt-3" style="color:#1a56a0;">Kontrak</h6>

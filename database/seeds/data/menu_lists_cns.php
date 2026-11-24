@@ -15,6 +15,7 @@ return [
     'SM00062' => ['Procurement', '#', 'CNS', 2, 'MS00011', 9],
     'SM00063' => ['Inventory', '#', 'CNS', 2, 'MS00011', 10],
     'SM00064' => ['Master Data', '#', 'CNS', 2, 'MS00011', 11],
+    'SM00069' => ['Finance & Accounting', '#', 'CNS', 2, 'MS00011', 12],
 
     'SS00090' => ['Kontrak Pembelian', '#', 'CNS', 3, 'SM00065', 1],
     'SS00093' => ['Document Control', '#', 'CNS', 3, 'SM00065', 2],
@@ -22,6 +23,7 @@ return [
     'SS00080' => ['Shipping Management', '#', 'CNS', 3, 'SM00056', 1],
     'SS00081' => ['Stuffing', 'cns-stuffing', 'CNS', 3, 'SM00057', 1],
     'SS00082' => ['Export Management', '#', 'CNS', 3, 'SM00058', 1],
+    'SS00097' => ['Cost Control', '#', 'CNS', 3, 'SM00058', 2],
     'SS00083' => ['Quality Control ', '#', 'CNS', 3, 'SM00059', 1],
     'SS00084' => ['Sales & Commercial', '#', 'CNS', 3, 'SM00060', 1],
     'SS00085' => ['Sustainability', '#', 'CNS', 3, 'SM00061', 1],
@@ -30,6 +32,7 @@ return [
     'SS00091' => ['Inventory Non UCO', '#', 'CNS', 3, 'SM00063', 2],
     'SS00088' => ['Master Data', '#', 'CNS', 3, 'SM00064', 1],
     'SS00089' => ['', '#', 'CNS', 3, 'SM00064', 2],
+    'SS00099' => ['Finance & Accounting', '#', 'CNS', 3, 'SM00069', 1],
     'SS00150' => ['Dashboard', '#', 'CNS', 3, 'SM00080', 1],
 
     'SI00331' => ['Kontrak Pembelian', 'cns-procurement-buyer-contract', 'CNS', 4, 'SS00090', 1],
@@ -46,8 +49,12 @@ return [
     'SI00314' => ['Sustainability Declaration', 'cns-export-sustainability-declaration', 'CNS', 4, 'SS00082', 7],
     'SI00315' => ['Delivery Note', 'cns-export-delivery-note', 'CNS', 4, 'SS00082', 8],
     'SI00325' => ['Annex VII', 'cns-export-annex-index', 'CNS', 4, 'SS00082', 9],
+    'SI00350' => ['Export Checklist', 'cns-export-checklist', 'CNS', 4, 'SS00082', 10],
+    'SI00351' => ['Cost Allocation per Shipment', 'cns-export-cost-allocation', 'CNS', 4, 'SS00097', 1],
     'SI00316' => ['Quality Control Reguler', 'cns-quality-index', 'CNS', 4, 'SS00083', 9],
     'SI00318' => ['Sales Order', 'cns-sales-order', 'CNS', 4, 'SS00084', 5],
+    'SI00352' => ['Product Allocation & Volume Planning', 'cns-product-allocation', 'CNS', 4, 'SS00084', 6],
+    'SI00354' => ['Sales Forecast & Pipeline Tracking', 'cns-sales-forecast', 'CNS', 4, 'SS00084', 7],
     'SI00330' => ['Traceabililty', 'cns-iscc-traceability-index', 'CNS', 4, 'SS00085', 4],
     'SI00319' => ['Purchase Request', 'cns-procurement-purchase-request', 'CNS', 4, 'SS00086', 1],
     'SI00322' => ['Outstanding Purchase Request ', 'cns-procurement-purchase-request-outstanding', 'CNS', 4, 'SS00086', 2],
@@ -66,4 +73,5 @@ return [
     'SI01074' => ['Master Tangki', 'cns-master-tank', 'CNS', 4, 'SS00088', 4],
     'SI00342' => ['Master Kemasan', 'cns-master-kemasan', 'CNS', 4, 'SS00088', 5],
     'SI01150' => ['Export Volume', 'cns-dashboard-export-volume', 'CNS', 4, 'SS00150', 1],
+    'SI00353' => ['Export Invoicing', 'finance-export-invoicing', 'CNS', 4, 'SS00099', 1],
 ];

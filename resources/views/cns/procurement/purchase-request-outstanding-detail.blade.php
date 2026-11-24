@@ -36,8 +36,8 @@ use Illuminate\Database\Eloquent\Builder;
 
 ?>
 <div class="mt-3">
-	<div class="JudulContent" style="color:#699;background-image:url(./hdr_back.gif);">DETAIL PURCHASE REQUEST</div>
-	<div class="card">
+	<div class="cns-section-header">DETAIL PURCHASE REQUEST</div>
+	<div class="card cns-card">
 		<div class="card-body">
 			<div id="ContentPages">
 				<div class="FormInput_Form_Content">
@@ -199,7 +199,9 @@ use Illuminate\Database\Eloquent\Builder;
 					</div>
 					
 					
-					<div id="gridPRNewDetail" style="width:auto;height:200px; background-color:white;overflow:hidden"></div>
+					<div class="cns-grid-wrapper">
+						<div id="gridPRNewDetail" class="cns-grid" style="width:auto;height:200px;background-color:white;overflow:hidden"></div>
+					</div>
                     <div class="FormInput_left">
 
                         Subtotal
@@ -378,7 +380,7 @@ PRNewDetail.attachEvent('onEditCell', function(stage, rId, cInd, nValue, oValue)
 				PRNewDetail.cells(rId, 5).setValue('0');
 			}
 			if (qty - qtyPO - qtyOrdered < 0) {
-				alert("Qty exceeds the remaining quantity!");
+				swal('Perhatian', 'Qty exceeds the remaining quantity!', 'warning');
 				PRNewDetail.cells(rId, 5).setValue(oValue);
 				return false;
 			}
@@ -417,8 +419,8 @@ PPRNewDetail.attachEvent("onAfterUpdateFinish", function (id,state, data) {
 			success: function(data, textStatus, jqXHR)
 			{
 				if (data == 'success'){
-					alert('Purchase Request Approved!');
-					$.unblockUI(); 
+					$.unblockUI();
+					swal('Berhasil!', 'Purchase Request Approved!', 'success');
 					setTimeout(function(){
 							
 						refreshdata();
@@ -427,12 +429,14 @@ PPRNewDetail.attachEvent("onAfterUpdateFinish", function (id,state, data) {
 					},1000);				
 
 				}else{
-					alert('Gagal Update');
+					$.unblockUI();
+					swal('Error', 'Gagal Update', 'error');
 				}
 			},
 			error: function (jqXHR, textStatus, errorThrown)
 			{
-			 alert( "error" );
+			 $.unblockUI();
+			 swal('Error', 'error', 'error');
 		
 			}
 		});		
@@ -472,7 +476,7 @@ $("#DelPRNewDetail").click(function(){
 $("#SubmitPRNewDetail").click(function() {
 var count=PRNewDetail.getRowsNum();
 if(count == 0){
-	alert('Masukkan Item Request Terlebih Dahulu! ');
+	swal('Perhatian', 'Masukkan Item Request Terlebih Dahulu! ', 'warning');
 	return false;
 }else{
 	Reference = $("#Reference").val();
@@ -488,9 +492,9 @@ if(count == 0){
 	PIC_Phone = $("#PIC_Phone").val();
 	PIC_Address = $("#PIC_Address").val();
 	if (Note == '') {
-		alert("Kolom catatan (Note) Harus Diisi!");$("#Note").focus();return false;
+		swal('Perhatian', 'Kolom catatan (Note) Harus Diisi!', 'warning');$("#Note").focus();return false;
 	}else if (Note.length < 5) {
-		alert("Kolom catatan (Note) minimal 5 karakter!");$("#Note").focus();return false;
+		swal('Perhatian', 'Kolom catatan (Note) minimal 5 karakter!', 'warning');$("#Note").focus();return false;
 	}else{
 		PPRNewDetail.sendData();
 
@@ -510,7 +514,13 @@ if(count == 0){
 });
 
 $("#Rejects").click(function() {
-	dhtmlx.confirm('Reject This Task?', 'Purchase Request', function(r) {
+	swal({
+		title: 'Purchase Request',
+		text: 'Reject This Task?',
+		icon: 'warning',
+		buttons: ['Batal', 'Ya'],
+		dangerMode: true
+	}).then(function(r) {
 		if (r==true){
 			
 			$.blockUI(); 
@@ -527,20 +537,22 @@ $("#Rejects").click(function() {
 				success: function(data, textStatus, jqXHR)
 				{
 					if (data == 'success'){
-						alert('Purchase Request REJECTED!');
-						$.unblockUI(); 
+						$.unblockUI();
+						swal('Berhasil!', 'Purchase Request REJECTED!', 'success');
 						setTimeout(function(){
 							refreshdata();
 							$("#PurchaseManagementDiv").html('');
 						},1000);				
 
 					}else{
-						alert('Gagal Update');
+						$.unblockUI();
+						swal('Error', 'Gagal Update', 'error');
 					}
 				},
 				error: function (jqXHR, textStatus, errorThrown)
 				{
-					alert( "error" );
+					$.unblockUI();
+					swal('Error', 'error', 'error');
 			
 				}
 			});			

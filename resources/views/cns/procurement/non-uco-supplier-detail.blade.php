@@ -22,10 +22,10 @@
                 success: function (data) {
                     $.unblockUI();
                     if (String(data).indexOf('success') !== -1) {
-                        alert('Supplier Non-UCO berhasil diperbarui.');
+                        swal('Berhasil!', 'Supplier Non-UCO berhasil diperbarui.', 'success');
                         if (typeof refreshdata === 'function') { refreshdata(); }
                     } else {
-                        alert('Gagal memperbarui supplier.');
+                        swal('Error', 'Gagal memperbarui supplier.', 'error');
                     }
                 },
                 error: function (xhr) {
@@ -39,7 +39,7 @@
                             message = xhr.responseJSON.message;
                         }
                     }
-                    alert(message);
+                    swal('Error', message, 'error');
                 }
             });
         });

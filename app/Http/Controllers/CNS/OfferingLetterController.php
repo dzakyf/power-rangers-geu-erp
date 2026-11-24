@@ -4,6 +4,7 @@ namespace App\Http\Controllers\CNS;
 
 use App\CnsOfferingLetter;
 use App\Http\Controllers\Controller;
+use App\Support\DhtmlxGridPagination;
 use App\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -25,10 +26,6 @@ class OfferingLetterController extends Controller
 
     public function xmlData(Request $request)
     {
-        if (!headers_sent()) {
-            header('Content-Type: text/xml');
-        }
-
         try {
             $query = CnsOfferingLetter::query()->orderByDesc('id');
 
@@ -45,10 +42,43 @@ class OfferingLetterController extends Controller
                 $query->whereDate('offer_date', '<=', $request->query('end_date'));
             }
 
-            $rows = $query->get();
+            // Column filters from dhtmlx header
+            if ($request->has('filters') && is_array($request->query('filters'))) {
+                foreach ($request->query('filters') as $colIdx => $val) {
+                    $val = trim((string) $val);
+                    if ($val === '') continue;
+                    if ($colIdx == 1) $query->where('offer_no', 'like', "%{$val}%");
+                    if ($colIdx == 2) $query->whereDate('offer_date', $val);
+                    if ($colIdx == 3) $query->where('seller_name', 'like', "%{$val}%");
+                    if ($colIdx == 4) $query->where('buyer_name', 'like', "%{$val}%");
+                    if ($colIdx == 7) $query->where('delivery_term', 'like', "%{$val}%");
+                    if ($colIdx == 10) $query->where('status', $val);
+                }
+            }
 
-            $xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<rows>\n";
-            $no = 1;
+            $colMap = [
+                1 => 'offer_no',
+                2 => 'offer_date',
+                3 => 'seller_name',
+                4 => 'buyer_name',
+                5 => 'quantity_mt',
+                6 => 'price_per_mt',
+                7 => 'delivery_term',
+                9 => 'valid_until',
+                10 => 'status',
+            ];
+
+            $paginated = DhtmlxGridPagination::paginateQuery($query, $request, [
+                'col_map' => $colMap,
+                'default_page_size' => 25,
+            ]);
+
+            $rows = $paginated['rows'];
+            $total = $paginated['total'];
+            $posStart = $paginated['posStart'];
+
+            $bodyXml = "";
+            $no = $posStart + 1;
             foreach ($rows as $row) {
                 $delivery = $row->delivery_term === 'CIF' && $row->destination_port
                     ? 'CIF ' . $row->destination_port
@@ -63,29 +93,28 @@ class OfferingLetterController extends Controller
                     : '-';
 
                 $statusBadge = $row->status === CnsOfferingLetter::STATUS_APPROVED
-                    ? '<span class="badge badge-success px-2 py-1">APPROVED</span>'
-                    : '<span class="badge badge-warning px-2 py-1">DRAFT</span>';
+                    ? '<span class="badge rounded-pill cns-status-badge bg-success">APPROVED</span>'
+                    : '<span class="badge rounded-pill cns-status-badge bg-warning text-dark">DRAFT</span>';
 
-                $xml .= '<row id="' . (int) $row->id . '">';
-                $xml .= '<cell>' . $no++ . '</cell>';
-                $xml .= '<cell>' . htmlspecialchars($row->offer_no) . '</cell>';
-                $xml .= '<cell>' . htmlspecialchars($row->offer_date ? $row->offer_date->format('d M Y') : '-') . '</cell>';
-                $xml .= '<cell>' . htmlspecialchars($row->seller_name) . '</cell>';
-                $xml .= '<cell>' . htmlspecialchars($row->buyer_name ?: '-') . '</cell>';
-                $xml .= '<cell>' . htmlspecialchars($qtyText) . '</cell>';
-                $xml .= '<cell>' . htmlspecialchars($priceText) . '</cell>';
-                $xml .= '<cell>' . htmlspecialchars($delivery ?: '-') . '</cell>';
-                $xml .= '<cell>' . htmlspecialchars(CnsOfferingLetter::formatLoadingPeriod($row->loading_period) ?: '-') . '</cell>';
-                $xml .= '<cell>' . htmlspecialchars($row->valid_until ? $row->valid_until->format('d M Y') : '-') . '</cell>';
-                $xml .= '<cell><![CDATA[' . $statusBadge . ']]></cell>';
-                $xml .= "</row>\n";
+                $bodyXml .= '<row id="' . (int) $row->id . '">';
+                $bodyXml .= '<cell>' . $no++ . '</cell>';
+                $bodyXml .= '<cell>' . htmlspecialchars($row->offer_no) . '</cell>';
+                $bodyXml .= '<cell>' . htmlspecialchars($row->offer_date ? $row->offer_date->format('d M Y') : '-') . '</cell>';
+                $bodyXml .= '<cell>' . htmlspecialchars($row->seller_name) . '</cell>';
+                $bodyXml .= '<cell>' . htmlspecialchars($row->buyer_name ?: '-') . '</cell>';
+                $bodyXml .= '<cell>' . htmlspecialchars($qtyText) . '</cell>';
+                $bodyXml .= '<cell>' . htmlspecialchars($priceText) . '</cell>';
+                $bodyXml .= '<cell>' . htmlspecialchars($delivery ?: '-') . '</cell>';
+                $bodyXml .= '<cell>' . htmlspecialchars(CnsOfferingLetter::formatLoadingPeriod($row->loading_period) ?: '-') . '</cell>';
+                $bodyXml .= '<cell>' . htmlspecialchars($row->valid_until ? $row->valid_until->format('d M Y') : '-') . '</cell>';
+                $bodyXml .= '<cell><![CDATA[' . $statusBadge . ']]></cell>';
+                $bodyXml .= "</row>\n";
             }
-            $xml .= '</rows>';
 
-            return response($xml, 200)->header('Content-Type', 'text/xml');
+            return DhtmlxGridPagination::response($total, $posStart, $bodyXml);
         } catch (\Throwable $e) {
             Log::error('CNS Offering Letter xmlData error: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
-            return response("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<rows></rows>", 200)->header('Content-Type', 'text/xml');
+            return DhtmlxGridPagination::response(0, 0, "");
         }
     }
 
@@ -565,7 +594,7 @@ class OfferingLetterController extends Controller
             'price_per_mt' => $priceInput !== null && $priceInput !== '' ? str_replace(',', '', (string) $priceInput) : null,
         ]);
 
-        return $request->validate([
+        $validated = $request->validate([
             'offer_date'          => ['required', 'date'],
             'seller_id'           => ['required', 'integer'],
             'buyer_id'            => ['required', 'integer'],
@@ -585,7 +614,8 @@ class OfferingLetterController extends Controller
             'final_qty_quality'   => ['nullable', 'string'],
             'price_currency'      => ['nullable', 'string', 'max:10'],
             'price_per_mt'        => ['required', 'numeric', 'min:0.01'],
-            'loading_period'      => ['required', 'string', 'max:100'],
+            'loading_period_start'=> ['required', 'date'],
+            'loading_period_end'  => ['required', 'date', 'after_or_equal:loading_period_start'],
             'delivery_term'       => ['required', Rule::in(['FOB Surabaya', 'CIF'])],
             'destination_port'    => ['nullable', 'required_if:delivery_term,CIF', 'string', 'max:150'],
             'packaging'           => ['nullable', 'string', 'max:150'],
@@ -594,6 +624,10 @@ class OfferingLetterController extends Controller
             'signatory_key'       => ['required', 'integer'],
             'signatory_title'     => ['nullable', 'string', 'max:100'],
         ]);
+
+        $validated['loading_period'] = $validated['loading_period_start'] . ' - ' . $validated['loading_period_end'];
+
+        return $validated;
     }
 
     private function existingApprovePermissions(): array

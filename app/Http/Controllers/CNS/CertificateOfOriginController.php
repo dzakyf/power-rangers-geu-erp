@@ -5,6 +5,8 @@ namespace App\Http\Controllers\CNS;
 use App\CertificateOfOrigin;
 use App\CertificateOfOriginDtl;
 use App\Http\Controllers\Controller;
+use App\Services\CNS\CnsCodeGenerator;
+use App\Support\DhtmlxGridPagination;
 use App\WeightBridgeTicket;
 use App\WeightBridgeTicketDtl;
 use Illuminate\Http\Request;
@@ -17,46 +19,60 @@ class CertificateOfOriginController extends Controller
         return view('cns.export.coo');
     }
 
-    public function indexCertificateOfOriginXml()
+    public function indexCertificateOfOriginXml(Request $request)
     {
-        if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
-            header("Content-type: application/xhtml+xml");
-        } else {
-            header("Content-type: text/xml");
-        }
-        echo ("<?xml version='1.0' encoding='iso-8859-1'?>\n");
-
-        echo "<rows>";
-
         $company = DB::table('supplier')->where("Location", auth()->user()->Location)->get();
+        $companies = [];
         foreach ($company as $value) {
             $companies[$value->Supplier_ID] = $value->Company_Name;
         }
 
-        $nomor = 1;
-        $coos = CertificateOfOrigin::get();
-        foreach ($coos as $value) {
+        $query = CertificateOfOrigin::query();
+
+        $colMap = [
+            1 => 'COO_No',
+            2 => 'Fin_Inv_No',
+            3 => 'Fin_Inv_Date',
+            4 => 'Contract_No',
+            6 => 'Final_Destination',
+            7 => 'Dispatch_Method',
+            8 => 'Shipment_Type',
+            9 => 'HS_Code',
+            10 => 'Good_Description',
+            11 => 'Net_Weight',
+            12 => 'Note',
+        ];
+
+        $paginated = DhtmlxGridPagination::paginateQuery($query, $request, [
+            'col_map' => $colMap,
+            'default_page_size' => 25,
+        ]);
+
+        $bodyXml = '';
+        $nomor = $paginated['posStart'] + 1;
+
+        foreach ($paginated['rows'] as $value) {
             $consigneeName = $companies[$value->Consignee] ?? $value->Consignee;
-            echo "<row id=\"$value->ID\">";
-                echo "<cell>$nomor</cell>";
-                echo "<cell>".htmlspecialchars($value->COO_No)."</cell>";
-                echo "<cell>".htmlspecialchars($value->Fin_Inv_No)."</cell>";
-                echo "<cell>".htmlspecialchars($value->Fin_Inv_Date)."</cell>";
-                echo "<cell>".htmlspecialchars($value->Contract_No)."</cell>";
-                echo "<cell>".htmlspecialchars($consigneeName)."</cell>";
-                echo "<cell>".htmlspecialchars($value->Final_Destination)."</cell>";
-                echo "<cell>".htmlspecialchars($value->Dispatch_Method ?? $value->Method_Of_Dispatch)."</cell>";
-                echo "<cell>".htmlspecialchars($value->Shipment_Type)."</cell>";
-                echo "<cell>".htmlspecialchars($value->HS_Code)."</cell>";
-                echo "<cell>".htmlspecialchars($value->Good_Description)."</cell>";
-                echo "<cell>".htmlspecialchars($value->Net_Weight)."</cell>";
-                echo "<cell>".htmlspecialchars($value->Note)."</cell>";
-            echo "</row>";
+            $bodyXml .= "<row id=\"$value->ID\">";
+            $bodyXml .= "<cell>$nomor</cell>";
+            $bodyXml .= "<cell>".htmlspecialchars($value->COO_No)."</cell>";
+            $bodyXml .= "<cell>".htmlspecialchars($value->Fin_Inv_No)."</cell>";
+            $bodyXml .= "<cell>".htmlspecialchars($value->Fin_Inv_Date)."</cell>";
+            $bodyXml .= "<cell>".htmlspecialchars($value->Contract_No)."</cell>";
+            $bodyXml .= "<cell>".htmlspecialchars($consigneeName)."</cell>";
+            $bodyXml .= "<cell>".htmlspecialchars($value->Final_Destination)."</cell>";
+            $bodyXml .= "<cell>".htmlspecialchars($value->Dispatch_Method ?? $value->Method_Of_Dispatch)."</cell>";
+            $bodyXml .= "<cell>".htmlspecialchars($value->Shipment_Type)."</cell>";
+            $bodyXml .= "<cell>".htmlspecialchars($value->HS_Code)."</cell>";
+            $bodyXml .= "<cell>".htmlspecialchars($value->Good_Description)."</cell>";
+            $bodyXml .= "<cell>".htmlspecialchars($value->Net_Weight)."</cell>";
+            $bodyXml .= "<cell>".htmlspecialchars($value->Note)."</cell>";
+            $bodyXml .= "</row>\n";
 
             $nomor++;
         }
 
-        echo "</rows>";
+        return DhtmlxGridPagination::response($paginated['total'], $paginated['posStart'], $bodyXml);
     }
 
     public function printCertificateOfOrigin(Request $request)
@@ -73,14 +89,8 @@ class CertificateOfOriginController extends Controller
     public function newCertificateOfOrigin()
     {
         $companies = DB::table('supplier')->where("Location", auth()->user()->Location)->get();
-
-        $counter = CertificateOfOrigin::whereYear('Created_Date', date('Y'))
-            ->whereMonth('Created_Date', date('m'))
-            ->count();
-        $months = ['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'];
-        $romawi = $months[date('n') - 1];
         $wbts = DB::table('weight_bridge_ticket')->get();
-        $CooNo = "COO-GEU/" . sprintf('%03d', $counter + 1) . "/$romawi/" . date('Y');
+        $CooNo = CnsCodeGenerator::nextCooNo();
 
         return view('cns.export.coo-new', compact('companies', 'CooNo', 'wbts'));
     }
@@ -106,18 +116,22 @@ class CertificateOfOriginController extends Controller
         $r['Created_Date'] = now();
         $r['Status']       = 'CREATED';
 
-        CertificateOfOrigin::create($r);
-
         $containers = $request->containers ?? [];
         $seals      = $request->seals ?? [];
-        foreach ($containers as $i => $container) {
-            if (trim($container) === '') continue;
-            CertificateOfOriginDtl::create([
-                'COO_No'       => $r['COO_No'],
-                'Container_No' => $container,
-                'Seal_No'      => $seals[$i] ?? '',
-            ]);
-        }
+
+        DB::transaction(function () use ($r, $containers, $seals) {
+            $r['COO_No'] = CnsCodeGenerator::nextCooNo(null, true);
+            CertificateOfOrigin::create($r);
+
+            foreach ($containers as $i => $container) {
+                if (trim($container) === '') continue;
+                CertificateOfOriginDtl::create([
+                    'COO_No'       => $r['COO_No'],
+                    'Container_No' => $container,
+                    'Seal_No'      => $seals[$i] ?? '',
+                ]);
+            }
+        });
 
         echo "success";
     }

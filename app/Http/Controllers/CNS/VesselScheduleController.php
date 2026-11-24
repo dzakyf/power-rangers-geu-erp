@@ -4,8 +4,10 @@ namespace App\Http\Controllers\CNS;
 
 use App\Http\Controllers\Controller;
 use App\PackingList;
+use App\Services\CNS\CnsCodeGenerator;
 use App\ShippingInstruction;
 use App\Services\UploadService;
+use App\Support\DhtmlxGridPagination;
 use App\VesselSchedule;
 use App\VesselScheduleDtl;
 use App\VesselScheduleLog;
@@ -29,8 +31,6 @@ class VesselScheduleController extends Controller
 
     public function indexVesselScheduleXml(Request $request)
     {
-        header('Content-type: text/xml');
-
         $query = VesselSchedule::query();
 
         if ($request->filled('tgl1') && $request->filled('tgl2')) {
@@ -40,14 +40,41 @@ class VesselScheduleController extends Controller
             ]);
         }
 
-        $vessels = $query->orderBy('Created_Date', 'desc')->get();
+        if (!$request->filled('sort_col')) {
+            $query->orderBy('Created_Date', 'desc');
+        }
+
+        $colMap = [
+            0 => 'VS_No',
+            1 => 'Contract_No',
+            2 => 'Incoterms',
+            3 => 'Shipping_Method',
+            4 => 'Booking_No',
+            5 => 'Qty',
+            6 => 'Qty2',
+            7 => 'Vessel',
+            8 => 'POL',
+            9 => 'POD',
+            10 => 'Stuffing',
+            11 => 'Closing_CY',
+            12 => 'Laycan_Start',
+            13 => 'ETD',
+            14 => 'ETA',
+        ];
+
+        $paginated = DhtmlxGridPagination::paginateQuery($query, $request, [
+            'col_map' => $colMap,
+            'default_page_size' => 25,
+        ]);
+
+        $vessels = $paginated['rows'];
 
         $q88Ids = $vessels->pluck('Q88_Meta_File_ID')->filter()->unique()->values()->all();
         $q88Files = count($q88Ids)
             ? DB::table('meta_files')->whereIn('ID', $q88Ids)->get()->keyBy('ID')
             : collect();
 
-        echo "<rows>";
+        $bodyXml = '';
 
         foreach ($vessels as $vessel) {
             $method = $vessel->Shipping_Method;
@@ -77,32 +104,34 @@ class VesselScheduleController extends Controller
                 $laycan = '';
             }
 
-            echo '<row id="' . $vessel->id . '">';
-            echo '<cell>' . htmlspecialchars((string) $vessel->Contract_No) . '</cell>';
-            echo '<cell>' . htmlspecialchars((string) $vessel->Incoterms) . '</cell>';
-            echo '<cell>' . htmlspecialchars($this->methodLabel($method)) . '</cell>';
-            echo '<cell>' . htmlspecialchars((string) $vessel->Booking_No) . '</cell>';
-            echo '<cell>' . htmlspecialchars($this->quantityCell($vessel, $method)) . '</cell>';
-            echo '<cell>' . htmlspecialchars($isContainer || $isLegacy ? (string) $vessel->Qty2 : '') . '</cell>';
-            echo '<cell>' . htmlspecialchars($isTruck ? (string) $vessel->Truck : (string) $vessel->Vessel) . '</cell>';
-            echo '<cell>' . htmlspecialchars($isTruck ? '' : (string) $vessel->POL) . '</cell>';
-            echo '<cell>' . htmlspecialchars($isTruck ? '' : (string) $vessel->POD) . '</cell>';
-            echo '<cell>' . htmlspecialchars($stuffingDate) . '</cell>';
-            echo '<cell>' . htmlspecialchars(($isContainer || $isLegacy) ? $this->dateCell($vessel->Closing_CY) : '') . '</cell>';
-            echo '<cell>' . htmlspecialchars($laycan) . '</cell>';
-            echo '<cell>' . htmlspecialchars(($isTruck) ? '' : $this->dateCell($vessel->ETD)) . '</cell>';
-            echo '<cell>' . htmlspecialchars(($isTruck) ? '' : $this->dateCell($vessel->ETA)) . '</cell>';
-            echo '<cell>' . $q88Cell . '</cell>';
-            echo '</row>';
+            $bodyXml .= '<row id="' . $vessel->id . '">';
+            $bodyXml .= '<cell>' . htmlspecialchars((string) $vessel->VS_No) . '</cell>';
+            $bodyXml .= '<cell>' . htmlspecialchars((string) $vessel->Contract_No) . '</cell>';
+            $bodyXml .= '<cell>' . htmlspecialchars((string) $vessel->Incoterms) . '</cell>';
+            $bodyXml .= '<cell>' . htmlspecialchars($this->methodLabel($method)) . '</cell>';
+            $bodyXml .= '<cell>' . htmlspecialchars((string) $vessel->Booking_No) . '</cell>';
+            $bodyXml .= '<cell>' . htmlspecialchars($this->quantityCell($vessel, $method)) . '</cell>';
+            $bodyXml .= '<cell>' . htmlspecialchars($isContainer || $isLegacy ? (string) $vessel->Qty2 : '') . '</cell>';
+            $bodyXml .= '<cell>' . htmlspecialchars($isTruck ? (string) $vessel->Truck : (string) $vessel->Vessel) . '</cell>';
+            $bodyXml .= '<cell>' . htmlspecialchars($isTruck ? '' : (string) $vessel->POL) . '</cell>';
+            $bodyXml .= '<cell>' . htmlspecialchars($isTruck ? '' : (string) $vessel->POD) . '</cell>';
+            $bodyXml .= '<cell>' . htmlspecialchars($stuffingDate) . '</cell>';
+            $bodyXml .= '<cell>' . htmlspecialchars(($isContainer || $isLegacy) ? $this->dateCell($vessel->Closing_CY) : '') . '</cell>';
+            $bodyXml .= '<cell>' . htmlspecialchars($laycan) . '</cell>';
+            $bodyXml .= '<cell>' . htmlspecialchars(($isTruck) ? '' : $this->dateCell($vessel->ETD)) . '</cell>';
+            $bodyXml .= '<cell>' . htmlspecialchars(($isTruck) ? '' : $this->dateCell($vessel->ETA)) . '</cell>';
+            $bodyXml .= '<cell>' . $q88Cell . '</cell>';
+            $bodyXml .= "</row>\n";
         }
 
-        echo '</rows>';
+        return DhtmlxGridPagination::response($paginated['total'], $paginated['posStart'], $bodyXml);
     }
 
     public function newVesselSchedule()
     {
         return view('cns.vs.vessel-schedule-new', [
             'vs' => null,
+            'vsNo' => CnsCodeGenerator::nextVsNo(),
             'contracts' => $this->availableContractsForNew(),
             'vendors' => $this->vendors(),
             'bookings' => collect(),
@@ -178,7 +207,10 @@ class VesselScheduleController extends Controller
         $vs->Created_By = auth()->user()->username;
 
         $this->fillMethodFields($vs, $data, $method, $contract, $booking, $vendor);
-        $vs->save();
+        DB::transaction(function () use ($vs) {
+            $vs->VS_No = CnsCodeGenerator::nextVsNo(null, true);
+            $vs->save();
+        });
 
         $this->handleQ88($request, $vs, false);
         $this->writeLog($vs, 'CREATED');

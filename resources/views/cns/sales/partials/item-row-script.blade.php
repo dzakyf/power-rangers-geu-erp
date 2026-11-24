@@ -243,35 +243,47 @@
     }
 
     function resetForm() {
-      if (!confirm('Reset semua data form?')) return;
-      if ($.fn.select2) {
-        $('#itemsBody select.desc-select').each(function() {
-          if ($(this).hasClass('select2-hidden-accessible')) {
-            $(this).select2('destroy');
-          }
-        });
-      }
-      document.getElementById('itemsBody').innerHTML = '';
-      rowCount = 0;
-      defaultItems.forEach(i => addRow(i.desc, i.qty, i.price, i.unit ?? ''));
-      document.getElementById('taxAmount').value = cnsFormatNumber(0, 2);
-      document.getElementById('shippingAmount').value = cnsFormatNumber(0, 2);
-      document.getElementById('otherAmount').value = cnsFormatNumber(0, 2);
-      var $siteSel = $('#site');
-      if ($siteSel.length) {
-        $siteSel.val('').trigger('change');
-      }
-      var addrEl = document.getElementById('siteAddress');
-      if (addrEl) addrEl.value = '';
-      $('#site_id').val('');
-      var $sludgeSel = $('#sludgeDrainingId');
-      if ($sludgeSel.length) {
-        $sludgeSel.val('').trigger('change');
-      }
-      if (document.getElementById('sludgePrice')) {
-        document.getElementById('sludgePrice').value = cnsFormatNumber(0, 2);
-      }
-      recalc();
+      swal({
+        title: 'Konfirmasi',
+        text: 'Reset semua data form?',
+        icon: 'warning',
+        buttons: ['Batal', 'Ya'],
+        dangerMode: true
+      }).then(function(confirmed) {
+        if (!confirmed) return;
+        if ($.fn.select2) {
+          $('#itemsBody select.desc-select').each(function() {
+            if ($(this).hasClass('select2-hidden-accessible')) {
+              $(this).select2('destroy');
+            }
+          });
+        }
+        document.getElementById('itemsBody').innerHTML = '';
+        rowCount = 0;
+        defaultItems.forEach(i => addRow(i.desc, i.qty, i.price, i.unit ?? ''));
+        document.getElementById('taxAmount').value = cnsFormatNumber(0, 2);
+        document.getElementById('shippingAmount').value = cnsFormatNumber(0, 2);
+        document.getElementById('otherAmount').value = cnsFormatNumber(0, 2);
+        var $siteSel = $('#site');
+        if ($siteSel.length) {
+          $siteSel.val('').trigger('change');
+        }
+        var addrEl = document.getElementById('siteAddress');
+        if (addrEl) addrEl.value = '';
+        $('#site_id').val('');
+        var $soTypeSel = $('#soType');
+        if ($soTypeSel.length) {
+          $soTypeSel.val('KEMASAN_AMPAS').trigger('change');
+        }
+        var $sludgeSel = $('#sludgeDrainingId');
+        if ($sludgeSel.length) {
+          $sludgeSel.val('').trigger('change');
+        }
+        if (document.getElementById('sludgePrice')) {
+          document.getElementById('sludgePrice').value = cnsFormatNumber(0, 2);
+        }
+        recalc();
+      });
     }
 
     function checkRowStock(idx) {
@@ -439,7 +451,7 @@
       const soType = ($('#soType').val() || 'KEMASAN_AMPAS').toUpperCase();
       const site = document.getElementById('site').value;
       if (!soCode || !soDate) {
-        alert('SO Code dan tanggal wajib diisi!');
+        swal('Perhatian', 'SO Code dan tanggal wajib diisi!', 'warning');
         return;
       }
 
@@ -449,15 +461,15 @@
         const qty = cnsParseNumber(sludgeQtyEl?.value, 0);
         const maxQty = cnsParseNumber(sludgeQtyEl?.getAttribute('data-max-qty'), 0);
         if (!drainingId) {
-          alert('Kode draining wajib dipilih!');
+          swal('Perhatian', 'Kode draining wajib dipilih!', 'warning');
           return;
         }
         if (qty <= 0) {
-          alert('Qty Sludge harus lebih dari 0!');
+          swal('Perhatian', 'Qty Sludge harus lebih dari 0!', 'warning');
           return;
         }
         if (qty > maxQty) {
-          alert('Qty Sludge (' + qty + ' KG) melebihi sisa qty sludge draining (' + maxQty + ' KG)!');
+          swal('Perhatian', 'Qty Sludge (' + qty + ' KG) melebihi sisa qty sludge draining (' + maxQty + ' KG)!', 'warning');
           return;
         }
         submitSalesOrder();
@@ -465,7 +477,7 @@
       }
 
       if (!site) {
-        alert('Site wajib dipilih!');
+        swal('Perhatian', 'Site wajib dipilih!', 'warning');
         return;
       }
 
@@ -486,7 +498,7 @@
       });
 
       if (hasStockError) {
-        alert(errorMsg);
+        swal('Perhatian', errorMsg, 'warning');
         return;
       }
 
@@ -524,16 +536,17 @@
         success: function(data) {
           var dataPos = String(data).indexOf("success");
           if (dataPos != '-1') {
-            alert('Data Sales Order Submitted!');
-            refreshdata();
-            $('#divlistOpportunity').html('');
+            swal('Berhasil!', 'Data Sales Order Submitted!', 'success').then(function() {
+              refreshdata();
+              $('#divlistOpportunity').html('');
+            });
           } else {
-            alert('Sales Order Failed to Submit: ' + data);
+            swal('Error', 'Sales Order Failed to Submit: ' + data, 'error');
           }
         },
         error: function(xhr) {
           var msg = (xhr && xhr.responseText) ? xhr.responseText : "Error Internal! Please Try again!";
-          alert(msg);
+          swal('Error', msg, 'error');
         }
       });
     }

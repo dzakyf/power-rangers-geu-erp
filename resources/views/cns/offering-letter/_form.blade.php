@@ -24,7 +24,9 @@
     $qtyVal = $qtyRaw !== '' && $qtyRaw !== null ? number_format((float) str_replace(',', '', (string) $qtyRaw), 2, '.', ',') : '';
     $priceRaw = $val('price_per_mt');
     $priceVal = $priceRaw !== '' && $priceRaw !== null ? number_format((float) str_replace(',', '', (string) $priceRaw), 2, '.', ',') : '';
-    $loadingPeriodVal = \App\CnsOfferingLetter::loadingPeriodMonthValue($val('loading_period'));
+    $loadingPeriodRange = \App\CnsOfferingLetter::parseLoadingPeriodRange(isset($letter) ? $letter->loading_period : ($defaults['loading_period'] ?? ''));
+    $loadingPeriodStartVal = old('loading_period_start', $loadingPeriodRange['start']);
+    $loadingPeriodEndVal = old('loading_period_end', $loadingPeriodRange['end']);
     $signatoryKeyVal = (string) old('signatory_key', isset($letter) ? $letter->signatory_key : '');
     $signatoryTitleVal = old('signatory_title', isset($letter) ? $letter->signatory_title : '');
 @endphp
@@ -184,12 +186,17 @@
 </div>
 
 <div class="row">
-    <div class="col-md-4 form-group">
-        <label>Loading Period <span class="text-danger">*</span></label>
-        <input type="month" name="loading_period" id="loading_period" class="text-black form-control @error('loading_period') is-invalid @enderror" value="{{ $loadingPeriodVal }}" {{ $ro }} required>
-        <div class="invalid-feedback" id="err_loading_period">@error('loading_period') {{ $message }} @else Loading Period wajib diisi. @enderror</div>
+    <div class="col-md-3 form-group">
+        <label>Loading Period (Start) <span class="text-danger">*</span></label>
+        <input type="date" name="loading_period_start" id="loading_period_start" class="text-black form-control @error('loading_period_start') is-invalid @enderror" value="{{ $loadingPeriodStartVal }}" {{ $ro }} required>
+        <div class="invalid-feedback" id="err_loading_period_start">@error('loading_period_start') {{ $message }} @else Loading Period (Start) wajib diisi. @enderror</div>
     </div>
-    <div class="col-md-4 form-group">
+    <div class="col-md-3 form-group">
+        <label>Loading Period (End) <span class="text-danger">*</span></label>
+        <input type="date" name="loading_period_end" id="loading_period_end" class="text-black form-control @error('loading_period_end') is-invalid @enderror" value="{{ $loadingPeriodEndVal }}" {{ $ro }} required>
+        <div class="invalid-feedback" id="err_loading_period_end">@error('loading_period_end') {{ $message }} @else Loading Period (End) wajib diisi. @enderror</div>
+    </div>
+    <div class="col-md-3 form-group">
         <label>Delivery Term <span class="text-danger">*</span></label>
         <select name="delivery_term" id="delivery_term" class="text-black form-control @error('delivery_term') is-invalid @enderror" {{ $ro }} required>
             <option value="">-- Pilih Delivery Term --</option>
@@ -198,7 +205,7 @@
         </select>
         <div class="invalid-feedback" id="err_delivery_term">@error('delivery_term') {{ $message }} @else Delivery Term wajib dipilih. @enderror</div>
     </div>
-    <div class="col-md-4 form-group" id="destination_port_group" style="{{ $deliveryTermVal === 'CIF' ? '' : 'display:none;' }}">
+    <div class="col-md-3 form-group" id="destination_port_group" style="{{ $deliveryTermVal === 'CIF' ? '' : 'display:none;' }}">
         <label>Destination Port (CIF) <span class="text-danger">*</span></label>
         <input type="text" name="destination_port" id="destination_port" class="text-black form-control @error('destination_port') is-invalid @enderror" placeholder="Contoh: Rotterdam" value="{{ $val('destination_port') }}" {{ $ro }}>
         <div class="invalid-feedback" id="err_destination_port">@error('destination_port') {{ $message }} @else Destination Port wajib diisi untuk delivery CIF. @enderror</div>
@@ -315,7 +322,7 @@
         });
 
         // Real-time clearance saat user mengisi field
-        $('#offer_date, #seller_id, #buyer_id, #product, #quantity_mt, #price_per_mt, #loading_period, #delivery_term, #destination_port, #signatory_key').on('input change', function () {
+        $('#offer_date, #seller_id, #buyer_id, #product, #quantity_mt, #price_per_mt, #loading_period_start, #loading_period_end, #delivery_term, #destination_port, #signatory_key').on('input change', function () {
             var el = $(this);
             var val = el.val();
             if (val && $.trim(val)) {
@@ -342,7 +349,8 @@
                 { id: '#product', errId: '#err_product', msg: 'Product wajib diisi.' },
                 { id: '#quantity_mt', errId: '#err_quantity_mt', msg: 'Quantity (MT) wajib diisi.' },
                 { id: '#price_per_mt', errId: '#err_price_per_mt', msg: 'Price / MT wajib diisi.' },
-                { id: '#loading_period', errId: '#err_loading_period', msg: 'Loading Period wajib diisi.' },
+                { id: '#loading_period_start', errId: '#err_loading_period_start', msg: 'Loading Period (Start) wajib diisi.' },
+                { id: '#loading_period_end', errId: '#err_loading_period_end', msg: 'Loading Period (End) wajib diisi.' },
                 { id: '#delivery_term', errId: '#err_delivery_term', msg: 'Delivery Term wajib dipilih.' },
                 { id: '#signatory_key', errId: '#err_signatory_key', msg: 'Penandatangan wajib dipilih.' }
             ];
@@ -376,6 +384,17 @@
                     $(item.errId).hide();
                 }
             });
+
+            var startDate = $('#loading_period_start').val();
+            var endDate = $('#loading_period_end').val();
+            if (startDate && endDate && endDate < startDate) {
+                isValid = false;
+                $('#loading_period_end').addClass('is-invalid');
+                $('#err_loading_period_end').text('Tanggal selesai tidak boleh lebih awal dari tanggal mulai.').show();
+                if (!firstInvalid) {
+                    firstInvalid = $('#loading_period_end');
+                }
+            }
 
             if (!isValid) {
                 e.preventDefault();

@@ -35,15 +35,22 @@ class CnsOfferingLetterTest extends TestCase
 
         $signatories = CnsOfferingLetter::signatories();
         $this->assertSame('Puput Deni Iswara', $signatories['puput']['name']);
-        $this->assertSame('Hani', $signatories['hani']['name']);
+        $this->assertSame('Hani Septyana', $signatories['hani']['name']);
     }
 
     public function test_loading_period_formatting_and_fallback()
     {
+        $this->assertSame('01 November 2026 - 30 November 2026', CnsOfferingLetter::formatLoadingPeriod('2026-11-01 - 2026-11-30'));
+        $this->assertSame('15 November 2026', CnsOfferingLetter::formatLoadingPeriod('2026-11-15'));
         $this->assertSame('November 2026', CnsOfferingLetter::formatLoadingPeriod('2026-11'));
         $this->assertSame('Custom Period', CnsOfferingLetter::formatLoadingPeriod('Custom Period'));
         $this->assertSame('2026-11', CnsOfferingLetter::loadingPeriodMonthValue('2026-11'));
         $this->assertSame(date('Y-m'), CnsOfferingLetter::loadingPeriodMonthValue('invalid-date-string'));
+
+        $this->assertSame(['start' => '2026-11-01', 'end' => '2026-11-15'], CnsOfferingLetter::parseLoadingPeriodRange('2026-11-01 - 2026-11-15'));
+        $this->assertSame(['start' => '2026-11-15', 'end' => '2026-11-15'], CnsOfferingLetter::parseLoadingPeriodRange('2026-11-15'));
+        $this->assertSame(['start' => '2026-11-01', 'end' => '2026-11-30'], CnsOfferingLetter::parseLoadingPeriodRange('2026-11'));
+        $this->assertSame(['start' => '', 'end' => ''], CnsOfferingLetter::parseLoadingPeriodRange(''));
     }
 
     public function test_resolve_seller_code_mapping()

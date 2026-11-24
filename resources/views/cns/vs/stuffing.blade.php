@@ -15,12 +15,6 @@ $Saya =  Auth::user()->username;
 @section('content-wrapper')
 @csrf
 <style>
-	.stuffing-tab-card {
-		border: 1px solid #dee2e6;
-		border-radius: 6px;
-		background: #ffffff;
-		box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-	}
 	.stuffing-legend-box {
 		display: inline-block;
 		width: 14px;
@@ -32,100 +26,111 @@ $Saya =  Auth::user()->username;
 	}
 </style>
 
-<!-- Main Content Header -->
-<div class="main-content-header">
-	<h1>Partner</h1>
-	<ol class="breadcrumb">
-		<li class="breadcrumb-item">
-			<a href="/">Stuffing</a>
-		</li>
-		<li class="breadcrumb-item active">
-			<span class="active">Stuffing</span>
-		</li>
-	</ol>
-</div>
+@include('cns.partials.page-header', [
+	'title' => 'Stuffing',
+	'breadcrumbs' => [
+		['label' => 'Vessel Schedule'],
+		['label' => 'Stuffing'],
+	],
+])
 
-<div>
-	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">STUFFING</div>
-
-	<div class="stuffing-tab-card w-100">
-		<div class="card-header p-0 bg-transparent border-0">
-			<ul class="nav nav-tabs m-0" id="stuffingTabs" role="tablist">
-				<li class="nav-item" role="presentation">
-					<a class="nav-link active" id="tab-schedule-link" data-bs-toggle="tab" data-bs-target="#tab-schedule" data-toggle="tab" href="#tab-schedule" role="tab" aria-controls="tab-schedule" aria-selected="true">
-						<i class="fe fe-anchor text-primary" style="font-size: 15px;"></i>
-						<span>Jadwal Stuffing (Vessel)</span>
-					</a>
-				</li>
-				<li class="nav-item" role="presentation">
-					<a class="nav-link" id="tab-monitoring-link" data-bs-toggle="tab" data-bs-target="#tab-monitoring" data-toggle="tab" href="#tab-monitoring" role="tab" aria-controls="tab-monitoring" aria-selected="false">
-						<i class="fe fe-truck text-success" style="font-size: 15px;"></i>
-						<span>Monitoring Kontainer</span>
-					</a>
-				</li>
-			</ul>
+<div class="card cns-card">
+	<div class="card-header">
+		<h5 class="card-title mb-0">Stuffing</h5>
+		<div id="scheduleHeaderActions" class="d-flex align-items-center flex-wrap" style="gap: 0.5rem;">
+			<input type="button" id="CreateStuffing" name="CreateStuffing" value="Create Stuffing" class="btn btn-sm btn-success" onclick="createStuffingTab1()" />
+			<input type="button" id="DetailStuffing" name="DetailStuffing" value="Detail Stuffing" class="btn btn-sm btn-primary" onclick="StuffingVesselKlik()" />
+			<input type="button" id="openShipmentLink" name="openShipmentLink" value="Open ShipmentLink" class="btn btn-sm btn-secondary" onclick="openShipmentLink()" />
+			<input type="button" id="generateStuffingReport" name="generateStuffingReport" value="Generate Stuffing Report" class="btn btn-sm btn-info" onclick="generateStuffingReport()" />
+			<input type="button" id="CreateFinalPackingList" name="CreateFinalPackingList" value="Create Final Packing List" class="btn btn-sm btn-dark" onclick="createFinalPackingList()" />
+			<input type="button" id="ekselStuffingVesselDet" name="ekselStuffingVesselDet" class="btn btn-sm btn-warning" value="Export Excel" onclick="StuffingVessel.toExcel('./export/generate.php');" />
+			<button type="button" onclick="refreshdata()" class="btn btn-sm btn-outline-secondary">Refresh</button>
 		</div>
+		<div id="monitoringHeaderActions" class="d-none align-items-center flex-wrap" style="gap: 0.5rem;">
+			<button type="button" class="btn btn-sm btn-success" onclick="addStuffingContainer()">Add Container</button>
+			<button type="button" class="btn btn-sm btn-info" onclick="editStuffingContainer()">Edit Container</button>
+			<button type="button" class="btn btn-sm btn-danger" onclick="deleteStuffingContainer()">Delete Container</button>
+			<button type="button" class="btn btn-sm btn-primary" onclick="openDetailFromMonitoring()">Buka Detail Stuffing</button>
+			<input type="button" id="ekselMonitoringGrid" class="btn btn-sm btn-warning" value="Export Excel" onclick="StuffingMonitoringGrid.toExcel('./export/generate.php');" />
+			<button type="button" onclick="refreshMonitoringData()" class="btn btn-sm btn-outline-secondary">Refresh</button>
+		</div>
+	</div>
 
-		<div class="card-body p-3">
-			<div class="tab-content" id="stuffingTabContent">
-				<!-- TAB 1: JADWAL STUFFING (VESSEL) -->
-				<div class="tab-pane fade show active" id="tab-schedule" role="tabpanel" aria-labelledby="tab-schedule-link">
-					<!-- Status Legend -->
-					<div class="d-flex align-items-center flex-wrap mb-3 p-2 bg-light rounded border" style="font-size: 12px; gap: 15px;">
-						<span class="text-secondary font-weight-bold"><i class="fe fe-info mr-1"></i> Status:</span>
-						<span><span class="stuffing-legend-box" style="background-color: #ffcccc;"></span> Stuffing Not Started</span>
-						<span><span class="stuffing-legend-box" style="background-color: #feffcc;"></span> Stuffing Yet Complete</span>
-						<span><span class="stuffing-legend-box" style="background-color: #ccffcf;"></span> Stuffing Complete (Done/Kapal Berangkat checked)</span>
-					</div>
+	<div class="card-body">
+		<ul class="nav nav-tabs mb-3" id="stuffingTabs" role="tablist">
+			<li class="nav-item" role="presentation">
+				<a class="nav-link active" id="tab-schedule-link" data-bs-toggle="tab" data-bs-target="#tab-schedule" data-toggle="tab" href="#tab-schedule" role="tab" aria-controls="tab-schedule" aria-selected="true">
+					<i class="fe fe-anchor text-primary mr-1" style="font-size: 15px;"></i>
+					<span>Jadwal Stuffing (Vessel)</span>
+				</a>
+			</li>
+			<li class="nav-item" role="presentation">
+				<a class="nav-link" id="tab-monitoring-link" data-bs-toggle="tab" data-bs-target="#tab-monitoring" data-toggle="tab" href="#tab-monitoring" role="tab" aria-controls="tab-monitoring" aria-selected="false">
+					<i class="fe fe-truck text-success mr-1" style="font-size: 15px;"></i>
+					<span>Monitoring Kontainer</span>
+				</a>
+			</li>
+		</ul>
 
-					<!-- Filter Bar -->
-					<div class="d-flex align-items-center flex-wrap mb-3" style="gap: 10px;">
-						<span class="font-weight-bold text-secondary" style="font-size: 13px;">Periode:</span>
-						<input type="date" id="tgl1" name="tgl1" value="{{ date('Y-m-01', strtotime('-7 days')) }}" class="form-control form-control-sm" style="width: 160px;" />
-						<span class="text-muted">s/d</span>
-						<input type="date" id="tgl2" name="tgl2" value="{{ date('Y-m-d') }}" class="form-control form-control-sm" style="width: 160px;" />
-						<button onclick="refreshdata()" class="btn btn-sm btn-primary">Refresh</button>
-					</div>
-
-					<div id="StuffingVessel" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
-
-					<div class="mt-3">
-						<input type="button" id="CreateStuffing" name="CreateStuffing" value="Create Stuffing" class="btn btn-success mr-2" onclick="createStuffingTab1()" />
-						<input type="button" id="DetailStuffing" name="DetailStuffing" value="Detail Stuffing" class="btn btn-primary mr-2" onclick="StuffingVesselKlik()" />
-						<input type="button" id="openShipmentLink" name="openShipmentLink" value="Open ShipmentLink" class="btn btn-secondary mr-2" onclick="openShipmentLink()" />
-						<input type="button" id="generateStuffingReport" name="generateStuffingReport" value="Generate Stuffing Report" class="btn btn-success mr-2" onclick="generateStuffingReport()" />
-						<input type="button" id="ekselStuffingVesselDet" name="ekselStuffingVesselDet" class="btn btn-warning mr-2" value="Export Excel" onclick="StuffingVessel.toExcel('./export/generate.php');" />
-					</div>
-
-					<div id="divlistOpportunity" class="mt-3"></div>
-					<div id="DivProcess"></div>
+		<div class="tab-content" id="stuffingTabContent">
+			<!-- TAB 1: JADWAL STUFFING (VESSEL) -->
+			<div class="tab-pane fade show active" id="tab-schedule" role="tabpanel" aria-labelledby="tab-schedule-link">
+				<!-- Status Legend -->
+				<div class="d-flex align-items-center flex-wrap mb-3 p-2 bg-light rounded border" style="font-size: 12px; gap: 15px;">
+					<span class="text-secondary font-weight-bold"><i class="fe fe-info mr-1"></i> Status:</span>
+					<span><span class="stuffing-legend-box" style="background-color: #ffcccc;"></span> Stuffing Not Started</span>
+					<span><span class="stuffing-legend-box" style="background-color: #feffcc;"></span> Stuffing Yet Complete</span>
+					<span><span class="stuffing-legend-box" style="background-color: #ccffcf;"></span> Stuffing Complete (Done/Kapal Berangkat checked)</span>
 				</div>
 
-				<!-- TAB 2: MONITORING KONTAINER -->
-				<div class="tab-pane fade" id="tab-monitoring" role="tabpanel" aria-labelledby="tab-monitoring-link">
-					<!-- Filter Bar -->
-					<div class="d-flex align-items-center flex-wrap mb-3" style="gap: 10px;">
-						<span class="font-weight-bold text-secondary" style="font-size: 13px;">Periode:</span>
+				<!-- Filter Bar -->
+				<div class="cns-filter-bar">
+					<div>
+						<label for="tgl1" class="d-block mb-1"><small>Dari Tanggal</small></label>
+						<input type="date" id="tgl1" name="tgl1" value="{{ date('Y-m-01', strtotime('-7 days')) }}" class="form-control form-control-sm" style="width: 160px;" />
+					</div>
+					<div>
+						<label for="tgl2" class="d-block mb-1"><small>Sampai Tanggal</small></label>
+						<input type="date" id="tgl2" name="tgl2" value="{{ date('Y-m-d') }}" class="form-control form-control-sm" style="width: 160px;" />
+					</div>
+					<div>
+						<button type="button" onclick="refreshdata()" class="btn btn-sm btn-primary">Filter</button>
+					</div>
+				</div>
+
+				<div class="cns-grid-wrapper">
+					<div id="StuffingVessel" class="cns-grid" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
+				</div>
+
+				<div id="divlistOpportunity" class="mt-3"></div>
+				<div id="DivProcess"></div>
+			</div>
+
+			<!-- TAB 2: MONITORING KONTAINER -->
+			<div class="tab-pane fade" id="tab-monitoring" role="tabpanel" aria-labelledby="tab-monitoring-link">
+				<!-- Filter Bar -->
+				<div class="cns-filter-bar">
+					<div>
+						<label for="mon_tgl1" class="d-block mb-1"><small>Dari Tanggal</small></label>
 						<input type="date" id="mon_tgl1" name="mon_tgl1" value="{{ date('Y-m-01', strtotime('-7 days')) }}" class="form-control form-control-sm" style="width: 160px;" />
-						<span class="text-muted">s/d</span>
+					</div>
+					<div>
+						<label for="mon_tgl2" class="d-block mb-1"><small>Sampai Tanggal</small></label>
 						<input type="date" id="mon_tgl2" name="mon_tgl2" value="{{ date('Y-m-d') }}" class="form-control form-control-sm" style="width: 160px;" />
-						<button onclick="refreshMonitoringData()" class="btn btn-sm btn-primary">Refresh</button>
 					</div>
-
-					<div id="StuffingMonitoringGrid" style="width:auto;height:340px; background-color:white;overflow:hidden"></div>
-
-					<div class="mt-3">
-						<button type="button" class="btn btn-success mr-2" onclick="addStuffingContainer()">Add Container</button>
-						<button type="button" class="btn btn-info mr-2" onclick="editStuffingContainer()">Edit Container</button>
-						<button type="button" class="btn btn-danger mr-2" onclick="deleteStuffingContainer()">Delete Container</button>
-						<button type="button" class="btn btn-primary mr-2" onclick="openDetailFromMonitoring()">Buka Detail Stuffing</button>
-						<input type="button" id="ekselMonitoringGrid" class="btn btn-warning mr-2" value="Export Excel" onclick="StuffingMonitoringGrid.toExcel('./export/generate.php');" />
+					<div>
+						<button type="button" onclick="refreshMonitoringData()" class="btn btn-sm btn-primary">Filter</button>
 					</div>
+				</div>
 
-					<!-- Form Tambah / Edit Container Stuffing -->
-					<div class="card mt-3 shadow-sm border" id="stuffingFormCard" style="display:none;">
-						<div class="card-body">
-							<div class="JudulContent" id="stuffingFormTitle" style="color:#699;background-image:url(hdr_back.gif);">BUAT FORM STUFFING MONITORING</div>
+				<div class="cns-grid-wrapper">
+					<div id="StuffingMonitoringGrid" class="cns-grid" style="width:auto;height:340px; background-color:white;overflow:hidden"></div>
+				</div>
+
+				<!-- Form Tambah / Edit Container Stuffing -->
+				<div class="card cns-card mt-3" id="stuffingFormCard" style="display:none;">
+					<div class="card-body">
+						<div class="cns-section-header" id="stuffingFormTitle">BUAT FORM STUFFING MONITORING</div>
 							<form id="StuffingMonitoringForm" enctype="multipart/form-data">
 								<input type="hidden" name="id" id="Stuffing_ID" value="" />
 								<div class="row">
@@ -245,7 +250,6 @@ $Saya =  Auth::user()->username;
 			</div>
 		</div>
 	</div>
-</div>
 
 <script>
 	function openShipmentLink()
@@ -258,11 +262,18 @@ $Saya =  Auth::user()->username;
 		let selectedId = StuffingVessel.getSelectedId();
 
 		if (!selectedId) {
-			alert("Pilih baris data");
+			swal('Perhatian', 'Pilih baris data', 'warning');
 			return;
 		}
 
 		window.open('cns-stuffing-report?task=' + selectedId, '_blank');
+	}
+
+	function createFinalPackingList()
+	{
+		let selectedId = StuffingVessel.getSelectedId();
+		let url = 'cns-export-packing-list-final-new' + (selectedId ? '?vs_id=' + encodeURIComponent(selectedId) : '');
+		LoadM('divlistOpportunity', url);
 	}
 
 	function StuffingVesselKlik() {
@@ -270,7 +281,7 @@ $Saya =  Auth::user()->username;
 		if (StuffingVesselID != null) {
 			LoadM('divlistOpportunity', 'cns-stuffing-detail?task=' + StuffingVesselID);
 		} else {
-			alert("Pilih baris data");
+			swal('Perhatian', 'Pilih baris data', 'warning');
 		}
 		return true;
 	}
@@ -296,25 +307,44 @@ $Saya =  Auth::user()->username;
 	StuffingVessel.setImagePath("./dhtmlx/imgs/");
 	StuffingVessel.setHeader("No,Booking Confirmation (BC),Qty,Kapal,POL,POD,Stuffing,Checking,Closing CY,ETD,ATD,ETA,ATA,Estimated Day(s), Actual Day(s), Note, Container (Seal)"); 
 	StuffingVessel.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
-	StuffingVessel.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total,#stat_total,#stat_total,#stat_total");
+	// StuffingVessel.attachFooter("Total,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,#stat_total,#stat_total,#stat_total,#stat_total");
 	StuffingVessel.setInitWidths("60,150,100,200,150,150,100,100,100,100,100,100,100,100,100,100,800");
 	StuffingVessel.setColAlign("center,left,left,left,left,left,left,left,left,left,left,left,left,left,left,left,left");
 	StuffingVessel.setColSorting("int,str,str,str,str,str,str,str,str,str,str,str,str,str,str");
 	StuffingVessel.setColTypes("ron,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
-	StuffingVessel.enableSmartRendering(true, 150);
 	StuffingVessel.attachEvent("onRowDblClicked", StuffingVesselKlik);
 	StuffingVessel.setSkin("dhx_skyblue");
 	StuffingVessel.init();
+
+	var StuffingVesselPagination = initCnsGridPagination(StuffingVessel, {
+		pageSize: 25,
+		pageSizeOptions: [10, 25, 50, 100],
+		serverFilter: false,
+		getUrl: function (params) {
+			var q = [
+				'posStart=' + params.posStart,
+				'count=' + params.count,
+				'tgl1=' + encodeURIComponent($('#tgl1').val()),
+				'tgl2=' + encodeURIComponent($('#tgl2').val())
+			];
+			if (params.sortCol !== null && params.sortCol !== undefined) {
+				q.push('sort_col=' + params.sortCol);
+				q.push('sort_dir=' + (params.sortDir || 'asc'));
+			}
+			return 'xml-cns-stuffing?' + q.join('&');
+		}
+	});
 	refreshdata();
 
 	function refreshdata() {
-		StuffingVessel.clearAndLoad('xml-cns-stuffing?tgl1=' + $('#tgl1').val() + "&tgl2=" + $('#tgl2').val());
+		StuffingVesselPagination.reload(1);
 	}
 
 	// -----------------------------------------
 	// TAB 2: MONITORING KONTAINER CRUD
 	// -----------------------------------------
 	var StuffingMonitoringGrid = null;
+	var StuffingMonitoringPagination = null;
 	var monitoringGridInited = false;
 
 	function initMonitoringGrid() {
@@ -333,12 +363,30 @@ $Saya =  Auth::user()->username;
 		StuffingMonitoringGrid.setColAlign("center,center,center,center,center,center,center,center,right,right,right,right,right,left,center,left");
 		StuffingMonitoringGrid.setColSorting("int,str,str,str,str,str,str,str,int,int,int,int,int,str,str,str");
 		StuffingMonitoringGrid.setColTypes("ron,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
-		StuffingMonitoringGrid.enableSmartRendering(true, 150);
 		StuffingMonitoringGrid.attachEvent("onRowDblClicked", function(rowId) {
 			editStuffingContainer(rowId);
 		});
 		StuffingMonitoringGrid.setSkin("dhx_skyblue");
 		StuffingMonitoringGrid.init();
+
+		StuffingMonitoringPagination = initCnsGridPagination(StuffingMonitoringGrid, {
+			pageSize: 25,
+			pageSizeOptions: [10, 25, 50, 100],
+			serverFilter: false,
+			getUrl: function (params) {
+				var q = [
+					'posStart=' + params.posStart,
+					'count=' + params.count,
+					'tgl1=' + encodeURIComponent($('#mon_tgl1').val()),
+					'tgl2=' + encodeURIComponent($('#mon_tgl2').val())
+				];
+				if (params.sortCol !== null && params.sortCol !== undefined) {
+					q.push('sort_col=' + params.sortCol);
+					q.push('sort_dir=' + (params.sortDir || 'asc'));
+				}
+				return 'xml-cns-stuffing-monitoring?' + q.join('&');
+			}
+		});
 
 		monitoringGridInited = true;
 		refreshMonitoringData();
@@ -349,7 +397,7 @@ $Saya =  Auth::user()->username;
 			initMonitoringGrid();
 			return;
 		}
-		StuffingMonitoringGrid.clearAndLoad('xml-cns-stuffing-monitoring?tgl1=' + $('#mon_tgl1').val() + "&tgl2=" + $('#mon_tgl2').val());
+		StuffingMonitoringPagination.reload(1);
 	}
 
 	function openDetailFromMonitoring() {
@@ -358,13 +406,13 @@ $Saya =  Auth::user()->username;
 		}
 		let selectedRow = StuffingMonitoringGrid.getSelectedId();
 		if (!selectedRow) {
-			alert("Pilih baris data kontainer terlebih dahulu.");
+			swal('Perhatian', 'Pilih baris data kontainer terlebih dahulu.', 'warning');
 			return;
 		}
 		// Cell index 15 is hidden VesselScheduleID
 		let scheduleId = StuffingMonitoringGrid.cells(selectedRow, 15).getValue();
 		if (!scheduleId) {
-			alert("Vessel Schedule ID tidak ditemukan untuk order ini.");
+			swal('Perhatian', 'Vessel Schedule ID tidak ditemukan untuk order ini.', 'warning');
 			return;
 		}
 
@@ -433,7 +481,7 @@ $Saya =  Auth::user()->username;
 			: (StuffingMonitoringGrid ? StuffingMonitoringGrid.getSelectedId() : null);
 
 		if (!id) {
-			alert('Pilih baris data yang ingin diedit.');
+			swal('Perhatian', 'Pilih baris data yang ingin diedit.', 'warning');
 			return;
 		}
 
@@ -460,7 +508,7 @@ $Saya =  Auth::user()->username;
 				openStuffingMonitoringForm('EDIT FORM STUFFING MONITORING');
 			},
 			error: function() {
-				alert('Gagal mengambil data container.');
+				swal('Error', 'Gagal mengambil data container.', 'error');
 			}
 		});
 	}
@@ -472,29 +520,38 @@ $Saya =  Auth::user()->username;
 		let id = StuffingMonitoringGrid.getSelectedId();
 
 		if (!id) {
-			alert('Pilih baris data yang ingin dihapus.');
+			swal('Perhatian', 'Pilih baris data yang ingin dihapus.', 'warning');
 			return;
 		}
 
-		if (!confirm('Hapus container ini?')) {
-			return;
-		}
-
-		$.ajax({
-			url: 'cns-export-stuffing-monitoring-delete',
-			type: 'POST',
-			data: {_token: '{{ csrf_token() }}', id: id},
-			headers: {'Accept': 'application/json'},
-			success: function(response) {
-				alert(response.message || 'Container berhasil dihapus.');
-				if ($('#Stuffing_ID').val() == id) {
-					$('#stuffingFormCard').hide();
-				}
-				refreshMonitoringData();
-			},
-			error: function() {
-				alert('Gagal menghapus container.');
+		swal({
+			title: 'Konfirmasi',
+			text: 'Hapus container ini?',
+			icon: 'warning',
+			buttons: ['Batal', 'Ya'],
+			dangerMode: true
+		}).then(function(confirmed) {
+			if (!confirmed) {
+				return;
 			}
+
+			$.ajax({
+				url: 'cns-export-stuffing-monitoring-delete',
+				type: 'POST',
+				data: {_token: '{{ csrf_token() }}', id: id},
+				headers: {'Accept': 'application/json'},
+				success: function(response) {
+					swal('Berhasil!', response.message || 'Container berhasil dihapus.', 'success').then(function() {
+						if ($('#Stuffing_ID').val() == id) {
+							$('#stuffingFormCard').hide();
+						}
+						refreshMonitoringData();
+					});
+				},
+				error: function() {
+					swal('Error', 'Gagal menghapus container.', 'error');
+				}
+			});
 		});
 	}
 
@@ -524,10 +581,11 @@ $Saya =  Auth::user()->username;
 			contentType: false,
 			headers: {'Accept': 'application/json'},
 			success: function(response) {
-				alert(response.message || 'Data berhasil disimpan.');
-				$('#stuffingFormCard').hide();
-				resetStuffingMonitoringForm();
-				refreshMonitoringData();
+				swal('Berhasil!', response.message || 'Data berhasil disimpan.', 'success').then(function() {
+					$('#stuffingFormCard').hide();
+					resetStuffingMonitoringForm();
+					refreshMonitoringData();
+				});
 			},
 			error: function(xhr) {
 				if (xhr.responseJSON && xhr.responseJSON.errors) {
@@ -535,9 +593,9 @@ $Saya =  Auth::user()->username;
 					Object.keys(xhr.responseJSON.errors).forEach(function(key) {
 						messages.push(xhr.responseJSON.errors[key].join('\n'));
 					});
-					alert(messages.join('\n'));
+					swal('Error', messages.join('\n'), 'error');
 				} else {
-					alert('Gagal menyimpan data.');
+					swal('Error', 'Gagal menyimpan data.', 'error');
 				}
 			},
 			complete: function() {
@@ -546,13 +604,20 @@ $Saya =  Auth::user()->username;
 		});
 	});
 
+	function toggleStuffingHeaderActions(isMonitoring) {
+		$('#scheduleHeaderActions').toggleClass('d-flex', !isMonitoring).toggleClass('d-none', isMonitoring);
+		$('#monitoringHeaderActions').toggleClass('d-flex', isMonitoring).toggleClass('d-none', !isMonitoring);
+	}
+
 	$(function() {
 		// Listen for tab switch to lazily init or resize monitoring grid
 		$('a[data-toggle="tab"], a[data-bs-toggle="tab"]').on('shown.bs.tab', function(e) {
-			let target = $(e.target).attr('href');
+			let target = $(e.target).attr('href') || $(e.target).attr('data-bs-target');
 			if (target === '#tab-monitoring') {
+				toggleStuffingHeaderActions(true);
 				initMonitoringGrid();
 			} else if (target === '#tab-schedule') {
+				toggleStuffingHeaderActions(false);
 				if (typeof StuffingVessel !== 'undefined' && StuffingVessel) {
 					StuffingVessel.setSizes();
 				}
@@ -563,6 +628,7 @@ $Saya =  Auth::user()->username;
 		let urlParams = new URLSearchParams(window.location.search);
 		if (urlParams.get('tab') === 'monitoring') {
 			$('#stuffingTabs a[href="#tab-monitoring"]').tab('show');
+			toggleStuffingHeaderActions(true);
 			initMonitoringGrid();
 		}
 	});
