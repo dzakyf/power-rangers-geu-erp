@@ -76,6 +76,12 @@ pengembangan lokal, modul aktif diatur melalui `MODULES`. Untuk deployment,
 maintainer membuat phase branch yang sudah dipangkas dari `main` dan menandainya
 dengan tag `release/<versi>`.
 
+Jangan melakukan pengembangan pada branch `phase/X.Y.Z`. Branch tersebut adalah
+hasil build yang hanya dipakai untuk deployment, bukan branch kerja. Gunakan
+`main` atau feature branch untuk pengembangan. Komposisi modul pada phase branch
+sudah dipin, sehingga `MODULES` hanya relevan untuk pengembangan lokal di
+`main`.
+
 - Push langsung ke `main` secara teknis diperbolehkan.
 - Branch fitur bersifat **opsional**, dan direkomendasikan untuk perubahan
   non-trivial, pekerjaan kolaboratif, atau perubahan lintas modul:

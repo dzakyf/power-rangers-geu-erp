@@ -30,6 +30,10 @@ repositori ini. Untuk prosedur deployment ke klien, lihat
 `main` menggunakan build profile dan hanya berisi modul, tests, dan docs yang
 relevan untuk phase tersebut.
 
+Jangan melakukan pengembangan langsung pada phase branch. Jangan pula melakukan
+merge `main` ke phase branch secara manual. Phase branch dibuat ulang dari
+`main` setiap kali akan membuat rilis baru.
+
 Tidak ada branch permanen `dev`, `release/<modul>`, atau branch per modul.
 Tidak ada tag modul seperti `bdp/vX.Y.Z` atau `cns/vX.Y.Z` untuk rilis baru.
 
@@ -163,6 +167,7 @@ lokal dan tidak dipublikasikan ke remote.
 - Phase branch aktif: `phase/1.0.0`.
 - Tag rilis aktif: `release/1.0.0`.
 - Tag lama `bdp/v1.0.0` sudah dihapus.
+- Phase 2 (`phase/1.1.0` dan `release/1.1.0`) belum dibuat dan masih ditunda.
 - Tag `archive/*` hanya tersedia secara lokal.
 - Remote aktif: `origin`.
 

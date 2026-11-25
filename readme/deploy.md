@@ -54,10 +54,10 @@ Untuk strategi branching dan versioning, lihat
 
 ## 3. Komposisi Phase
 
-| Phase | Branch | Tag | Modul |
-|---|---|---|---|
-| Phase 1 | `phase/1.0.0` | `release/1.0.0` | `core`, `credential`, `bp`, `finance` |
-| Phase 2 | `phase/1.1.0` | `release/1.1.0` | `core`, `credential`, `bp`, `finance`, `cns` |
+| Phase | Status | Branch | Tag | Modul |
+|---|---|---|---|---|
+| Phase 1 | Aktif | `phase/1.0.0` | `release/1.0.0` | `core`, `credential`, `bp`, `finance` |
+| Phase 2 | Ditunda | `phase/1.1.0` | `release/1.1.0` | `core`, `credential`, `bp`, `finance`, `cns` |
 
 Phase branch juga memuat tests dan docs yang relevan dengan modul aktif.
 
@@ -66,6 +66,9 @@ Untuk Phase 1:
 - BDP tests/docs disertakan.
 - CNS, HCGA, dan legacy tidak disertakan.
 - Tests/docs core yang shared tetap disertakan.
+
+Phase 2 belum tersedia. Profil `bdp-cns` harus ditambahkan terlebih dahulu
+sebelum `phase/1.1.0` dan `release/1.1.0` dapat dibuat.
 
 ## 4. Instalasi Pertama
 
@@ -202,10 +205,13 @@ php artisan view:cache
 `.env`, `storage/`, dan direktori upload tidak berubah karena tidak dilacak Git.
 Tidak perlu menyalin folder build atau artifact.
 
-## 6. Penambahan Modul
+## 6. Rencana Penambahan Modul (Phase 2)
 
 Penambahan modul dilakukan dengan membuat phase branch baru dari `main`,
 bukan dengan menyalin modul ke branch lama.
+
+Phase 2 masih ditunda. Langkah berikut baru dijalankan setelah Phase 1 stabil
+dan profil `bdp-cns` ditambahkan ke `deploy/profiles.php`.
 
 Contoh Phase 2: BDP + CNS.
 
