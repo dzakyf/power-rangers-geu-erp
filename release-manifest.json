@@ -1,0 +1,12 @@
+{
+    "profile": "bdp",
+    "version": "1.0.0",
+    "modules": [
+        "core",
+        "credential",
+        "bp",
+        "finance"
+    ],
+    "commit": "6176fed73777d536bc23deaeab04d210d5aa26ee",
+    "built_at": "2026-11-25T02:11:31+00:00"
+}
