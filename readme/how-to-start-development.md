@@ -142,6 +142,47 @@ php artisan serve
 
 ## 5. Migrasi
 
+### 5.1 Pilih Modul Aktif Sebelum Migrasi
+
+Migrasi mengikuti modul yang aktif pada `MODULES`. Pilih modul yang sesuai
+kebutuhan pengembangan sebelum menjalankan `php artisan migrate`.
+
+Contoh BDP:
+
+```bash
+export MODULES=core,credential,bp,finance
+php artisan migrate
+```
+
+Contoh CNS:
+
+```bash
+export MODULES=core,credential,cns
+php artisan migrate
+```
+
+Contoh HCGA:
+
+```bash
+export MODULES=core,credential,cns,hcga
+php artisan migrate
+```
+
+Contoh full monolith:
+
+```bash
+export MODULES=core,credential,bp,finance,cns,hcga,legacy
+php artisan migrate
+```
+
+Jika ingin membuat nilai `MODULES` permanen untuk lokal, simpan di `.env`:
+
+```dotenv
+MODULES=core,credential,bp,finance
+```
+
+### 5.2 Jalankan Migrasi
+
 - Jalankan migrasi secara forward-only:
 
   ```bash
