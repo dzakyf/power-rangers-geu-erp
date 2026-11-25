@@ -121,7 +121,7 @@
                     <div class="col-md-3">
                         <div class="form-group mb-3">
                             <label>Vendor Cost</label>
-                            <input type="number" step="0.01" min="0" name="Vendor_Cost" class="form-control" value="0" />
+                            <input type="number" step="0.01" min="0" name="Vendor_Cost" class="form-control" value="0" placeholder="0.00" />
                         </div>
                     </div>
                     <div class="col-md-3">

@@ -2041,4 +2041,583 @@ class ProcurementController extends Controller
         return view('humanresources.procurement.goods-received-detail', compact('grHeader', 'grItems'));
     }
 
+
+  public function mobileCreatePR()
+{
+    $lastPr = DB::table('purchase_request')->orderBy('ID', 'DESC')->first();
+    $nextId = $lastPr ? ($lastPr->ID + 1) : 1;
+    $generated_pr_no = 'PR/GEU-HO/' . date('Ym') . '-' . str_pad($nextId, 4, '0', STR_PAD_LEFT);
+
+    $materials = DB::table('product_code')
+        ->select('Product_Code', 'Description', 'Specification', 'Unit_Name')
+        ->orderBy('Description', 'ASC')
+        ->get();
+
+    $departments = DB::table('department')
+        ->orderBy('Department', 'ASC')
+        ->get();
+
+    $currentUsername = session('username') ?? (auth()->user()->username ?? 'admin');
+    $userData = DB::table('users')->where('username', $currentUsername)->first();
+    $userDepartment = $userData->Department ?? '';
+
+    return view('humanresources.procurement.mobile-pr-create', compact(
+        'generated_pr_no',
+        'materials',
+        'departments',
+        'userDepartment'
+    ));
+}
+
+
+public function mobileEditPRList()
+{
+    $prs = DB::table('purchase_request')
+        ->orderBy('ID', 'DESC')
+        ->limit(100)
+        ->get();
+
+    return view('humanresources.procurement.mobile-pr-edit-list', compact('prs'));
+}
+
+public function mobileEditPR($id)
+{
+    $pr = DB::table('purchase_request')->where('ID', $id)->first();
+    if (!$pr) {
+        abort(404);
+    }
+
+    $prNo = $pr->PR_No ?? ($pr->pr_no ?? '');
+    $items = DB::table('purchase_request_dtl')
+        ->where('PR_No', $prNo)
+        ->get();
+
+    $materials = DB::table('product_code')
+        ->select('Product_Code', 'Description', 'Specification', 'Unit_Name')
+        ->orderBy('Description', 'ASC')
+        ->get();
+
+    $departments = DB::table('department')
+        ->orderBy('Department', 'ASC')
+        ->get();
+
+    $user = auth()->user();
+
+    return view('humanresources.procurement.mobile-pr-edit', compact(
+        'pr',
+        'items',
+        'materials',
+        'departments',
+        'user'
+    ));
+}
+
+public function mobileApprovalPR()
+{
+    $username = session('username') ?? (Auth::user()->username ?? 'admin');
+    $userObj  = Auth::user() ?? DB::table('users')->where('username', $username)->first();
+
+    $prApprovals    = collect();
+    $stageHistories = [];
+    $debugStageErr  = null;
+
+    try {
+        // 1. Ambil daftar PR yang berstatus PENDING / RETURNED / APPROVAL_UPPER
+        $prs = DB::table('purchase_request')
+            ->whereIn(DB::raw('UPPER(COALESCE(Status, \'\'))'), ['PENDING', 'RETURNED', 'APPROVAL_UPPER'])
+            ->orderBy('ID', 'DESC')
+            ->limit(100)
+            ->get();
+
+        // Kumpulkan Approval_Request_ID & PR_No untuk ambil approval_request secara batch
+        $reqIdsByPrId = [];
+        $reqIds       = [];
+        $prNos        = [];
+
+        foreach ($prs as $p) {
+            $prNo = trim((string) ($p->PR_No ?? ''));
+            if ($prNo !== '') {
+                $prNos[] = $prNo;
+            }
+            if (!empty($p->Approval_Request_ID)) {
+                $reqIdsByPrId[(int) $p->ID] = (int) $p->Approval_Request_ID;
+                $reqIds[] = (int) $p->Approval_Request_ID;
+            }
+        }
+
+        // Ambil approval_request berdasarkan ID maupun Request_No
+        $requestsById   = [];
+        $requestsByPrNo = [];
+
+        if (!empty($reqIds) || !empty($prNos)) {
+            $reqRows = DB::table('approval_request')
+                ->where(function ($q) use ($reqIds, $prNos) {
+                    if (!empty($reqIds)) {
+                        $q->whereIn('ID', array_unique($reqIds));
+                    }
+                    if (!empty($prNos)) {
+                        $q->orWhereIn('Request_No', array_unique($prNos));
+                    }
+                })
+                ->orderBy('ID', 'DESC')
+                ->get();
+
+            foreach ($reqRows as $req) {
+                $requestsById[(int) $req->ID] = $req;
+                $rNo = trim((string) ($req->Request_No ?? ''));
+                if ($rNo !== '' && !isset($requestsByPrNo[$rNo])) {
+                    $requestsByPrNo[$rNo] = $req;
+                }
+            }
+        }
+
+        // Petakan setiap PR ke approval_request-nya
+        $mappedReqIds = [];
+        $prToReqId    = [];
+
+        foreach ($prs as $p) {
+            $prNo  = trim((string) ($p->PR_No ?? ''));
+            $reqId = !empty($p->Approval_Request_ID) ? (int) $p->Approval_Request_ID : 0;
+
+            if ($reqId > 0 && isset($requestsById[$reqId])) {
+                $prToReqId[(int) $p->ID] = $reqId;
+                $mappedReqIds[] = $reqId;
+            } elseif ($prNo !== '' && isset($requestsByPrNo[$prNo])) {
+                $foundReqId = (int) $requestsByPrNo[$prNo]->ID;
+                $prToReqId[(int) $p->ID] = $foundReqId;
+                $mappedReqIds[] = $foundReqId;
+            }
+        }
+
+        // 2. Ambil seluruh task dari approval_request_task untuk Request_ID yang terhubung
+        $tasksByReqId = [];
+        $actorIds     = [];
+
+        if (!empty($mappedReqIds)) {
+            $allTasks = DB::table('approval_request_task')
+                ->whereIn('Request_ID', array_unique($mappedReqIds))
+                ->orderBy('Stage_Order', 'ASC')
+                ->orderBy('Level_Number', 'ASC')
+                ->orderBy('ID', 'ASC')
+                ->get();
+
+            foreach ($allTasks as $t) {
+                $tasksByReqId[(int) $t->Request_ID][] = $t;
+                if (!empty($t->Acted_By) && is_numeric($t->Acted_By)) {
+                    $actorIds[] = (int) $t->Acted_By;
+                }
+            }
+        }
+
+        // Ambil mapping nama user jika Acted_By berisi ID numerik
+        $usersById = [];
+        if (!empty($actorIds)) {
+            $uRows = DB::table('users')->whereIn('id', array_unique($actorIds))->get();
+            foreach ($uRows as $u) {
+                $usersById[(int) $u->id] = $u->Name ?? ($u->name ?? ($u->username ?? ('User #' . $u->id)));
+            }
+        }
+
+        // Helper mengekstrak kode/nama policy dari approval_request (Policy_Snapshot / Context)
+        $extractPolicyLabel = function ($req, $prRow) {
+            if ($req) {
+                $snapRaw = $req->Policy_Snapshot ?? '';
+                if (is_string($snapRaw) && trim($snapRaw) !== '') {
+                    $snap = json_decode($snapRaw, true);
+                    if (is_array($snap)) {
+                        foreach ([
+                            'Policy_Code', 'policy_code',
+                            'Policy_Name', 'policy_name',
+                            'Code', 'code',
+                            'Name', 'name',
+                            'Title', 'title',
+                        ] as $k) {
+                            if (!empty($snap[$k]) && is_string($snap[$k])) {
+                                return trim($snap[$k]);
+                            }
+                        }
+                        if (!empty($snap['Policy']) && is_array($snap['Policy'])) {
+                            foreach (['Policy_Code', 'Policy_Name', 'Code', 'Name'] as $pk) {
+                                if (!empty($snap['Policy'][$pk]) && is_string($snap['Policy'][$pk])) {
+                                    return trim($snap['Policy'][$pk]);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                $ctxRaw = $req->Context ?? '';
+                if (is_string($ctxRaw) && trim($ctxRaw) !== '') {
+                    $ctx = json_decode($ctxRaw, true);
+                    if (is_array($ctx)) {
+                        foreach (['Policy_Code', 'policy_code', 'Policy_Name', 'policy_name', 'Policy', 'policy'] as $ck) {
+                            if (!empty($ctx[$ck]) && is_string($ctx[$ck])) {
+                                return trim($ctx[$ck]);
+                            }
+                        }
+                    }
+                }
+            }
+
+            return trim((string) ($prRow->Procurement_Category ?? '-')) ?: '-';
+        };
+
+        // 3. Susun $prApprovals (posisi/stage aktif) dan $stageHistories (semua stage)
+        foreach ($prs as $p) {
+            $prNo  = trim((string) ($p->PR_No ?? ''));
+            $reqId = $prToReqId[(int) $p->ID] ?? null;
+            $req   = $reqId ? ($requestsById[$reqId] ?? null) : null;
+            $tasks = $reqId ? ($tasksByReqId[$reqId] ?? []) : [];
+
+            // Cari task PENDING aktif pertama (sesuai urutan Stage_Order, Level_Number, ID)
+            $activeTask = null;
+            foreach ($tasks as $t) {
+                if (strtoupper(trim((string) ($t->Status ?? ''))) === 'PENDING') {
+                    $activeTask = $t;
+                    break;
+                }
+            }
+
+            if ($activeTask) {
+                $posName    = trim((string) ($activeTask->Position_Name ?? '')) ?: (trim((string) ($activeTask->Position_Code ?? '')) ?: 'Approver');
+                $stageOrder = $activeTask->Stage_Order ?? ($activeTask->Level_Number ?? 1);
+                $taskStatus = strtoupper(trim((string) ($activeTask->Status ?? 'PENDING')));
+                $taskId     = $activeTask->ID;
+            } elseif ($req) {
+                $posName    = 'Approval PR';
+                $stageOrder = $req->Current_Stage ?? ($req->Current_Level ?? 1);
+                $taskStatus = strtoupper(trim((string) ($req->Status ?? ($p->Status ?? 'PENDING'))));
+                $taskId     = null;
+            } else {
+                $posName    = 'Approval PR';
+                $stageOrder = 1;
+                $taskStatus = strtoupper(trim((string) ($p->Status ?? 'PENDING')));
+                $taskId     = null;
+            }
+
+            $prApprovals->push((object) [
+                'task_id'          => $taskId,
+                'request_id'       => $reqId,
+                'pr_id'            => $p->ID,
+                'pr_no'            => $prNo,
+                'requester'        => $p->PIC ?: ($p->Created_By ?: '-'),
+                'department'       => $p->Department ?: '-',
+                'position'         => $posName,
+                'stage_order'      => $stageOrder,
+                'policy'           => $extractPolicyLabel($req, $p),
+                'supplies_type'    => $p->Supplies_Type ?: 'NON-OPS',
+                'category'         => $p->Category ?: 'NON ASSET',
+                'sub_category'     => $p->Sub_Category ?: 'BARANG',
+                'estimated_budget' => floatval($p->Estimated_Budget ?? 0),
+                'note'             => $p->Note ?? '',
+                'status'           => $taskStatus,
+                'date_label'       => !empty($p->PR_Date)
+                    ? \Carbon\Carbon::parse($p->PR_Date)->format('d M Y')
+                    : date('d M Y'),
+            ]);
+
+            // Isi riwayat seluruh stage untuk PR ini
+            if ($prNo !== '' && !empty($tasks)) {
+                $stageHistories[$prNo] = [];
+                foreach ($tasks as $t) {
+                    $stPos = trim((string) ($t->Position_Name ?? '')) ?: (trim((string) ($t->Position_Code ?? '')) ?: 'Approver');
+                    $rawActor = trim((string) ($t->Acted_By ?? ''));
+                    $actorStr = '';
+                    if ($rawActor !== '' && $rawActor !== '0') {
+                        $actorStr = is_numeric($rawActor)
+                            ? ($usersById[(int) $rawActor] ?? ('User #' . $rawActor))
+                            : $rawActor;
+                    }
+
+                    $actedStr = '';
+                    if (!empty($t->Acted_At)) {
+                        try {
+                            $actedStr = \Carbon\Carbon::parse($t->Acted_At)->format('d M Y H:i');
+                        } catch (\Exception $ex) {
+                            $actedStr = (string) $t->Acted_At;
+                        }
+                    }
+
+                    $stageHistories[$prNo][] = (object) [
+                        'stage'    => $t->Stage_Order ?? ($t->Level_Number ?? 1),
+                        'position' => $stPos,
+                        'status'   => strtoupper(trim((string) ($t->Status ?? ($t->Action ?? 'PENDING')))),
+                        'actor'    => $actorStr,
+                        'notes'    => trim((string) ($t->Notes ?? '')),
+                        'acted_at' => $actedStr,
+                    ];
+                }
+            }
+        }
+    } catch (\Exception $e) {
+        $debugStageErr = $e->getMessage();
+        \Log::warning('mobileApprovalPR error: ' . $e->getMessage());
+    }
+
+    return view('humanresources.procurement.mobile-pr-approval', compact('prApprovals', 'userObj', 'stageHistories', 'debugStageErr'));
+}
+
+
+public function mobileTrackingPR(Request $request)
+{
+    $username = session('username') ?? (Auth::user()->username ?? 'admin');
+    $userObj  = Auth::user() ?? DB::table('users')->where('username', $username)->first();
+
+    $prs = DB::table('purchase_request')
+        ->orderBy('ID', 'DESC')
+        ->limit(150)
+        ->get();
+
+    $prNos  = [];
+    $reqIds = [];
+
+    foreach ($prs as $p) {
+        $prNo = trim((string) ($p->PR_No ?? ''));
+        if ($prNo !== '') {
+            $prNos[] = $prNo;
+        }
+        if (!empty($p->Approval_Request_ID)) {
+            $reqIds[] = (int) $p->Approval_Request_ID;
+        }
+    }
+
+    $prNos  = array_values(array_unique($prNos));
+    $reqIds = array_values(array_unique($reqIds));
+
+    // 1. Ambil approval_request (lewat ID maupun Request_No)
+    $requestsById   = [];
+    $requestsByPrNo = [];
+
+    if (!empty($reqIds) || !empty($prNos)) {
+        $reqRows = DB::table('approval_request')
+            ->where(function ($q) use ($reqIds, $prNos) {
+                if (!empty($reqIds)) {
+                    $q->whereIn('ID', $reqIds);
+                }
+                if (!empty($prNos)) {
+                    $q->orWhereIn('Request_No', $prNos);
+                }
+            })
+            ->orderBy('ID', 'DESC')
+            ->get();
+
+        foreach ($reqRows as $req) {
+            $requestsById[(int) $req->ID] = $req;
+            $rNo = trim((string) ($req->Request_No ?? ''));
+            if ($rNo !== '' && !isset($requestsByPrNo[$rNo])) {
+                $requestsByPrNo[$rNo] = $req;
+            }
+        }
+    }
+
+    $mappedReqIds = [];
+    $prToReqId    = [];
+
+    foreach ($prs as $p) {
+        $prNo  = trim((string) ($p->PR_No ?? ''));
+        $reqId = !empty($p->Approval_Request_ID) ? (int) $p->Approval_Request_ID : 0;
+
+        if ($reqId > 0 && isset($requestsById[$reqId])) {
+            $prToReqId[(int) $p->ID] = $reqId;
+            $mappedReqIds[] = $reqId;
+        } elseif ($prNo !== '' && isset($requestsByPrNo[$prNo])) {
+            $foundReqId = (int) $requestsByPrNo[$prNo]->ID;
+            $prToReqId[(int) $p->ID] = $foundReqId;
+            $mappedReqIds[] = $foundReqId;
+        }
+    }
+
+    // 2. Ambil seluruh task approval_request_task
+    $tasksByReqId = [];
+    $actorIds     = [];
+
+    if (!empty($mappedReqIds)) {
+        $allTasks = DB::table('approval_request_task')
+            ->whereIn('Request_ID', array_values(array_unique($mappedReqIds)))
+            ->orderBy('Stage_Order', 'ASC')
+            ->orderBy('Level_Number', 'ASC')
+            ->orderBy('ID', 'ASC')
+            ->get();
+
+        foreach ($allTasks as $t) {
+            $tasksByReqId[(int) $t->Request_ID][] = $t;
+            if (!empty($t->Acted_By) && is_numeric($t->Acted_By)) {
+                $actorIds[] = (int) $t->Acted_By;
+            }
+        }
+    }
+
+    $usersById = [];
+    if (!empty($actorIds)) {
+        $uRows = DB::table('users')->whereIn('id', array_values(array_unique($actorIds)))->get();
+        foreach ($uRows as $u) {
+            $usersById[(int) $u->id] = $u->Name ?? ($u->name ?? ($u->username ?? ('User #' . $u->id)));
+        }
+    }
+
+    // 3. Ambil rincian item PR, RFQ, PO, GR, dan Notes History secara batch
+    $itemsByPr = [];
+    $rfqsByPr  = [];
+    $posByPr   = [];
+    $grsByPr   = [];
+    $notesByPr = [];
+
+    if (!empty($prNos)) {
+        foreach (DB::table('purchase_request_dtl')->whereIn('PR_No', $prNos)->orderBy('ID', 'ASC')->get() as $it) {
+            $itemsByPr[trim((string) $it->PR_No)][] = $it;
+        }
+
+        foreach (DB::table('rfq as r')
+            ->leftJoin('supplier as s', DB::raw('r.Supplier_ID COLLATE utf8mb4_unicode_ci'), '=', DB::raw('s.Supplier_ID COLLATE utf8mb4_unicode_ci'))
+            ->select('r.PR_No', 'r.RFQ_No', 'r.Supplier_ID', 'r.Status', 'r.Grand_Total', 's.Company_Name')
+            ->whereIn('r.PR_No', $prNos)
+            ->orderBy('r.ID', 'ASC')
+            ->get() as $rfq) {
+            $rfqsByPr[trim((string) $rfq->PR_No)][] = $rfq;
+        }
+
+        foreach (DB::table('purchase_order as po')
+            ->leftJoin('supplier as s', DB::raw('po.Supplier COLLATE utf8mb4_unicode_ci'), '=', DB::raw('s.Supplier_ID COLLATE utf8mb4_unicode_ci'))
+            ->select('po.PR_No', 'po.PO_No', 'po.PO_Date', 'po.Supplier', 'po.Total', 'po.Status', 'po.Status_Receive', 's.Company_Name')
+            ->whereIn('po.PR_No', $prNos)
+            ->orderBy('po.ID', 'ASC')
+            ->get() as $po) {
+            $posByPr[trim((string) $po->PR_No)][] = $po;
+        }
+
+        foreach (DB::table('good_receive')->whereIn('PR_No', $prNos)->orderBy('ID', 'ASC')->get() as $gr) {
+            $grsByPr[trim((string) $gr->PR_No)][] = $gr;
+        }
+
+        foreach (DB::table('pr_notes_history')->whereIn('PR_No', $prNos)->orderBy('ID', 'DESC')->get() as $nh) {
+            $notesByPr[trim((string) $nh->PR_No)][] = $nh;
+        }
+    }
+
+    // 4. Susun data tracking per PR
+    $trackingList = collect();
+
+    foreach ($prs as $p) {
+        $prNo      = trim((string) ($p->PR_No ?? ''));
+        $rawStatus = strtoupper(trim((string) ($p->Status ?? 'PENDING')));
+        $reqId     = $prToReqId[(int) $p->ID] ?? null;
+        $req       = $reqId ? ($requestsById[$reqId] ?? null) : null;
+        $tasks     = $reqId ? ($tasksByReqId[$reqId] ?? []) : [];
+
+        // Ekstrak Policy Code dari Policy_Snapshot
+        $policyCode = trim((string) ($p->Procurement_Category ?? '-')) ?: '-';
+        if ($req && !empty($req->Policy_Snapshot)) {
+            $snap = json_decode((string) $req->Policy_Snapshot, true);
+            if (is_array($snap)) {
+                foreach (['Policy_Code', 'policy_code', 'Policy_Name', 'policy_name', 'Code', 'Name'] as $k) {
+                    if (!empty($snap[$k]) && is_string($snap[$k])) {
+                        $policyCode = trim($snap[$k]);
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Susun stage approval & cari stage aktif
+        $stages     = [];
+        $activePos  = '-';
+        $activeStg  = null;
+
+        foreach ($tasks as $t) {
+            $stStatus = strtoupper(trim((string) ($t->Status ?? ($t->Action ?? 'PENDING'))));
+            $stPos    = trim((string) ($t->Position_Name ?? '')) ?: (trim((string) ($t->Position_Code ?? '')) ?: 'Approver');
+            $stNum    = $t->Stage_Order ?? ($t->Level_Number ?? 1);
+
+            if ($activeStg === null && in_array($stStatus, ['PENDING', 'WAITING'], true)) {
+                $activePos = $stPos;
+                $activeStg = $stNum;
+            }
+
+            $rawActor = trim((string) ($t->Acted_By ?? ''));
+            $actorStr = '';
+            if ($rawActor !== '' && $rawActor !== '0') {
+                $actorStr = is_numeric($rawActor)
+                    ? ($usersById[(int) $rawActor] ?? ('User #' . $rawActor))
+                    : $rawActor;
+            }
+
+            $actedStr = '';
+            if (!empty($t->Acted_At)) {
+                try {
+                    $actedStr = \Carbon\Carbon::parse($t->Acted_At)->format('d M Y H:i');
+                } catch (\Exception $ex) {
+                    $actedStr = (string) $t->Acted_At;
+                }
+            }
+
+            $stages[] = (object) [
+                'stage'    => $stNum,
+                'position' => $stPos,
+                'status'   => $stStatus,
+                'actor'    => $actorStr,
+                'notes'    => trim((string) ($t->Notes ?? '')),
+                'acted_at' => $actedStr,
+            ];
+        }
+
+        $rfqList  = $rfqsByPr[$prNo] ?? [];
+        $poList   = $posByPr[$prNo] ?? [];
+        $grList   = $grsByPr[$prNo] ?? [];
+        $itemList = $itemsByPr[$prNo] ?? [];
+        $noteList = $notesByPr[$prNo] ?? [];
+
+        // Tentukan kategori filter & progress persentase (4 fase: PR -> Approval -> RFQ/PO -> GR)
+        if (in_array($rawStatus, ['REJECTED', 'CANCEL', 'CANCELLED'], true)) {
+            $filterGroup = 'REJECTED';
+            $progressPct = 100;
+            $stageLabel  = 'Ditolak / Dibatalkan';
+        } elseif (!empty($grList) || in_array($rawStatus, ['RECEIVED', 'CLOSED'], true)) {
+            $filterGroup = 'PO_GR';
+            $progressPct = 100;
+            $stageLabel  = 'Goods Received (' . count($grList) . ' GR)';
+        } elseif (!empty($poList) || in_array($rawStatus, ['PO_CREATED', 'PARTIAL_PO'], true)) {
+            $filterGroup = 'PO_GR';
+            $progressPct = 75;
+            $stageLabel  = 'PO Terbit (' . count($poList) . ' PO)';
+        } elseif ($rawStatus === 'APPROVED') {
+            $filterGroup = 'APPROVED';
+            $progressPct = !empty($rfqList) ? 60 : 50;
+            $stageLabel  = !empty($rfqList) ? 'Proses RFQ (' . count($rfqList) . ' Vendor)' : 'PR Disetujui (Siap RFQ/PO)';
+        } else {
+            $filterGroup = 'PENDING';
+            $progressPct = 25;
+            $stageLabel  = $activeStg !== null
+                ? "Menunggu {$activePos} (Stage {$activeStg})"
+                : 'Menunggu Approval';
+        }
+
+        $trackingList->push((object) [
+            'pr_id'            => $p->ID,
+            'pr_no'            => $prNo,
+            'pr_date_label'    => !empty($p->PR_Date) ? \Carbon\Carbon::parse($p->PR_Date)->format('d M Y') : '-',
+            'hope_date_label'  => !empty($p->Hope_Date) ? \Carbon\Carbon::parse($p->Hope_Date)->format('d M Y') : '-',
+            'requester'        => $p->PIC ?: ($p->Created_By ?: '-'),
+            'department'       => $p->Department ?: '-',
+            'supplies_type'    => $p->Supplies_Type ?: 'NON-OPS',
+            'category'         => $p->Category ?: 'NON ASSET',
+            'sub_category'     => $p->Sub_Category ?: 'BARANG',
+            'policy'           => $policyCode,
+            'estimated_budget' => floatval($p->Estimated_Budget ?? 0),
+            'note'             => trim((string) ($p->Note ?? '')),
+            'status'           => $rawStatus,
+            'filter_group'     => $filterGroup,
+            'progress_pct'     => $progressPct,
+            'stage_label'      => $stageLabel,
+            'stages'           => $stages,
+            'items'            => $itemList,
+            'rfqs'             => $rfqList,
+            'pos'              => $poList,
+            'grs'              => $grList,
+            'notes_history'    => $noteList,
+        ]);
+    }
+
+    return view('humanresources.procurement.mobile-pr-tracking', compact('trackingList', 'userObj'));
+}
+
 }

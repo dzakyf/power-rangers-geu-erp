@@ -72,69 +72,42 @@ class GaPaymentVoucherService
                 );
             }
 
-            $supplierId = !empty($data['Supplier_ID'])
-                ? (int) $data['Supplier_ID']
-                : (!empty($ga->Preferred_Vendor_ID) ? (int) $ga->Preferred_Vendor_ID : null);
-
-            $supplier = $supplierId
-                ? DB::table('supplier')->where('ID', $supplierId)->first()
-                : null;
-
-            $payeeType = strtoupper(trim((string) ($data['Payee_Type'] ?? ($supplier ? 'VENDOR' : 'OTHER'))));
-            if (!in_array($payeeType, ['VENDOR', 'INTERNAL', 'STAFF', 'OTHER'], true)) {
-                $payeeType = 'VENDOR';
-            }
-
-            $payeeName = trim((string) ($data['Payee_Name'] ?? ($supplier ? $supplier->Company_Name : '')));
-            if ($payeeName === '') {
-                throw new InvalidArgumentException('Nama penerima pembayaran / vendor wajib diisi.');
-            }
-
-            $bankName = trim((string) ($data['Bank_Name'] ?? ($supplier ? ($supplier->Bank_Rupiah ?? '') : '')));
-            $bankAccNo = trim((string) ($data['Bank_Account_No'] ?? ($supplier ? ($supplier->Bank_Rupiah_Account ?? '') : '')));
-            $bankAccName = trim((string) ($data['Bank_Account_Name'] ?? ($supplier ? ($supplier->Bank_Rupiah_Name ?? $supplier->Company_Name) : '')));
-
-            $paymentMethod = strtoupper(trim((string) ($data['Payment_Method'] ?? 'TRANSFER')));
-            if (!in_array($paymentMethod, ['TRANSFER', 'CASH', 'GIRO'], true)) {
-                $paymentMethod = 'TRANSFER';
-            }
-
-            $dueDate = !empty($data['Due_Date']) ? date('Y-m-d', strtotime((string) $data['Due_Date'])) : null;
-            $description = trim((string) ($data['Description'] ?? $ticket->Ticket_Subject));
-            $workOrderId = !empty($data['Work_Order_ID']) ? (int) $data['Work_Order_ID'] : null;
+            $prepared = $this->prepareVoucherPayload(
+                $data,
+                !empty($ga->Preferred_Vendor_ID) ? (int) $ga->Preferred_Vendor_ID : null,
+                (string) $ticket->Ticket_Subject
+            );
 
             $now = Carbon::now();
             $voucherNo = $this->generateVoucherNo($now);
-            $attachmentPath = null;
-
-            if ($attachmentFile instanceof UploadedFile) {
-                $attachmentPath = $this->storeVendorFile(
+            $attachmentPath = $attachmentFile instanceof UploadedFile
+                ? $this->storeVendorFile(
                     $attachmentFile,
                     'ga_voucher_att_' . $ticketId,
                     'ga-voucher-attachment',
                     $voucherNo,
                     'Lampiran Pendukung Voucher ' . $voucherNo
-                );
-            }
+                )
+                : null;
 
             $voucherId = (int) DB::table('ga_payment_voucher')->insertGetId([
                 'Voucher_No'        => $voucherNo,
                 'Ticket_ID'         => $ticketId,
-                'Work_Order_ID'     => $workOrderId,
+                'Work_Order_ID'     => $workOrderId = !empty($data['Work_Order_ID']) ? (int) $data['Work_Order_ID'] : null,
                 'Location'          => trim((string) ($ticket->Location ?: $user->Location ?: 'GEU-HO')),
                 'Company_ID'        => trim((string) ($ticket->Company_ID ?: $user->Company_ID ?: 'GEU')),
                 'Department'        => trim((string) ($ticket->Department ?: $ga->Reporter_Department ?: $user->Department ?: 'HCGA')),
                 'Cost_Center'       => trim((string) ($ga->Cost_Center ?? '')),
-                'Payee_Type'        => $payeeType,
-                'Supplier_ID'       => $supplier ? (int) $supplier->ID : null,
-                'Payee_Name'        => mb_substr($payeeName, 0, 150),
-                'Bank_Name'         => $bankName !== '' ? mb_substr($bankName, 0, 100) : null,
-                'Bank_Account_No'   => $bankAccNo !== '' ? mb_substr($bankAccNo, 0, 80) : null,
-                'Bank_Account_Name' => $bankAccName !== '' ? mb_substr($bankAccName, 0, 150) : null,
-                'Payment_Method'    => $paymentMethod,
+                'Payee_Type'        => $prepared['payee_type'],
+                'Supplier_ID'       => $prepared['supplier_id'],
+                'Payee_Name'        => mb_substr($prepared['payee_name'], 0, 150),
+                'Bank_Name'         => $prepared['bank_name'] !== '' ? mb_substr($prepared['bank_name'], 0, 100) : null,
+                'Bank_Account_No'   => $prepared['bank_acc_no'] !== '' ? mb_substr($prepared['bank_acc_no'], 0, 80) : null,
+                'Bank_Account_Name' => $prepared['bank_acc_name'] !== '' ? mb_substr($prepared['bank_acc_name'], 0, 150) : null,
+                'Payment_Method'    => $prepared['payment_method'],
                 'Amount'            => $amount,
-                'Due_Date'          => $dueDate,
-                'Description'       => $description,
+                'Due_Date'          => $prepared['due_date'],
+                'Description'       => $prepared['description'],
                 'Attachment_Path'   => $attachmentPath,
                 'Status'            => 'FINANCE_SUBMITTED',
                 'Created_By'        => (string) $user->username,
@@ -156,7 +129,7 @@ class GaPaymentVoucherService
                 $ticketId,
                 TicketService::STATUS_READY_FOR_VOUCHER,
                 TicketService::STATUS_VOUCHER_CREATED,
-                'Voucher Pembayaran ' . $voucherNo . ' (Rp ' . number_format($amount, 0, ',', '.') . ' - ' . $payeeName . ') dibuat & diteruskan ke Finance.',
+                'Voucher Pembayaran ' . $voucherNo . ' (Rp ' . number_format($amount, 0, ',', '.') . ' - ' . $prepared['payee_name'] . ') dibuat & diteruskan ke Finance.',
                 (string) $user->username,
                 $now
             );
@@ -176,6 +149,186 @@ class GaPaymentVoucherService
                 'Voucher untuk tiket ' . $result['ticket_no'] . ' diteruskan ke Finance untuk pembayaran.',
                 'ga_ticket',
                 ['Ticket_ID' => $ticketId, 'Voucher_ID' => $result['voucher_id']]
+            );
+        }
+
+        return $this->findById($result['voucher_id']);
+    }
+
+    /**
+     * Buat Voucher Pembayaran ke Finance langsung dari Work Order GA yang sudah disetujui dan memiliki biaya.
+     */
+    public function createVoucherFromWorkOrder(
+        int $woId,
+        array $data,
+        $user,
+        ?UploadedFile $attachmentFile = null
+    ) {
+        $result = DB::transaction(function () use ($woId, $data, $user, $attachmentFile) {
+            $wo = DB::table('ga_work_order')->where('ID', $woId)->lockForUpdate()->first();
+            if (!$wo) {
+                throw new InvalidArgumentException('Work order tidak ditemukan.');
+            }
+
+            $woStatus = strtoupper((string) $wo->Status);
+            if (!in_array($woStatus, [
+                WorkOrderService::STATUS_APPROVED,
+                WorkOrderService::STATUS_ASSIGNED,
+                WorkOrderService::STATUS_IN_PROGRESS,
+                WorkOrderService::STATUS_COMPLETED,
+            ], true)) {
+                throw new InvalidArgumentException('Voucher hanya dapat dibuat setelah Work Order berstatus APPROVED atau sedang berjalan/selesai.');
+            }
+
+            if (!empty($wo->Approval_Request_ID)) {
+                $approvalStatus = strtoupper((string) DB::table('approval_request')
+                    ->where('ID', (int) $wo->Approval_Request_ID)
+                    ->value('Status'));
+                if ($approvalStatus !== 'APPROVED') {
+                    throw new InvalidArgumentException('Approval Work Order belum berstatus APPROVED.');
+                }
+            }
+
+            $existingVoucher = DB::table('ga_payment_voucher')
+                ->where('Work_Order_ID', $woId)
+                ->where('Status', '!=', 'CANCELLED')
+                ->exists();
+            if ($existingVoucher) {
+                throw new InvalidArgumentException('Work order ini sudah memiliki Voucher Pembayaran.');
+            }
+
+            $totalCost = (float) $wo->Vendor_Cost
+                + (float) DB::table('ga_work_order_cost')->where('WO_ID', $woId)->sum('Amount')
+                + (float) DB::table('ga_work_order_material')->where('WO_ID', $woId)->sum('Total_Cost');
+            $totalCost = round($totalCost, 2);
+
+            if ($totalCost <= 0) {
+                throw new InvalidArgumentException('Work order belum memiliki total biaya (> 0) untuk diajukan ke Finance.');
+            }
+
+            $amount = isset($data['Amount']) && (float) $data['Amount'] > 0
+                ? round((float) $data['Amount'], 2)
+                : $totalCost;
+
+            if ($amount <= 0) {
+                throw new InvalidArgumentException('Nominal voucher harus lebih dari 0.');
+            }
+            if ($amount > $totalCost) {
+                throw new InvalidArgumentException(
+                    'Nominal voucher (Rp ' . number_format($amount, 0, ',', '.')
+                    . ') tidak boleh melebihi total biaya Work Order (Rp '
+                    . number_format($totalCost, 0, ',', '.') . ').'
+                );
+            }
+
+            $prepared = $this->prepareVoucherPayload(
+                $data,
+                !empty($wo->Supplier_ID) ? (int) $wo->Supplier_ID : null,
+                trim((string) $wo->WO_No . ' - ' . $wo->Title)
+            );
+
+            $now = Carbon::now();
+            $voucherNo = $this->generateVoucherNo($now);
+            $attachmentPath = $attachmentFile instanceof UploadedFile
+                ? $this->storeVendorFile(
+                    $attachmentFile,
+                    'ga_voucher_wo_' . $woId,
+                    'ga-voucher-attachment',
+                    $voucherNo,
+                    'Lampiran Pendukung Voucher ' . $voucherNo
+                )
+                : null;
+
+            $ticketId = (int) ($wo->Ticket_ID ?? 0);
+            $ticket = $ticketId > 0 ? DB::table('ticket')->where('ID', $ticketId)->lockForUpdate()->first() : null;
+            $ga = $ticketId > 0 ? DB::table('ga_ticket')->where('Ticket_ID', $ticketId)->lockForUpdate()->first() : null;
+
+            $voucherId = (int) DB::table('ga_payment_voucher')->insertGetId([
+                'Voucher_No'        => $voucherNo,
+                'Ticket_ID'         => $ticketId,
+                'Work_Order_ID'     => $woId,
+                'Location'          => trim((string) ($wo->Location ?: ($ticket ? $ticket->Location : '') ?: $user->Location ?: 'GEU-HO')),
+                'Company_ID'        => trim((string) ($wo->Company_ID ?: ($ticket ? $ticket->Company_ID : '') ?: $user->Company_ID ?: 'GEU')),
+                'Department'        => trim((string) ($wo->Department ?: ($ticket ? $ticket->Department : '') ?: $user->Department ?: 'HCGA')),
+                'Cost_Center'       => trim((string) ($wo->Cost_Center ?: ($ga ? $ga->Cost_Center : '') ?: '')),
+                'Payee_Type'        => $prepared['payee_type'],
+                'Supplier_ID'       => $prepared['supplier_id'],
+                'Payee_Name'        => mb_substr($prepared['payee_name'], 0, 150),
+                'Bank_Name'         => $prepared['bank_name'] !== '' ? mb_substr($prepared['bank_name'], 0, 100) : null,
+                'Bank_Account_No'   => $prepared['bank_acc_no'] !== '' ? mb_substr($prepared['bank_acc_no'], 0, 80) : null,
+                'Bank_Account_Name' => $prepared['bank_acc_name'] !== '' ? mb_substr($prepared['bank_acc_name'], 0, 150) : null,
+                'Payment_Method'    => $prepared['payment_method'],
+                'Amount'            => $amount,
+                'Due_Date'          => $prepared['due_date'],
+                'Description'       => $prepared['description'],
+                'Attachment_Path'   => $attachmentPath,
+                'Status'            => 'FINANCE_SUBMITTED',
+                'Created_By'        => (string) $user->username,
+                'Created_At'        => $now,
+                'Updated_By'        => (string) $user->username,
+                'Updated_At'        => $now,
+            ]);
+
+            $historyNote = 'Voucher Pembayaran ' . $voucherNo . ' (Rp ' . number_format($amount, 0, ',', '.')
+                . ' - ' . $prepared['payee_name'] . ') dibuat dari Work Order & diteruskan ke Finance.';
+
+            DB::table('ga_work_order_status_history')->insert([
+                'WO_ID'       => $woId,
+                'From_Status' => (string) $wo->Status,
+                'To_Status'   => (string) $wo->Status,
+                'Note'        => $historyNote,
+                'Changed_By'  => (string) $user->username,
+                'Changed_At'  => $now,
+                'Created_At'  => $now,
+            ]);
+
+            if ($ticket && $ga) {
+                $fromStatus = strtoupper((string) $ticket->Ticket_Status);
+                $toStatus = $fromStatus;
+
+                if (strtoupper((string) ($ga->Workflow_Mode ?? '')) === TicketService::MODE_WORK_ORDER_VOUCHER
+                    && empty($ga->Payment_Voucher_ID)
+                ) {
+                    $gaUpdates = [
+                        'Payment_Voucher_ID' => $voucherId,
+                        'Updated_By'         => (string) $user->username,
+                        'Updated_At'         => $now,
+                    ];
+                    if ($fromStatus === TicketService::STATUS_READY_FOR_VOUCHER) {
+                        $toStatus = TicketService::STATUS_VOUCHER_CREATED;
+                        DB::table('ticket')->where('ID', $ticketId)->update([
+                            'Ticket_Status' => $toStatus,
+                        ]);
+                    }
+                    DB::table('ga_ticket')->where('Ticket_ID', $ticketId)->update($gaUpdates);
+                }
+
+                $this->tickets->recordHistory(
+                    $ticketId,
+                    $fromStatus,
+                    $toStatus,
+                    'WO ' . $wo->WO_No . ': ' . $historyNote,
+                    (string) $user->username,
+                    $now
+                );
+            }
+
+            return [
+                'voucher_id'  => $voucherId,
+                'voucher_no'  => $voucherNo,
+                'ticket_id'   => $ticketId,
+                'reporter_id' => $ga ? (int) ($ga->Reporter_User_Id ?? 0) : 0,
+                'wo_no'       => (string) $wo->WO_No,
+            ];
+        });
+
+        if (!empty($result['reporter_id'])) {
+            $this->notifications->notifyUser(
+                $result['reporter_id'],
+                'Voucher Pembayaran Dibuat: ' . $result['voucher_no'],
+                'Voucher untuk Work Order ' . $result['wo_no'] . ' diteruskan ke Finance untuk pembayaran.',
+                'ga_work_order',
+                ['WO_ID' => $woId, 'Ticket_ID' => $result['ticket_id'], 'Voucher_ID' => $result['voucher_id']]
             );
         }
 
@@ -230,28 +383,50 @@ class GaPaymentVoucherService
             ]);
 
             $notifyIds = [];
+            $note = 'Pembayaran Voucher ' . $voucher->Voucher_No . ' telah dilunasi Finance pada ' . $paidDate
+                . ($paymentRef !== '' ? ' (Ref: ' . $paymentRef . ').' : '.');
+
+            $workOrderId = (int) ($voucher->Work_Order_ID ?? 0);
+            if ($workOrderId > 0) {
+                $wo = DB::table('ga_work_order')->where('ID', $workOrderId)->lockForUpdate()->first();
+                if ($wo) {
+                    DB::table('ga_work_order_status_history')->insert([
+                        'WO_ID'       => $workOrderId,
+                        'From_Status' => (string) $wo->Status,
+                        'To_Status'   => (string) $wo->Status,
+                        'Note'        => $note,
+                        'Changed_By'  => $username,
+                        'Changed_At'  => $now,
+                        'Created_At'  => $now,
+                    ]);
+                }
+            }
+
             $ticketId = (int) $voucher->Ticket_ID;
             if ($ticketId > 0) {
                 $ticket = DB::table('ticket')->where('ID', $ticketId)->lockForUpdate()->first();
                 $ga = DB::table('ga_ticket')->where('Ticket_ID', $ticketId)->lockForUpdate()->first();
                 if ($ticket && $ga) {
                     $from = strtoupper((string) $ticket->Ticket_Status);
-                    DB::table('ticket')->where('ID', $ticketId)->update([
-                        'Ticket_Status'   => TicketService::STATUS_PAID,
-                        'Completion_Note' => mb_substr('Voucher ' . $voucher->Voucher_No . ' dibayar Finance (' . $paidDate . ')', 0, 150),
-                    ]);
-                    DB::table('ga_ticket')->where('Ticket_ID', $ticketId)->update([
-                        'Resolved_At' => $ga->Resolved_At ?: $now,
-                        'Updated_By'  => $username,
-                        'Updated_At'  => $now,
-                    ]);
+                    $isVoucherMode = strtoupper((string) ($ga->Workflow_Mode ?? '')) === TicketService::MODE_WORK_ORDER_VOUCHER;
+                    $toStatus = $isVoucherMode ? TicketService::STATUS_PAID : $from;
 
-                    $note = 'Pembayaran Voucher ' . $voucher->Voucher_No . ' telah dilunasi Finance pada ' . $paidDate
-                        . ($paymentRef !== '' ? ' (Ref: ' . $paymentRef . ').' : '.');
+                    if ($isVoucherMode) {
+                        DB::table('ticket')->where('ID', $ticketId)->update([
+                            'Ticket_Status'   => TicketService::STATUS_PAID,
+                            'Completion_Note' => mb_substr('Voucher ' . $voucher->Voucher_No . ' dibayar Finance (' . $paidDate . ')', 0, 150),
+                        ]);
+                        DB::table('ga_ticket')->where('Ticket_ID', $ticketId)->update([
+                            'Resolved_At' => $ga->Resolved_At ?: $now,
+                            'Updated_By'  => $username,
+                            'Updated_At'  => $now,
+                        ]);
+                    }
+
                     $this->tickets->recordHistory(
                         $ticketId,
                         $from,
-                        TicketService::STATUS_PAID,
+                        $toStatus,
                         $note,
                         $username,
                         $now
@@ -305,6 +480,51 @@ class GaPaymentVoucherService
     public function findByTicketId(int $ticketId)
     {
         return $this->baseQuery()->where('v.Ticket_ID', $ticketId)->orderBy('v.ID', 'desc')->first();
+    }
+
+    public function findByWorkOrderId(int $woId)
+    {
+        return $this->baseQuery()->where('v.Work_Order_ID', $woId)->orderBy('v.ID', 'desc')->first();
+    }
+
+    protected function prepareVoucherPayload(array $data, ?int $defaultSupplierId, string $defaultDescription): array
+    {
+        $supplierId = !empty($data['Supplier_ID']) ? (int) $data['Supplier_ID'] : $defaultSupplierId;
+        $supplier = $supplierId ? DB::table('supplier')->where('ID', $supplierId)->first() : null;
+
+        $payeeType = strtoupper(trim((string) ($data['Payee_Type'] ?? ($supplier ? 'VENDOR' : 'OTHER'))));
+        if (!in_array($payeeType, ['VENDOR', 'INTERNAL', 'STAFF', 'OTHER'], true)) {
+            $payeeType = 'VENDOR';
+        }
+
+        $payeeName = trim((string) ($data['Payee_Name'] ?? ($supplier ? $supplier->Company_Name : '')));
+        if ($payeeName === '') {
+            throw new InvalidArgumentException('Nama penerima pembayaran / vendor wajib diisi.');
+        }
+
+        $bankName = trim((string) ($data['Bank_Name'] ?? ($supplier ? ($supplier->Bank_Rupiah ?? '') : '')));
+        $bankAccNo = trim((string) ($data['Bank_Account_No'] ?? ($supplier ? ($supplier->Bank_Rupiah_Account ?? '') : '')));
+        $bankAccName = trim((string) ($data['Bank_Account_Name'] ?? ($supplier ? ($supplier->Bank_Rupiah_Name ?? $supplier->Company_Name) : '')));
+
+        $paymentMethod = strtoupper(trim((string) ($data['Payment_Method'] ?? 'TRANSFER')));
+        if (!in_array($paymentMethod, ['TRANSFER', 'CASH', 'GIRO'], true)) {
+            $paymentMethod = 'TRANSFER';
+        }
+
+        $dueDate = !empty($data['Due_Date']) ? date('Y-m-d', strtotime((string) $data['Due_Date'])) : null;
+        $description = trim((string) ($data['Description'] ?? $defaultDescription));
+
+        return [
+            'supplier_id'    => $supplier ? (int) $supplier->ID : null,
+            'payee_type'     => $payeeType,
+            'payee_name'     => $payeeName,
+            'bank_name'      => $bankName,
+            'bank_acc_no'    => $bankAccNo,
+            'bank_acc_name'  => $bankAccName,
+            'payment_method' => $paymentMethod,
+            'due_date'       => $dueDate,
+            'description'    => $description,
+        ];
     }
 
     public function pendingForFinance()

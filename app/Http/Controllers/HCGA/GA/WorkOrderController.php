@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\HCGA\GA;
 
 use App\Http\Controllers\Controller;
+use App\Services\GA\GaPaymentVoucherService;
 use App\Services\GA\TicketService;
 use App\Services\GA\WorkOrderService;
 use Illuminate\Http\Request;
@@ -16,11 +17,13 @@ class WorkOrderController extends Controller
 
     protected $workOrders;
     protected $tickets;
+    protected $vouchers;
 
-    public function __construct(WorkOrderService $workOrders, TicketService $tickets)
+    public function __construct(WorkOrderService $workOrders, TicketService $tickets, GaPaymentVoucherService $vouchers)
     {
         $this->workOrders = $workOrders;
         $this->tickets = $tickets;
+        $this->vouchers = $vouchers;
     }
 
     public function index()
@@ -138,9 +141,15 @@ class WorkOrderController extends Controller
         $costs = $this->workOrders->costs($woId);
         $history = $this->workOrders->history($woId);
         $totalCost = $this->workOrders->totalCost($woId);
-        $allowedTransitions = $this->workOrders->allowedTransitions(strtoupper((string) $wo->Status));
+        $allowedTransitions = $this->workOrders->allowedTransitions(strtoupper((string) $wo->Status), !empty($wo->Approval_Request_ID));
+        $voucher = $this->vouchers->findByWorkOrderId($woId);
+        $vendors = DB::table('supplier')
+            ->where('Status', 'ACTIVE')
+            ->orderBy('Company_Name')
+            ->limit(500)
+            ->get(['ID', 'Company_Name', 'Bank_Rupiah', 'Bank_Rupiah_Account', 'Bank_Rupiah_Name']);
 
-        return view('humanresources.ga.work-order.detail', compact('wo', 'materials', 'costs', 'history', 'totalCost', 'allowedTransitions'));
+        return view('humanresources.ga.work-order.detail', compact('wo', 'materials', 'costs', 'history', 'totalCost', 'allowedTransitions', 'voucher', 'vendors'));
     }
 
     public function transition(Request $request)
@@ -163,7 +172,7 @@ class WorkOrderController extends Controller
 
     public function submitApproval(Request $request)
     {
-        abort_unless(can_menu('SI01014', 'approve'), 403);
+        abort_unless(can_menu('SI01014', 'edit') || can_menu('SI01014', 'approve'), 403);
 
         $data = $request->validate(['ID' => 'required|integer']);
 
@@ -211,6 +220,44 @@ class WorkOrderController extends Controller
         try {
             $cost = $this->workOrders->addCost((int) $data['ID'], $data, Auth::user());
             return response()->json(['status' => 'success', 'message' => 'Biaya ditambahkan.', 'cost' => $cost]);
+        } catch (\Throwable $exception) {
+            return response()->json(['status' => 'error', 'message' => $exception->getMessage()], 422);
+        }
+    }
+
+    public function createVoucher(Request $request)
+    {
+        abort_unless(can_menu('SI01014', 'edit') || can_menu('SI01014', 'approve'), 403);
+
+        $data = $request->validate([
+            'ID'                => 'required|integer',
+            'Payee_Type'        => 'nullable|in:VENDOR,INTERNAL,STAFF,OTHER',
+            'Supplier_ID'       => 'nullable|integer',
+            'Payee_Name'        => 'required|string|max:150',
+            'Bank_Name'         => 'nullable|string|max:100',
+            'Bank_Account_No'   => 'nullable|string|max:80',
+            'Bank_Account_Name' => 'nullable|string|max:150',
+            'Payment_Method'    => 'nullable|in:TRANSFER,CASH,GIRO',
+            'Amount'            => 'required|numeric|min:1',
+            'Due_Date'          => 'nullable|date',
+            'Description'       => 'nullable|string|max:2000',
+            'attachment'        => 'nullable|file|max:5120|mimes:pdf,jpg,jpeg,png,webp,doc,docx,xls,xlsx',
+        ]);
+
+        try {
+            $voucher = $this->vouchers->createVoucherFromWorkOrder(
+                (int) $data['ID'],
+                $data,
+                Auth::user(),
+                $request->file('attachment')
+            );
+
+            return response()->json([
+                'status'     => 'success',
+                'message'    => 'Voucher Pembayaran ' . $voucher->Voucher_No . ' berhasil dibuat dan diteruskan ke Finance.',
+                'voucher_id' => (int) $voucher->ID,
+                'voucher_no' => $voucher->Voucher_No,
+            ]);
         } catch (\Throwable $exception) {
             return response()->json(['status' => 'error', 'message' => $exception->getMessage()], 422);
         }

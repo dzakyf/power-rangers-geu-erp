@@ -2,13 +2,17 @@
 
 @section('content-wrapper')
 @csrf
-    <div class="main-content-header">
-        <h1>Human Capital and General Affairs</h1>
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="#">General Affairs</a></li>
-            <li class="breadcrumb-item active"><span class="active">My Assignments</span></li>
-        </ol>
-    </div>
+    @include('humanresources.ga.ticket.partials.page-header', [
+        'title' => 'My Assignments',
+        'breadcrumbs' => [
+            ['label' => 'Human Capital & GA', 'url' => '#'],
+            ['label' => 'General Affairs', 'url' => '#'],
+            ['label' => 'Ticketing', 'url' => url('hrd-ga-ticket-index')],
+            ['label' => 'My Assignments'],
+        ],
+        'badgeIcon' => 'fa-tasks',
+        'badgeLabel' => 'PIC & Assignee Queue',
+    ])
 
     <div class="card mt-3">
         <div class="card-body">

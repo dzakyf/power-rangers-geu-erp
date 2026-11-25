@@ -520,7 +520,7 @@ class TicketController extends Controller
             || can_menu('SI01160', 'view')
             || in_array(strtoupper((string) ($user->Department ?? '')), ['FIN', 'FINANCE', 'FAT', 'FA'], true)
         );
-        abort_unless(can_menu('SI01013', 'view') || $isFinanceUser, 403);
+        abort_unless(can_menu('SI01013', 'view') || can_menu('SI01014', 'view') || $isFinanceUser, 403);
 
         $voucherId = (int) $request->query('voucher_id', $request->query('id', 0));
         $ticketId = (int) $request->query('ticket_id', 0);

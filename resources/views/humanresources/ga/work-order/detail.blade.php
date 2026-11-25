@@ -7,6 +7,16 @@
     ][$status] ?? 'secondary';
     $canEdit = can_menu('SI01014', 'edit');
     $canApprove = can_menu('SI01014', 'approve');
+    $canSubmitApproval = $canEdit || $canApprove;
+    $isStuckWaitingApproval = ($status === 'WAITING_APPROVAL' && empty($wo->Approval_Request_ID));
+    $canCreateVoucher = $canSubmitApproval
+        && empty($voucher)
+        && (float) $totalCost > 0
+        && in_array($status, ['APPROVED', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED'], true);
+    $defaultVendorObj = null;
+    if (!empty($wo->Supplier_ID) && isset($vendors)) {
+        $defaultVendorObj = $vendors->firstWhere('ID', (int) $wo->Supplier_ID);
+    }
 @endphp
 
 <div class="mt-3" id="GAWODetailContainer">
@@ -64,17 +74,178 @@
                 @endif
             @endif
 
+            @if ($isStuckWaitingApproval)
+                <div class="alert alert-warning mt-3">
+                    <strong>Work Order belum masuk Approval Inbox.</strong>
+                    Status saat ini <strong>WAITING_APPROVAL</strong>, namun belum memiliki <em>Approval Request ID</em>.
+                    @if ($canSubmitApproval)
+                        Klik tombol <strong>Ajukan Approval</strong> di bawah untuk mengirim pengajuan ini ke Approval Inbox.
+                    @endif
+                </div>
+            @endif
+
             <div class="d-flex flex-wrap gap-2 mt-3">
-                @if ($canApprove && !in_array($status, ['WAITING_APPROVAL', 'APPROVED', 'COMPLETED', 'CANCELLED'], true))
+                @if ($canSubmitApproval && ($isStuckWaitingApproval || !in_array($status, ['WAITING_APPROVAL', 'APPROVED', 'COMPLETED', 'CANCELLED'], true)))
                     <button type="button" class="btn btn-warning btn-sm text-dark" onclick="GAWOSubmitApproval()">Ajukan Approval</button>
                 @endif
                 @if ($wo->Approval_Request_ID)
                     <button type="button" class="btn btn-outline-info btn-sm" onclick="GAWOSyncApproval()">Sync Status Approval</button>
                 @endif
+                @if ($canCreateVoucher)
+                    <button type="button" class="btn btn-success btn-sm" onclick="GAWOToggleVoucherForm()">
+                        <i class="fa fa-file-invoice-dollar me-1"></i> Ajukan Voucher Finance
+                    </button>
+                @endif
+                @if (!empty($voucher))
+                    <a href="{{ url('hrd-ga-ticket-voucher-print?voucher_id=' . (int) $voucher->ID) }}" target="_blank" class="btn btn-outline-primary btn-sm">
+                        <i class="fa fa-print me-1"></i> Cetak Voucher ({{ $voucher->Voucher_No }})
+                    </a>
+                @endif
                 <button type="button" class="btn btn-secondary btn-sm" onclick="GAWOCloseDetail()">Tutup</button>
             </div>
         </div>
     </div>
+
+    @if (!empty($voucher))
+        <div class="card mt-3 border-info">
+            <div class="card-header d-flex justify-content-between align-items-center bg-light">
+                <h5 class="card-title m-1">Informasi Voucher Pembayaran &mdash; {{ $voucher->Voucher_No }}</h5>
+                <span class="badge {{ strtoupper((string) $voucher->Status) === 'PAID' ? 'bg-success text-white' : 'bg-info text-white' }}">{{ $voucher->Status }}</span>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <table class="table table-sm table-borderless mb-0">
+                            <tr><th style="width:38%;">Penerima / Payee</th><td><strong>{{ $voucher->Payee_Name }}</strong> ({{ $voucher->Payee_Type }})</td></tr>
+                            <tr><th>Rekening Transfer</th><td>{{ $voucher->Payment_Method }} &bull; {{ $voucher->Bank_Name ?: '-' }} {{ $voucher->Bank_Account_No ?: '' }} {{ $voucher->Bank_Account_Name ? '(' . $voucher->Bank_Account_Name . ')' : '' }}</td></tr>
+                            <tr><th>Nominal Voucher</th><td class="fw-bold text-success">Rp {{ number_format((float) $voucher->Amount, 0, ',', '.') }}</td></tr>
+                            <tr><th>Jatuh Tempo</th><td>{{ $voucher->Due_Date ?: '-' }}</td></tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <table class="table table-sm table-borderless mb-0">
+                            <tr><th style="width:38%;">Dibuat Oleh</th><td>{{ $voucher->Created_By ?: '-' }} ({{ $voucher->Created_At }})</td></tr>
+                            <tr><th>Tanggal Bayar Finance</th><td>{{ $voucher->Paid_Date ?: '-' }}</td></tr>
+                            <tr><th>Referensi Bayar</th><td>{{ $voucher->Payment_Ref ?: '-' }}</td></tr>
+                            <tr><th>Diproses Finance</th><td>{{ $voucher->Paid_By ?: '-' }} {{ $voucher->Paid_At ? '(' . $voucher->Paid_At . ')' : '' }}</td></tr>
+                        </table>
+                    </div>
+                </div>
+                <div class="d-flex flex-wrap gap-2 mt-2">
+                    <a href="{{ url('hrd-ga-ticket-voucher-print?voucher_id=' . (int) $voucher->ID) }}" target="_blank" class="btn btn-sm btn-outline-primary">Cetak Voucher</a>
+                    @if (!empty($voucher->Attachment_Path))
+                        <a href="{{ asset('filevendor/' . $voucher->Attachment_Path) }}" target="_blank" class="btn btn-sm btn-outline-secondary">Lampiran Invoice</a>
+                    @endif
+                    @if (!empty($voucher->Payment_Proof_Path))
+                        <a href="{{ asset('filevendor/' . $voucher->Payment_Proof_Path) }}" target="_blank" class="btn btn-sm btn-outline-success">Bukti Bayar Finance</a>
+                    @endif
+                </div>
+            </div>
+        </div>
+    @elseif ($canCreateVoucher)
+        <div class="card mt-3 border-success" id="GAWOVoucherCard" style="display:none;">
+            <div class="card-header bg-success text-white">
+                <h5 class="card-title m-1 text-white">Ajukan Voucher Pembayaran ke Finance</h5>
+            </div>
+            <div class="card-body">
+                <form id="GAWOVoucherForm" enctype="multipart/form-data">
+                    @csrf
+                    <input type="hidden" name="ID" value="{{ $wo->ID }}" />
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="form-group mb-3">
+                                <label>Tipe Penerima</label>
+                                <select name="Payee_Type" class="form-select">
+                                    <option value="VENDOR" {{ $defaultVendorObj ? 'selected' : '' }}>Vendor / Supplier</option>
+                                    <option value="INTERNAL" {{ !$defaultVendorObj ? 'selected' : '' }}>Internal / Reimbursement</option>
+                                    <option value="STAFF">Karyawan / PIC</option>
+                                    <option value="OTHER">Lainnya</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-5">
+                            <div class="form-group mb-3">
+                                <label>Pilih Vendor Master <span class="text-muted">(auto-fill bank)</span></label>
+                                <select name="Supplier_ID" id="GAWOVoucherSupplierSelect" class="form-select">
+                                    <option value="">-- pilih vendor atau isi manual --</option>
+                                    @foreach ($vendors ?? [] as $vendor)
+                                        <option value="{{ $vendor->ID }}"
+                                            data-company="{{ $vendor->Company_Name }}"
+                                            data-bank="{{ $vendor->Bank_Rupiah }}"
+                                            data-account="{{ $vendor->Bank_Rupiah_Account }}"
+                                            data-account-name="{{ $vendor->Bank_Rupiah_Name }}"
+                                            {{ (int) $wo->Supplier_ID === (int) $vendor->ID ? 'selected' : '' }}>
+                                            {{ $vendor->Company_Name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group mb-3">
+                                <label>Nama Penerima / Vendor <span class="text-danger">*</span></label>
+                                <input type="text" name="Payee_Name" id="GAWOVoucherPayeeName" class="form-control" maxlength="150" value="{{ $defaultVendorObj ? $defaultVendorObj->Company_Name : ($wo->Assignee_Name ?: '') }}" required />
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group mb-3">
+                                <label>Metode Bayar</label>
+                                <select name="Payment_Method" class="form-select">
+                                    <option value="TRANSFER" selected>Transfer Bank</option>
+                                    <option value="CASH">Cash</option>
+                                    <option value="GIRO">Giro / Cek</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group mb-3">
+                                <label>Nama Bank</label>
+                                <input type="text" name="Bank_Name" id="GAWOVoucherBankName" class="form-control" maxlength="100" value="{{ $defaultVendorObj ? ($defaultVendorObj->Bank_Rupiah ?? '') : '' }}" />
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group mb-3">
+                                <label>No. Rekening</label>
+                                <input type="text" name="Bank_Account_No" id="GAWOVoucherBankAccountNo" class="form-control" maxlength="80" value="{{ $defaultVendorObj ? ($defaultVendorObj->Bank_Rupiah_Account ?? '') : '' }}" />
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group mb-3">
+                                <label>Atas Nama Rekening</label>
+                                <input type="text" name="Bank_Account_Name" id="GAWOVoucherBankAccountName" class="form-control" maxlength="150" value="{{ $defaultVendorObj ? ($defaultVendorObj->Bank_Rupiah_Name ?? $defaultVendorObj->Company_Name) : '' }}" />
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group mb-3">
+                                <label>Nominal Voucher (IDR) <span class="text-danger">*</span></label>
+                                <input type="number" name="Amount" class="form-control" min="1" step="any" max="{{ (float) $totalCost }}" value="{{ (float) $totalCost }}" required />
+                                <small class="text-muted">Maks. Rp {{ number_format((float) $totalCost, 0, ',', '.') }}</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group mb-3">
+                                <label>Jatuh Tempo Pembayaran</label>
+                                <input type="date" name="Due_Date" class="form-control" value="{{ date('Y-m-d', strtotime('+7 days')) }}" />
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label>Lampiran Invoice / Penawaran <span class="text-muted">(opsional, maks 5MB)</span></label>
+                                <input type="file" name="attachment" class="form-control" accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx" />
+                            </div>
+                        </div>
+                        <div class="col-md-12">
+                            <div class="form-group mb-3">
+                                <label>Keterangan Voucher</label>
+                                <textarea name="Description" class="form-control" rows="2" maxlength="2000">{{ $wo->WO_No }} - {{ $wo->Title }}</textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-success btn-sm">Terbitkan Voucher &amp; Kirim ke Finance</button>
+                </form>
+            </div>
+        </div>
+    @endif
 
     @if ($canEdit && !empty($allowedTransitions))
         <div class="card mt-3">
@@ -92,6 +263,9 @@
                                         <option value="{{ $transition }}">{{ $transition }}</option>
                                     @endforeach
                                 </select>
+                                @if (in_array('WAITING_APPROVAL', $allowedTransitions, true))
+                                    <small class="form-text text-muted">Memilih <code>WAITING_APPROVAL</code> akan otomatis membuat pengajuan ke Approval Inbox.</small>
+                                @endif
                             </div>
                         </div>
                         <div class="col-md-8">
@@ -306,6 +480,53 @@
     $('#GAWOCostForm').on('submit', function (event) {
         event.preventDefault();
         postForm('#GAWOCostForm', 'hrd-ga-work-order-cost-add', 'Biaya ditambahkan.');
+    });
+
+    window.GAWOToggleVoucherForm = function () {
+        var card = $('#GAWOVoucherCard');
+        if (!card.length) return;
+        card.slideToggle(150);
+        if (card[0] && card[0].scrollIntoView) {
+            card[0].scrollIntoView({behavior: 'smooth', block: 'start'});
+        }
+    };
+
+    $('#GAWOVoucherSupplierSelect').on('change', function () {
+        var opt = $(this).find('option:selected');
+        if (opt.val()) {
+            $('#GAWOVoucherPayeeName').val(opt.data('company') || '');
+            $('#GAWOVoucherBankName').val(opt.data('bank') || '');
+            $('#GAWOVoucherBankAccountNo').val(opt.data('account') || '');
+            $('#GAWOVoucherBankAccountName').val(opt.data('account-name') || opt.data('company') || '');
+        }
+    });
+
+    $('#GAWOVoucherForm').on('submit', function (event) {
+        event.preventDefault();
+        var form = $(this);
+        var button = form.find('button[type=submit]');
+        var fd = new FormData(form[0]);
+        button.prop('disabled', true);
+        $.ajax({
+            url: 'hrd-ga-work-order-voucher-create',
+            type: 'POST',
+            data: fd,
+            processData: false,
+            contentType: false,
+            success: function (response) {
+                if (response.status === 'success') {
+                    afterChange(response.message || 'Voucher pembayaran dibuat & dikirim ke Finance.');
+                } else {
+                    alert(response.message || 'Gagal membuat voucher.');
+                }
+            },
+            error: function (xhr) {
+                alert((xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Gagal membuat voucher.');
+            },
+            complete: function () {
+                button.prop('disabled', false);
+            }
+        });
     });
 })();
 </script>

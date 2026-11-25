@@ -158,7 +158,7 @@
                         <div class="col-md-4">
                             <div class="form-group mb-3">
                                 <label>Nominal Verifikasi GA (IDR) <span class="text-danger">*</span></label>
-                                <input type="number" name="Verified_Amount" id="GAVerifiedAmountInput" class="form-control" min="1" step="1000" value="{{ (float) ($ticket->Verified_Amount > 0 ? $ticket->Verified_Amount : ($ticket->Estimated_Amount > 0 ? $ticket->Estimated_Amount : '')) }}" required />
+                                <input type="number" name="Verified_Amount" id="GAVerifiedAmountInput" class="form-control" min="1" step="any" value="{{ (float) ($ticket->Verified_Amount > 0 ? $ticket->Verified_Amount : ($ticket->Estimated_Amount > 0 ? $ticket->Estimated_Amount : '')) }}" required />
                             </div>
                         </div>
                         <div class="col-md-4">
@@ -265,7 +265,7 @@
                         <div class="col-md-3">
                             <div class="form-group mb-3">
                                 <label>Nominal Voucher (IDR) <span class="text-danger">*</span></label>
-                                <input type="number" name="Amount" class="form-control" min="1" step="1000" max="{{ (float) ($ticket->Verified_Amount ?: $ticket->Estimated_Amount) }}" value="{{ (float) ($ticket->Verified_Amount ?: $ticket->Estimated_Amount) }}" required />
+                                <input type="number" name="Amount" class="form-control" min="1" step="any" max="{{ (float) ($ticket->Verified_Amount ?: $ticket->Estimated_Amount) }}" value="{{ (float) ($ticket->Verified_Amount ?: $ticket->Estimated_Amount) }}" required />
                                 <small class="text-muted">Maks. Rp {{ number_format((float) ($ticket->Verified_Amount ?: $ticket->Estimated_Amount), 0, ',', '.') }}</small>
                             </div>
                         </div>

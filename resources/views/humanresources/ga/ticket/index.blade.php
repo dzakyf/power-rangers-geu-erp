@@ -2,13 +2,16 @@
 
 @section('content-wrapper')
 @csrf
-    <div class="main-content-header">
-        <h1>Human Capital and General Affairs</h1>
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="#">General Affairs</a></li>
-            <li class="breadcrumb-item active"><span class="active">Ticketing</span></li>
-        </ol>
-    </div>
+    @include('humanresources.ga.ticket.partials.page-header', [
+        'title' => 'GA Ticketing Management',
+        'breadcrumbs' => [
+            ['label' => 'Human Capital & GA', 'url' => '#'],
+            ['label' => 'General Affairs', 'url' => '#'],
+            ['label' => 'Ticketing'],
+        ],
+        'badgeIcon' => 'fa-ticket-alt',
+        'badgeLabel' => 'Service Desk & Voucher',
+    ])
 
     <div class="card mt-3">
         <div class="card-body">

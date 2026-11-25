@@ -6791,6 +6791,7 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::post("$gaPref-work-order-approval-submit", [HCGAGaWorkOrderController::class, 'submitApproval']);
     Route::post("$gaPref-work-order-approval-sync", [HCGAGaWorkOrderController::class, 'syncApproval']);
     Route::post("$gaPref-work-order-cost-add", [HCGAGaWorkOrderController::class, 'addCost']);
+    Route::post("$gaPref-work-order-voucher-create", [HCGAGaWorkOrderController::class, 'createVoucher']);
 
     Route::get("$gaPref-ticket-master-index", [HCGAGaTicketMasterController::class, 'index']);
     Route::get("$gaPref-ticket-master-category-data", [HCGAGaTicketMasterController::class, 'categoryData']);
@@ -7022,8 +7023,39 @@ Route::get('goods-received-detail', [ProcurementController::class, 'detailGoodsR
         Route::post('/sessions/revoke-all', [\App\Http\Controllers\HCGA\MobilePortalController::class, 'revokeAllSessions'])->name('mobile.sessions.revoke-all');
         Route::post('/logout', [\App\Http\Controllers\HCGA\MobilePortalController::class, 'logout'])->name('mobile.logout');
 
-        Route::get('/mobile/procurement', [\App\Http\Controllers\ProcurementController::class, 'outstandingPOIndex'])
-    ->name('procurement.mobile.index');
+    //     Route::get('/mobile/procurement', [\App\Http\Controllers\ProcurementController::class, 'outstandingPOIndex'])
+    // ->name('procurement.mobile.index');
+
+
+
+
+    // ==========================================
+        //Khusus Mobile Procurement
+
+    // ==========================================
+            Route::get('/procurement', function () {
+            $user = \Illuminate\Support\Facades\Auth::user();
+            return view('humanresources.procurement.mobile-index', compact('user'));
+        })->name('procurement.mobile.index');
+
+            Route::get('/mobile-pr-create', [\App\Http\Controllers\ProcurementController::class, 'mobileCreatePR'])
+    ->name('procurement.mobile.pr.create');
+
+    Route::get('/procurement/pr/edit', [\App\Http\Controllers\ProcurementController::class, 'mobileEditPRList'])
+    ->name('procurement.mobile.pr.edit.list');
+
+Route::get('/procurement/pr/{id}/edit', [\App\Http\Controllers\ProcurementController::class, 'mobileEditPR'])
+    ->where('id', '[0-9]+')
+    ->name('procurement.mobile.pr.edit');
+
+    Route::get('/procurement/pr/approval', [\App\Http\Controllers\ProcurementController::class, 'mobileApprovalPR'])
+    ->name('procurement.mobile.pr.approval');
+
+    Route::get('/procurement/pr/tracking', [\App\Http\Controllers\ProcurementController::class, 'mobileTrackingPR'])
+    ->name('procurement.mobile.pr.tracking');
+
+
+    //===============================================
 
         // Unified /mobile/* Module Routes
         Route::get('/approval', [HCGAApprovalInboxController::class, 'mobileIndex'])->name('approval.mobile.index');

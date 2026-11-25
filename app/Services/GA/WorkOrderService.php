@@ -152,16 +152,19 @@ class WorkOrderService
         return $fresh;
     }
 
-    public function submitForApproval($woId, $user)
+    public function submitForApproval($woId, $user, $note = '')
     {
         $woId = (int) $woId;
+        $cleanNote = trim((string) $note);
 
-        return DB::transaction(function () use ($woId, $user) {
+        return DB::transaction(function () use ($woId, $user, $cleanNote) {
             $wo = DB::table('ga_work_order')->where('ID', $woId)->lockForUpdate()->first();
             if (!$wo) {
                 throw new InvalidArgumentException('Work order tidak ditemukan.');
             }
-            if (in_array(strtoupper((string) $wo->Status), [self::STATUS_WAITING_APPROVAL, self::STATUS_APPROVED, self::STATUS_COMPLETED, self::STATUS_CANCELLED], true)) {
+            $currentStatus = strtoupper((string) $wo->Status);
+            $alreadySubmitted = ($currentStatus === self::STATUS_WAITING_APPROVAL && !empty($wo->Approval_Request_ID));
+            if ($alreadySubmitted || in_array($currentStatus, [self::STATUS_APPROVED, self::STATUS_COMPLETED, self::STATUS_CANCELLED], true)) {
                 throw new InvalidArgumentException('Work order berstatus ' . $wo->Status . ' tidak dapat diajukan approval.');
             }
 
@@ -176,6 +179,7 @@ class WorkOrderService
 
             $request = $this->workflow->submit([
                 'Request_No' => $wo->WO_No,
+                'Map_To' => (string) $woId,
                 'Description' => 'GA Work Order ' . $wo->WO_No . ' - ' . $wo->Title . ' (Rp ' . number_format($amount, 2, ',', '.') . ')',
             ], $context, (int) $user->id);
 
@@ -187,7 +191,10 @@ class WorkOrderService
                 'Updated_By' => (string) $user->username,
                 'Updated_At' => $now,
             ]);
-            $this->insertHistory($woId, (string) $wo->Status, $status, 'Diajukan ke approval engine.', (string) $user->username, $now);
+            $historyNote = $cleanNote !== ''
+                ? 'Diajukan ke approval engine. Catatan: ' . $cleanNote
+                : 'Diajukan ke approval engine.';
+            $this->insertHistory($woId, (string) $wo->Status, $status, $historyNote, (string) $user->username, $now);
 
             return $request;
         });
@@ -225,6 +232,22 @@ class WorkOrderService
         $toStatus = strtoupper(trim((string) $toStatus));
         $note = trim((string) ($data['note'] ?? $data['Note'] ?? ''));
 
+        if ($toStatus === self::STATUS_WAITING_APPROVAL) {
+            $woCheck = DB::table('ga_work_order')->where('ID', $woId)->first();
+            if (!$woCheck) {
+                throw new InvalidArgumentException('Work order tidak ditemukan.');
+            }
+            $fromCheck = strtoupper((string) $woCheck->Status);
+            $isStuckRecovery = ($fromCheck === self::STATUS_WAITING_APPROVAL && empty($woCheck->Approval_Request_ID));
+            if (!$isStuckRecovery && !in_array($toStatus, $this->allowedTransitions($fromCheck, !empty($woCheck->Approval_Request_ID)), true)) {
+                throw new InvalidArgumentException('Transisi work order ' . $fromCheck . ' ke ' . $toStatus . ' tidak diizinkan.');
+            }
+
+            $this->submitForApproval($woId, $user, $note);
+
+            return $this->find($woId);
+        }
+
         $result = DB::transaction(function () use ($woId, $toStatus, $data, $user, $note) {
             $wo = DB::table('ga_work_order')->where('ID', $woId)->lockForUpdate()->first();
             if (!$wo) {
@@ -232,7 +255,10 @@ class WorkOrderService
             }
 
             $from = strtoupper((string) $wo->Status);
-            if (!in_array($toStatus, $this->allowedTransitions($from), true)) {
+            if ($from === self::STATUS_WAITING_APPROVAL && $toStatus === self::STATUS_OPEN && !empty($wo->Approval_Request_ID)) {
+                throw new InvalidArgumentException('Work order sedang menunggu proses approval di Approval Inbox dan tidak dapat langsung diubah ke OPEN.');
+            }
+            if (!in_array($toStatus, $this->allowedTransitions($from, !empty($wo->Approval_Request_ID)), true)) {
                 throw new InvalidArgumentException('Transisi work order ' . $from . ' ke ' . $toStatus . ' tidak diizinkan.');
             }
 
@@ -554,12 +580,14 @@ class WorkOrderService
         throw new \RuntimeException('Gagal membuat nomor work order unik.');
     }
 
-    public function allowedTransitions($status)
+    public function allowedTransitions($status, $hasApprovalRequest = false)
     {
         $map = [
             self::STATUS_DRAFT => [self::STATUS_OPEN, self::STATUS_WAITING_APPROVAL, self::STATUS_CANCELLED],
             self::STATUS_OPEN => [self::STATUS_ASSIGNED, self::STATUS_IN_PROGRESS, self::STATUS_CANCELLED],
-            self::STATUS_WAITING_APPROVAL => [self::STATUS_OPEN, self::STATUS_CANCELLED],
+            self::STATUS_WAITING_APPROVAL => $hasApprovalRequest
+                ? [self::STATUS_CANCELLED]
+                : [self::STATUS_OPEN, self::STATUS_CANCELLED],
             self::STATUS_APPROVED => [self::STATUS_OPEN, self::STATUS_ASSIGNED, self::STATUS_IN_PROGRESS, self::STATUS_CANCELLED],
             self::STATUS_REJECTED => [self::STATUS_DRAFT, self::STATUS_CANCELLED],
             self::STATUS_ASSIGNED => [self::STATUS_IN_PROGRESS, self::STATUS_CANCELLED],
