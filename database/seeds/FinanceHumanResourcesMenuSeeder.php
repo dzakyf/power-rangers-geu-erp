@@ -16,9 +16,9 @@ class FinanceHumanResourcesMenuSeeder extends Seeder
     private const ACTIONS = ['view', 'create', 'edit', 'delete', 'approve'];
 
     private const MENUS = [
-        'SM00070' => ['Human Resources & GA', '#', 2, 'MS00003', 50],
-        'SS00110' => ['Approval & Voucher', '#', 3, 'SM00070', 1],
-        'SI01101' => ['Finance Approval & Voucher', 'finance-hr-approval-index', 4, 'SS00110', 1],
+        'SM00082' => ['Human Resources & GA', '#', 2, 'MS00003', 50],
+        'SS00154' => ['Approval & Voucher', '#', 3, 'SM00082', 1],
+        'SI01160' => ['Finance Approval & Voucher', 'finance-hr-approval-index', 4, 'SS00154', 1],
     ];
 
     public function run()
@@ -53,8 +53,11 @@ class FinanceHumanResourcesMenuSeeder extends Seeder
             }
         }
 
-        foreach (['ADM', 'FINANCE'] as $roleName) {
-            $role = Role::firstOrCreate(['name' => $roleName, 'guard_name' => 'web']);
+        $targetRoles = Role::where('guard_name', 'web')
+            ->whereIn('name', ['ADM', 'FIN', 'FINANCE', 'MANAGER FINANCE'])
+            ->get();
+
+        foreach ($targetRoles as $role) {
             $existing = $role->permissions()->pluck('name')->flip();
             $missing = array_values(array_filter($permissionNames, function ($name) use ($existing) {
                 return !$existing->has($name);
@@ -65,7 +68,7 @@ class FinanceHumanResourcesMenuSeeder extends Seeder
             }
         }
 
-        $roleIds = Role::whereIn('name', ['ADM', 'FINANCE'])->pluck('id');
+        $roleIds = $targetRoles->pluck('id');
         if ($roleIds->isNotEmpty()) {
             $userIds = DB::table('model_has_roles')->whereIn('role_id', $roleIds)->pluck('model_id')->unique();
             foreach ($userIds as $userId) {

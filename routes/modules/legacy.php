@@ -3399,3 +3399,8 @@ Route::get('/combo-coa', function () {
 Route::get('/combo-coa-all', function () {
         return view('accounting.xml.combo-coa-all');
     });
+
+// Theme sync: procurement goods received views
+Route::get('goods-received-list', [ProcurementController::class, 'goodsReceivedIndex']);
+Route::get('xml-goods-received-list', [ProcurementController::class, 'xmlGoodsReceivedList']);
+Route::get('goods-received-detail', [ProcurementController::class, 'detailGoodsReceived']);

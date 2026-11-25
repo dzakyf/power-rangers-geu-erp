@@ -3,10 +3,12 @@
     $tanks = $tanks ?? collect();
     $category = $category ?? 'EXTERNAL';
 @endphp
-<div id="FormQualityControl" class="row m-1" style="display:none;">
-    <div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">FORM QUALITY CONTROL</div>
-    <div class="card w-100 shadow-sm">
-        <div class="card-body">
+<div id="FormQualityControl" class="card cns-card" style="display:none;">
+    <div class="card-header">
+        <h5 class="card-title">Form Quality Control</h5>
+        <button type="button" class="close" onclick="cancelCreateQC()" aria-label="Close">&times;</button>
+    </div>
+    <div class="card-body">
             <form id="QualityControlForm" enctype="multipart/form-data">
                 @csrf
                 <div class="row mb-3">
@@ -151,7 +153,6 @@
                 </div>
             </form>
         </div>
-    </div>
 </div>
 
 <script>
@@ -256,12 +257,12 @@
         var qcCategory = form.QC_Category.value;
 
         if (!createdAt) {
-            alert('Tanggal Pemeriksaan wajib diisi');
+            swal('Perhatian', 'Tanggal Pemeriksaan wajib diisi', 'warning');
             return;
         }
 
         if (qcType === 'DAILY_QC' && !form.Tank_ID.value) {
-            alert('Nama Tangki wajib dipilih untuk Daily QC');
+            swal('Perhatian', 'Nama Tangki wajib dipilih untuk Daily QC', 'warning');
             return;
         }
 
@@ -279,7 +280,7 @@
                 var pKey = mandatoryParams[j];
                 var val = $('#create_' + lvl + '_' + pKey).val();
                 if (val === '' || val === null || isNaN(cnsParseNumber(val, NaN))) {
-                    alert('Parameter ' + pKey.replace(/_/g, ' ') + ' pada level ' + lvl.toUpperCase() + ' wajib diisi.');
+                    swal('Perhatian', 'Parameter ' + pKey.replace(/_/g, ' ') + ' pada level ' + lvl.toUpperCase() + ' wajib diisi.', 'warning');
                     return;
                 }
             }
@@ -301,16 +302,17 @@
             contentType: false,
             success: function(res) {
                 if (res.status === 'success') {
-                    alert('Data Quality Control berhasil disimpan');
-                    cancelCreateQC();
-                    loadQualityGrid();
+                    swal('Berhasil!', 'Data Quality Control berhasil disimpan', 'success').then(function() {
+                        cancelCreateQC();
+                        loadQualityGrid();
+                    });
                 } else {
-                    alert(res.message || 'Gagal menyimpan data Quality Control');
+                    swal('Error', res.message || 'Gagal menyimpan data Quality Control', 'error');
                 }
             },
             error: function(xhr) {
                 var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Gagal menyimpan data Quality Control';
-                alert(msg);
+                swal('Error', msg, 'error');
             }
         });
     }

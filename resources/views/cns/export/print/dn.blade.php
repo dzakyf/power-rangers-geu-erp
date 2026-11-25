@@ -1,9 +1,6 @@
 <?php
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
-$LSP = Auth::user()->Location ?? '';
-$Saya = Auth::user()->username ?? '';
 $issuer = $issuer ?? ($companies[$dn->Shipper] ?? null);
 if (!$issuer) {
     $issuer = DB::table('supplier')->where('Is_Company', 1)->first()
@@ -11,77 +8,59 @@ if (!$issuer) {
 }
 $consignee = $companies[$dn->Consignee] ?? null;
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>ISCC EU WASTE DELIVERY NOTE</title>
+{{--
+    View ini di-render oleh DeliveryNoteController dan di-pass ke mPDF (A4).
+    Header & footer gambar di-set via SetHTMLHeader/SetHTMLFooter di controller.
+--}}
 <style>
     body {
         font-family: Arial, Helvetica, sans-serif;
-        background: #f5f5f5;
-        margin: 0;
-        padding: 0;
+        font-size: 10pt;
+        color: #000;
     }
 
-    @media print {
-        .container {
-            width: 93%;
-            margin-top: 0;
-            margin-left: 0;
-            margin-right: 0;
-            box-shadow: none;
-        }
-        .sheet {
-            background: #ffffff;
-        }
+    .dn-content {
+        padding: 6mm 15mm;
     }
 
     .title {
-        font-size: 20px;
+        font-size: 15pt;
         font-weight: bold;
         text-align: center;
         text-decoration: underline;
-        margin-bottom: 30px;
-    }
-
-    hr {
-        border: none;
-        border-top: 1px solid #aaa;
-        margin: 10px 0;
+        margin-bottom: 22px;
     }
 
     table.info-table {
         width: 100%;
         border-collapse: collapse;
-        font-size: 13px;
+        font-size: 10pt;
     }
 
     table.info-table td {
-        padding: 6px 4px;
+        padding: 5px 4px;
         vertical-align: top;
     }
 
     table.info-table td.label-col {
-        width: 200px;
-        font-weight: normal;
+        width: 190px;
     }
 
     table.info-table td.sep-col {
-        width: 20px;
+        width: 16px;
         text-align: center;
     }
 
     .declaration-box {
-        margin-top: 24px;
-        font-size: 13px;
+        margin-top: 20px;
+        font-size: 10pt;
         text-align: justify;
-        line-height: 1.7;
+        line-height: 1.6;
     }
 
     .signature-block {
-        margin-top: 40px;
-        font-size: 13px;
+        margin-top: 32px;
+        font-size: 10pt;
     }
 
     .signature-block .city-date {
@@ -90,43 +69,15 @@ $consignee = $companies[$dn->Consignee] ?? null;
 
     .signature-block .company {
         font-weight: bold;
-        margin-bottom: 60px;
+        margin-bottom: 52px;
     }
 
     .signature-block .signer-name {
         text-decoration: underline;
     }
 </style>
-<link rel="stylesheet" href="/assets/paper.css" />
-</head>
-<body class="A4">
-<div class="sheet padding-10mm">
 
-    <!-- Header with letterhead -->
-    @if(!empty($issuer->Letterhead))
-    <div style="margin:-1cm;margin-bottom:.5cm;margin-top:0">
-        <img src="{{ asset($issuer->Letterhead) }}" alt="Header" width="100%">
-    </div>
-    @else
-    <table style="width:100%;margin-bottom:20px;">
-        <tr>
-            <td style="vertical-align:top;">
-                <strong style="font-size:15px;color:#333;">{{ $issuer->Company_Name ?? 'PT. GREEN ENERGI UTAMA' }}</strong><br>
-                <span style="font-size:11px;">{!! nl2br(e($issuer->Address ?? "A2 Pergudangan Tanrise K-Walk\n65153 Malang, East Java, Indonesia")) !!}</span>
-            </td>
-            <td style="text-align:right;vertical-align:top;">
-                @if(!empty($issuer->Logo))
-                    <img src="{{ asset($issuer->Logo) }}" alt="Logo" height="60">
-                @else
-                    <img src="{{ asset('/assets/images/large-logo.png') }}" alt="Logo" height="60">
-                @endif
-            </td>
-        </tr>
-    </table>
-    @endif
-
-    <hr>
-
+<div class="dn-content">
     <div class="title">ISCC EU Waste Delivery Note</div>
 
     <table class="info-table">
@@ -190,18 +141,15 @@ $consignee = $companies[$dn->Consignee] ?? null;
 
     <div class="signature-block">
         <div class="city-date">{{ $issuer->City ?? 'Surabaya' }}, {{ $dn->Delivery_Date ? date('d F Y', strtotime($dn->Delivery_Date)) : date('d F Y') }}</div>
-        <div class="company">{{ $issuer->Company_Name ?? 'PT GREEN ENERGI UTAMA' }}</div>
-        <br><br><br>
-        <div class="signer-name">{{ !empty($issuer->Contact_Person) ? $issuer->Contact_Person : 'Puput Deni Iswara' }}</div>
-        <div>{{ !empty($issuer->Sales_Name) ? $issuer->Sales_Name : 'CMO' }}</div>
+        <div class="company" style="margin-bottom: 10px;">{{ $issuer->Company_Name ?? 'PT GREEN ENERGI UTAMA' }}</div>
+        @if (!empty($approverSignature))
+            <div style="height: 55px; margin-bottom: 6px;">
+                <img src="{{ $approverSignature }}" alt="Signature" style="max-height: 52px; max-width: 160px;">
+            </div>
+        @else
+            <br><br><br>
+        @endif
+        <div class="signer-name">{{ !empty($dn->signatory_name) ? $dn->signatory_name : (!empty($approver->Name) ? $approver->Name : (!empty($issuer->Contact_Person) ? $issuer->Contact_Person : 'Puput Deni Iswara')) }}</div>
+        <div>{{ !empty($dn->signatory_title) ? $dn->signatory_title : (!empty($approver->Position) ? $approver->Position : (!empty($issuer->Sales_Name) ? $issuer->Sales_Name : 'CMO')) }}</div>
     </div>
-
-    @if(!empty($issuer->Footer))
-    <div style="margin-top:20px;">
-        <img src="{{ asset($issuer->Footer) }}" alt="Footer" width="100%">
-    </div>
-    @endif
-
 </div>
-</body>
-</html>

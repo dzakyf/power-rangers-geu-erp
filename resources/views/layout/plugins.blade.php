@@ -1,11 +1,15 @@
 <script src="{{ asset('jquery2.min.js')}}"></script>
+<link href="{{ asset('ajaxloader/ajaxloader.css') }}" type="text/css" rel="stylesheet" />
+<script src="{{ asset('jquery.ajaxloader.1.5.1.js') }}"></script>
 <script src="{{ asset('timeline.min.js')}}"></script>
 
 <script>
   function LoadM(DivID, PathID) {
-
-    $("#" + DivID).ajaxloader(PathID);
-
+    if (typeof $.fn.ajaxloader === 'function') {
+      $("#" + DivID).ajaxloader(PathID);
+    } else {
+      $("#" + DivID).load(PathID);
+    }
   }
 </script>
 

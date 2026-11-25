@@ -5,8 +5,12 @@
 error_reporting(0);
 use Illuminate\Support\Facades\DB;
 
-$datahasil = DB::table("employment")->where("ID", $_GET['ID'] ?? '')->first();
-$nik = $datahasil ? $datahasil->NIK : '';
+$empKey = (string) ($_GET['ID'] ?? '');
+$datahasil = DB::table("employment")
+    ->where("Task_ID", $empKey)
+    ->orWhere("ID", $empKey)
+    ->first();
+$nik = $datahasil ? (string) ($datahasil->NIK ?? '') : '';
 ?>
 
 <div class="container-fluid py-3">
@@ -76,7 +80,7 @@ Overtime.init();
 Reload_Overtime();
 
 function Reload_Overtime(){
-    Overtime.clearAndLoad("xml-employee-lists-detail-overtime?NIK=<?php echo $nik?>");
+    Overtime.clearAndLoad("{{ url('xml-employee-lists-detail-overtime') }}?NIK=" + encodeURIComponent({!! json_encode($nik) !!}));
 }
 
 KJK = new dhtmlXGridObject('KJKAll');
@@ -100,7 +104,7 @@ KJK.init();
 Reload_KJKAll();
 
 function Reload_KJKAll(){
-    KJK.clearAndLoad("xml-employee-lists-detail-kjk?NIK=<?php echo $nik?>");
+    KJK.clearAndLoad("{{ url('xml-employee-lists-detail-kjk') }}?NIK=" + encodeURIComponent({!! json_encode($nik) !!}));
 }
 
 PermissionList = new dhtmlXGridObject('PermissionList');
@@ -118,6 +122,6 @@ PermissionList.init();
 refreshdata();
 
 function refreshdata(){
-    PermissionList.clearAndLoad('xml-permission-approval?NIK=<?php echo $nik?>');
+    PermissionList.clearAndLoad("{{ url('xml-permission-approval') }}?NIK=" + encodeURIComponent({!! json_encode($nik) !!}));
 }
 </script>

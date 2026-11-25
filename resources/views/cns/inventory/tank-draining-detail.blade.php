@@ -1,7 +1,7 @@
-<div class="ml-2">
-    <div class="JudulContent" style="color:#699;">DETAIL / EDIT TANK DRAINING</div>
-    <div class="card">
-        <div class="card-body pt-2">
+<div class="mt-3">
+    <div class="cns-section-header">DETAIL / EDIT TANK DRAINING</div>
+    <div class="card cns-card">
+        <div class="card-body pt-3">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <p class="text-muted mb-0">Informasi dan perubahan transaksi pengeluaran minyak dari tangki.</p>
                 <div>
@@ -128,11 +128,11 @@
                         </div>
                     </div>
 
-                    <!-- Dokumen BAST Draining -->
+                    <!-- Dokumen BA Draining -->
                     <div class="col-md-12">
                         <div class="form-group">
                             <label for="edit_bast_document" class="font-weight-bold">
-                                Dokumen BAST Draining
+                                Dokumen BA Draining
                                 @if(empty($draining->bast_document_path))
                                     <span class="text-danger">*</span>
                                 @else
@@ -142,12 +142,12 @@
                             @if(!empty($draining->bast_document_path))
                                 <div class="mb-2">
                                     <a href="{{ route('cns-tank-draining.bast', ['id' => $draining->id], false) }}" target="_blank" class="btn btn-sm btn-outline-info">
-                                        <i class="fa fa-file-text-o"></i> Lihat BAST ({{ $draining->bast_document_name ?: 'Dokumen BAST' }})
+                                        <i class="fa fa-file-text-o"></i> Lihat BAST ({{ $draining->bast_document_name ?: 'Dokumen BA' }})
                                     </a>
                                 </div>
                             @else
                                 <div class="mb-2">
-                                    <span class="badge badge-warning p-1">Dokumen BAST belum tersedia. Wajib upload saat update.</span>
+                                    <span class="badge badge-warning p-1">Dokumen BA belum tersedia. Wajib upload saat update.</span>
                                 </div>
                             @endif
                             <input type="file" class="text-black form-control-file" id="edit_bast_document" name="bast_document" accept=".pdf,.jpg,.jpeg,.png" {{ empty($draining->bast_document_path) ? 'required' : '' }} />
@@ -326,17 +326,17 @@
         var targetType = $('#edit_target_type').val();
 
         if (!tankId) {
-            alert('Pilih tangki asal terlebih dahulu.');
+            swal('Perhatian', 'Pilih tangki asal terlebih dahulu.', 'warning');
             return;
         }
 
         if (qty <= 0) {
-            alert('Qty draining harus lebih besar dari 0.');
+            swal('Perhatian', 'Qty draining harus lebih besar dari 0.', 'warning');
             return;
         }
 
         if (qtySludge < 0) {
-            alert('Qty sludge tidak boleh kurang dari 0.');
+            swal('Perhatian', 'Qty sludge tidak boleh kurang dari 0.', 'warning');
             return;
         }
 
@@ -344,7 +344,7 @@
         var available = (tankId == editOriginalSourceId) ? (editCurrentSourceStock + editOriginalTotalOut) : editCurrentSourceStock;
         var totalOut = qty + qtySludge;
         if (totalOut > available) {
-            alert('Total Qty Draining + Sludge (' + cnsFormatNumber(totalOut, 2) + ' KG) melebihi stok tangki yang tersedia (' + cnsFormatNumber(available, 2) + ' KG).');
+            swal('Perhatian', 'Total Qty Draining + Sludge (' + cnsFormatNumber(totalOut, 2) + ' KG) melebihi stok tangki yang tersedia (' + cnsFormatNumber(available, 2) + ' KG).', 'warning');
             return;
         }
 
@@ -353,17 +353,17 @@
             if (movingType === 'TANK') {
                 var targetTankId = $('#edit_moving_target_tank_id').val();
                 if (!targetTankId) {
-                    alert('Pilih tangki tujuan.');
+                    swal('Perhatian', 'Pilih tangki tujuan.', 'warning');
                     return;
                 }
                 if (targetTankId == tankId) {
-                    alert('Tangki tujuan tidak boleh sama dengan tangki asal.');
+                    swal('Perhatian', 'Tangki tujuan tidak boleh sama dengan tangki asal.', 'warning');
                     return;
                 }
             } else if (movingType === 'EXTERNAL') {
                 var ext = $.trim($('#edit_moving_target_external').val());
                 if (!ext) {
-                    alert('Pilih lokasi / gudang tujuan.');
+                    swal('Perhatian', 'Pilih lokasi / gudang tujuan.', 'warning');
                     return;
                 }
             }
@@ -372,17 +372,17 @@
         var bastInput = $('#edit_bast_document')[0];
         var bastFile = bastInput && bastInput.files ? bastInput.files[0] : null;
         if (!editHasBastDocument && !bastFile) {
-            alert('Dokumen BAST draining wajib diupload.');
+            swal('Perhatian', 'Dokumen BA draining wajib diupload.', 'warning');
             return;
         }
         if (bastFile) {
             var bastExt = bastFile.name.split('.').pop().toLowerCase();
             if (['pdf', 'jpg', 'jpeg', 'png'].indexOf(bastExt) === -1) {
-                alert('Dokumen BAST harus berformat PDF, JPG, JPEG, atau PNG.');
+                swal('Perhatian', 'Dokumen BA harus berformat PDF, JPG, JPEG, atau PNG.', 'warning');
                 return;
             }
             if (bastFile.size > 10 * 1024 * 1024) {
-                alert('Ukuran dokumen BAST maksimal 10 MB.');
+                swal('Perhatian', 'Ukuran dokumen BAST maksimal 10 MB.', 'warning');
                 return;
             }
         }
@@ -422,50 +422,58 @@
             processData: false,
             contentType: false,
             success: function(res) {
-                alert(res.message || 'Tank draining berhasil diperbarui.');
-                $('#TankDrainingDet').empty();
-                refreshdata();
+                swal('Berhasil!', res.message || 'Tank draining berhasil diperbarui.', 'success').then(function () {
+                    $('#TankDrainingDet').empty();
+                    refreshdata();
+                });
             },
             error: function(xhr) {
                 var msg = 'Terjadi kesalahan saat memperbarui data.';
                 if (xhr.responseJSON && xhr.responseJSON.message) {
                     msg = xhr.responseJSON.message;
                 }
-                alert(msg);
+                swal('Error', msg, 'error');
                 $btn.prop('disabled', false).text('Update');
             }
         });
     }
 
     function deleteDraining(id) {
-        if (!confirm('Yakin ingin menghapus data Tank Draining ini? Mutasi stok di UCO Storage Pelindo akan otomatis dikembalikan.')) {
-            return;
-        }
+        swal({
+            title: 'Konfirmasi',
+            text: 'Yakin ingin menghapus data Tank Draining ini? Mutasi stok di UCO Storage Pelindo akan otomatis dikembalikan.',
+            icon: 'warning',
+            buttons: ['Batal', 'Ya'],
+            dangerMode: true
+        }).then(function (confirmed) {
+            if (!confirmed) return;
 
-        var $btn = $('#btnDeleteDraining');
-        $btn.prop('disabled', true).text('Menghapus...');
+            var $btn = $('#btnDeleteDraining');
+            $btn.prop('disabled', true).text('Menghapus...');
 
-        var token = $('meta[name="csrf-token"]').attr('content') || $('input[name="_token"]').val();
+            var token = $('meta[name="csrf-token"]').attr('content') || $('input[name="_token"]').val();
 
-        $.ajax({
-            url: 'cns-tank-draining-delete/' + id,
-            type: 'POST',
-            data: {
-                _token: token
-            },
-            success: function(res) {
-                alert(res.message || 'Data berhasil dihapus.');
-                $('#TankDrainingDet').empty();
-                refreshdata();
-            },
-            error: function(xhr) {
-                var msg = 'Gagal menghapus data.';
-                if (xhr.responseJSON && xhr.responseJSON.message) {
-                    msg = xhr.responseJSON.message;
+            $.ajax({
+                url: 'cns-tank-draining-delete/' + id,
+                type: 'POST',
+                data: {
+                    _token: token
+                },
+                success: function(res) {
+                    swal('Berhasil!', res.message || 'Data berhasil dihapus.', 'success').then(function () {
+                        $('#TankDrainingDet').empty();
+                        refreshdata();
+                    });
+                },
+                error: function(xhr) {
+                    var msg = 'Gagal menghapus data.';
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        msg = xhr.responseJSON.message;
+                    }
+                    swal('Error', msg, 'error');
+                    $btn.prop('disabled', false).text('Hapus Draining');
                 }
-                alert(msg);
-                $btn.prop('disabled', false).text('Hapus Draining');
-            }
+            });
         });
     }
 

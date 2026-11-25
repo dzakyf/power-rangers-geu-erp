@@ -1,5 +1,5 @@
 {{-- Global Document Preview Modal for CNS module --}}
-<div class="modal fade" id="globalCnsDocPreviewModal" tabindex="-1" aria-labelledby="globalCnsDocPreviewTitle" aria-hidden="true" style="z-index: 1060;">
+<div class="modal fade" id="globalCnsDocPreviewModal" tabindex="-1" aria-labelledby="globalCnsDocPreviewTitle" aria-hidden="true" style="z-index: 99995;">
     <div class="modal-dialog modal-xl modal-dialog-centered" style="max-width: 90vw;">
         <div class="modal-content shadow-lg border-0">
             <div class="modal-header bg-primary text-white py-2">
@@ -66,10 +66,12 @@
             if (!fileName) {
                 fileName = cleanUrl.split('/').pop() || 'Dokumen';
             }
+            var titleExt = fileName.indexOf('.') !== -1 ? fileName.split('.').pop().toLowerCase() : '';
+            var resolvedExt = ['pdf', 'jpg', 'jpeg', 'png', 'webp', 'gif', 'svg', 'doc', 'docx'].indexOf(ext) !== -1 ? ext : titleExt;
 
-            isPdf = ext === 'pdf' || target.indexOf('-file') !== -1 || target.indexOf('bast') !== -1 || target.indexOf('-document') !== -1 || target.indexOf('download') !== -1;
-            isImage = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg'].indexOf(ext) !== -1;
-            isDoc = ['doc', 'docx'].indexOf(ext) !== -1;
+            isPdf = resolvedExt === 'pdf' || (!titleExt && (target.indexOf('-file') !== -1 || target.indexOf('bast') !== -1 || target.indexOf('-document') !== -1 || target.indexOf('download') !== -1));
+            isImage = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg'].indexOf(resolvedExt) !== -1;
+            isDoc = ['doc', 'docx'].indexOf(resolvedExt) !== -1;
         }
 
         if (!url) return;

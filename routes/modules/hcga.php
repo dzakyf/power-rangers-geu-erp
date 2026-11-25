@@ -57,6 +57,8 @@ use App\Http\Controllers\HCGA\Performance\PerformanceReviewController as HCGAPer
 use App\Http\Controllers\HCGA\Performance\PerformanceCompetencyController as HCGAPerformanceCompetencyController;
 use App\Http\Controllers\HCGA\Performance\PerformancePipController as HCGAPerformancePipController;
 use App\Http\Controllers\HCGA\GA\TicketController as HCGAGaTicketController;
+use App\Http\Controllers\HCGA\GA\ItTicketController as HCGAGaItTicketController;
+use App\Http\Controllers\HCGA\GA\ItTicketCategoryController as HCGAGaItTicketCategoryController;
 use App\Http\Controllers\HCGA\GA\WorkOrderController as HCGAGaWorkOrderController;
 use App\Http\Controllers\HCGA\GA\TicketMasterController as HCGAGaTicketMasterController;
 use App\Http\Controllers\HCGA\GA\QrPointController as HCGAGaQrPointController;
@@ -943,11 +945,13 @@ use App\Http\Controllers\HCGA\OrganizationChartController as HCGAOrganizationCha
             Route::get('/detail/{id}', [HCGACompanyGuidelineMobileController::class, 'mobileDetail'])->name('company-guideline.mobile.detail');
         });
 
-        // Mobile Payslip (Slip Gaji Karyawan)
+        // Mobile Payslip (Slip Gaji Karyawan & Slip THR)
         Route::prefix('payslip')->group(function () {
             Route::get('/', [\App\Http\Controllers\HCGA\MobilePayslipController::class, 'index'])->name('payslip.mobile.index');
             Route::get('/detail', [\App\Http\Controllers\HCGA\MobilePayslipController::class, 'detail'])->name('payslip.mobile.detail');
             Route::get('/pdf', [\App\Http\Controllers\HCGA\MobilePayslipController::class, 'pdf'])->name('payslip.mobile.pdf');
+            Route::get('/thr/detail', [\App\Http\Controllers\HCGA\MobilePayslipController::class, 'thrDetail'])->name('payslip.mobile.thr.detail');
+            Route::get('/thr/pdf', [\App\Http\Controllers\HCGA\MobilePayslipController::class, 'thrPdf'])->name('payslip.mobile.thr.pdf');
         });
     });
 
@@ -1210,3 +1214,38 @@ use App\Http\Controllers\HCGA\OrganizationChartController as HCGAOrganizationCha
     Route::post('/asset-master-bin-update', function () {
         return view('assets.master-bin-update');
     });
+
+    // Theme sync: training TNA, GA voucher approval, and IT ticketing
+    $itPref = "$hcPref-it";
+    Route::get("$hcTrainingPref-tna-payload", [HCGATrainingController::class, 'tnaPayload']);
+    Route::post("$gaPref-ticket-verify", [HCGAGaTicketController::class, 'verifyGa']);
+    Route::post("$gaPref-ticket-resubmit-dept", [HCGAGaTicketController::class, 'resubmitDeptHead']);
+    Route::post("$gaPref-ticket-approval-sync", [HCGAGaTicketController::class, 'syncApproval']);
+    Route::post("$gaPref-ticket-voucher-create", [HCGAGaTicketController::class, 'createVoucher']);
+    Route::get("$gaPref-ticket-voucher-print", [HCGAGaTicketController::class, 'printVoucher']);
+    Route::get("$gaPref-ticket-attachment", [HCGAGaTicketController::class, 'downloadAttachment']);
+    Route::get("$itPref-ticket-index", [HCGAGaItTicketController::class, 'index']);
+    Route::get("$itPref-ticket-data", [HCGAGaItTicketController::class, 'data']);
+    Route::get("$itPref-ticket-summary", [HCGAGaItTicketController::class, 'summary']);
+    Route::get("$itPref-ticket-create", [HCGAGaItTicketController::class, 'create']);
+    Route::post("$itPref-ticket-submit", [HCGAGaItTicketController::class, 'store']);
+    Route::get("$itPref-ticket-detail", [HCGAGaItTicketController::class, 'detail']);
+    Route::post("$itPref-ticket-status", [HCGAGaItTicketController::class, 'transition']);
+    Route::post("$itPref-ticket-assign", [HCGAGaItTicketController::class, 'assign']);
+    Route::post("$itPref-ticket-comment", [HCGAGaItTicketController::class, 'comment']);
+    Route::post("$itPref-ticket-escalate", [HCGAGaItTicketController::class, 'escalate']);
+    Route::post("$itPref-ticket-feedback", [HCGAGaItTicketController::class, 'feedback']);
+    Route::post("$itPref-ticket-device-handover", [HCGAGaItTicketController::class, 'handoverDevice']);
+    Route::post("$itPref-ticket-device-pr", [HCGAGaItTicketController::class, 'escalateDevicePr']);
+    Route::post("$itPref-ticket-approval-sync", [HCGAGaItTicketController::class, 'syncApproval']);
+    Route::get("$itPref-ticket-kb-search", [HCGAGaItTicketController::class, 'kbSearch']);
+    Route::get("$itPref-ticket-attachment", [HCGAGaItTicketController::class, 'downloadAttachment']);
+    Route::get("$itPref-my-assignment-index", [HCGAGaItTicketController::class, 'myAssignments']);
+    Route::get("$itPref-my-assignment-data", [HCGAGaItTicketController::class, 'myAssignmentData']);
+    Route::get("$itPref-category-index", [HCGAGaItTicketCategoryController::class, 'index']);
+    Route::get("$itPref-category-data", [HCGAGaItTicketCategoryController::class, 'categoryData']);
+    Route::get("$itPref-subcategory-data", [HCGAGaItTicketCategoryController::class, 'subcategoryData']);
+    Route::post("$itPref-category-save", [HCGAGaItTicketCategoryController::class, 'saveCategory']);
+    Route::post("$itPref-subcategory-save", [HCGAGaItTicketCategoryController::class, 'saveSubcategory']);
+    Route::post("$itPref-category-deactivate", [HCGAGaItTicketCategoryController::class, 'deactivate']);
+    Route::get("$itPref-category-options", [HCGAGaItTicketCategoryController::class, 'options']);

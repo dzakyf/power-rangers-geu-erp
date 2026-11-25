@@ -1,6 +1,6 @@
 <div class="mt-3">
-    <div class="JudulContent" style="color:#699;">NEW SUPPLIER NON-UCO</div>
-    <div class="card">
+    <div class="cns-section-header">NEW SUPPLIER NON-UCO</div>
+    <div class="card cns-card">
         <div class="card-body">
             <div id="ContentPagesNonUco">
                 <input type="hidden" name="_token" value="{{ csrf_token() }}" />
@@ -67,7 +67,7 @@
     $(function () {
         $('#AddEmailBtn').on('click', function () {
             if ($('#EmailRows .email-row').length >= 10) {
-                alert('Maksimal 10 alamat email.');
+                swal('Perhatian', 'Maksimal 10 alamat email.', 'warning');
                 return;
             }
             addEmailRow('');
@@ -91,11 +91,11 @@
                 success: function (data) {
                     $.unblockUI();
                     if (String(data).indexOf('success') !== -1) {
-                        alert('Supplier Non-UCO berhasil disimpan.');
+                        swal('Berhasil!', 'Supplier Non-UCO berhasil disimpan.', 'success');
                         if (typeof refreshdata === 'function') { refreshdata(); }
                         $('#NonUcoSupplierDiv').html('');
                     } else {
-                        alert('Gagal menyimpan supplier.');
+                        swal('Error', 'Gagal menyimpan supplier.', 'error');
                     }
                 },
                 error: function (xhr) {
@@ -109,7 +109,7 @@
                             message = xhr.responseJSON.message;
                         }
                     }
-                    alert(message);
+                    swal('Error', message, 'error');
                 }
             });
         });

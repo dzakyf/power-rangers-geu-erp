@@ -4,6 +4,7 @@ namespace App\Http\Controllers\CNS;
 
 use App\CnsCustomerKyc;
 use App\Http\Controllers\Controller;
+use App\Support\DhtmlxGridPagination;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -22,10 +23,6 @@ class CustomerKycController extends Controller
 
     public function xmlData(Request $request)
     {
-        if (!headers_sent()) {
-            header('Content-Type: text/xml');
-        }
-
         try {
             $query = CnsCustomerKyc::query()->orderByDesc('id');
 
@@ -44,37 +41,74 @@ class CustomerKycController extends Controller
             if ($request->filled('end_date')) {
                 $query->whereDate('form_date', '<=', $request->query('end_date'));
             }
+            if ($request->filled('approval_status')) {
+                $query->where('approval_status', $request->query('approval_status'));
+            }
 
-            $rows = $query->get();
+            // Column filters from dhtmlx header
+            if ($request->has('filters') && is_array($request->query('filters'))) {
+                foreach ($request->query('filters') as $colIdx => $val) {
+                    $val = trim((string) $val);
+                    if ($val === '') continue;
+                    if ($colIdx == 1) $query->where('kyc_no', 'like', "%{$val}%");
+                    if ($colIdx == 3) $query->where('company_name', 'like', "%{$val}%");
+                    if ($colIdx == 4) $query->where('filler_name', 'like', "%{$val}%");
+                    if ($colIdx == 5) $query->where('legal_entity_type', 'like', "%{$val}%");
+                    if ($colIdx == 6) $query->where('trading_contact_person', 'like', "%{$val}%");
+                    if ($colIdx == 8) $query->where('approval_status', $val);
+                    if ($colIdx == 9) $query->where('created_by', 'like', "%{$val}%");
+                }
+            }
 
-            $xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<rows>\n";
-            $no = 1;
+            $colMap = [
+                1 => 'kyc_no',
+                2 => 'form_date',
+                3 => 'company_name',
+                4 => 'filler_name',
+                5 => 'legal_entity_type',
+                6 => 'trading_contact_person',
+                8 => 'approval_status',
+                9 => 'created_by',
+            ];
+
+            $paginated = DhtmlxGridPagination::paginateQuery($query, $request, [
+                'col_map' => $colMap,
+                'default_page_size' => 25,
+            ]);
+
+            $rows = $paginated['rows'];
+            $total = $paginated['total'];
+            $posStart = $paginated['posStart'];
+
+            $bodyXml = "";
+            $no = $posStart + 1;
             foreach ($rows as $row) {
                 $dateFormatted = $row->form_date ? $row->form_date->format('d/m/Y') : '-';
                 $docsCount = 0;
                 if ($row->doc_register_extract) $docsCount++;
                 if ($row->doc_certificate) $docsCount++;
                 $docText = $docsCount > 0 ? "{$docsCount} Dokumen" : 'Belum Ada';
+                $statusText = $row->approval_status ?: CnsCustomerKyc::STATUS_PENDING;
 
-                $xml .= "<row id=\"{$row->id}\">\n";
-                $xml .= "  <cell>{$no}</cell>\n";
-                $xml .= '  <cell><![CDATA[' . htmlspecialchars($row->kyc_no ?? '', ENT_QUOTES) . "]]></cell>\n";
-                $xml .= '  <cell><![CDATA[' . htmlspecialchars($dateFormatted, ENT_QUOTES) . "]]></cell>\n";
-                $xml .= '  <cell><![CDATA[' . htmlspecialchars($row->company_name ?? '', ENT_QUOTES) . "]]></cell>\n";
-                $xml .= '  <cell><![CDATA[' . htmlspecialchars($row->filler_name ?? '', ENT_QUOTES) . "]]></cell>\n";
-                $xml .= '  <cell><![CDATA[' . htmlspecialchars($row->legal_entity_type ?: '-', ENT_QUOTES) . "]]></cell>\n";
-                $xml .= '  <cell><![CDATA[' . htmlspecialchars($row->trading_contact_person ?: '-', ENT_QUOTES) . "]]></cell>\n";
-                $xml .= '  <cell><![CDATA[' . htmlspecialchars($docText, ENT_QUOTES) . "]]></cell>\n";
-                $xml .= '  <cell><![CDATA[' . htmlspecialchars($row->created_by ?: 'system', ENT_QUOTES) . "]]></cell>\n";
-                $xml .= "</row>\n";
+                $bodyXml .= "<row id=\"{$row->id}\">\n";
+                $bodyXml .= "  <cell>{$no}</cell>\n";
+                $bodyXml .= '  <cell><![CDATA[' . htmlspecialchars($row->kyc_no ?? '', ENT_QUOTES) . "]]></cell>\n";
+                $bodyXml .= '  <cell><![CDATA[' . htmlspecialchars($dateFormatted, ENT_QUOTES) . "]]></cell>\n";
+                $bodyXml .= '  <cell><![CDATA[' . htmlspecialchars($row->company_name ?? '', ENT_QUOTES) . "]]></cell>\n";
+                $bodyXml .= '  <cell><![CDATA[' . htmlspecialchars($row->filler_name ?? '', ENT_QUOTES) . "]]></cell>\n";
+                $bodyXml .= '  <cell><![CDATA[' . htmlspecialchars($row->legal_entity_type ?: '-', ENT_QUOTES) . "]]></cell>\n";
+                $bodyXml .= '  <cell><![CDATA[' . htmlspecialchars($row->trading_contact_person ?: '-', ENT_QUOTES) . "]]></cell>\n";
+                $bodyXml .= '  <cell><![CDATA[' . htmlspecialchars($docText, ENT_QUOTES) . "]]></cell>\n";
+                $bodyXml .= '  <cell><![CDATA[' . htmlspecialchars($statusText, ENT_QUOTES) . "]]></cell>\n";
+                $bodyXml .= '  <cell><![CDATA[' . htmlspecialchars($row->created_by ?: 'system', ENT_QUOTES) . "]]></cell>\n";
+                $bodyXml .= "</row>\n";
                 $no++;
             }
-            $xml .= "</rows>";
 
-            return response($xml, 200, ['Content-Type' => 'text/xml']);
+            return DhtmlxGridPagination::response($total, $posStart, $bodyXml);
         } catch (\Throwable $e) {
             Log::error('CNS Customer KYC xmlData error: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
-            return response("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<rows></rows>", 200, ['Content-Type' => 'text/xml']);
+            return DhtmlxGridPagination::response(0, 0, "");
         }
     }
 
@@ -138,6 +172,7 @@ class CustomerKycController extends Controller
                 'doc_certificate'          => $docCertPath,
                 'doc_certificate_name'     => $docCertName,
                 'location'                 => Auth::user()->Location ?? 'MLG',
+                'approval_status'          => CnsCustomerKyc::STATUS_PENDING,
                 'created_by'               => Auth::user()->username ?? Auth::user()->name ?? 'system',
             ]);
 
@@ -176,6 +211,12 @@ class CustomerKycController extends Controller
                 ->with('error', 'Form KYC tidak ditemukan.');
         }
 
+        if ($kyc->isApproved()) {
+            return redirect()
+                ->route('cns-customer-compliance-kyc.detail', ['id' => $kyc->id])
+                ->with('error', 'KYC yang sudah APPROVED tidak dapat diubah.');
+        }
+
         return view('cns.customer-compliance.kyc.edit', [
             'kyc'       => $kyc,
             'suppliers' => $this->getSuppliers(),
@@ -189,6 +230,12 @@ class CustomerKycController extends Controller
             return redirect()
                 ->route('cns-customer-compliance-kyc.index')
                 ->with('error', 'Form KYC tidak ditemukan.');
+        }
+
+        if ($kyc->isApproved()) {
+            return redirect()
+                ->route('cns-customer-compliance-kyc.detail', ['id' => $kyc->id])
+                ->with('error', 'KYC yang sudah APPROVED tidak dapat diubah.');
         }
 
         $validated = $this->validateInput($request);
@@ -216,7 +263,7 @@ class CustomerKycController extends Controller
 
         DB::beginTransaction();
         try {
-            $kyc->update([
+            $updatePayload = [
                 'filler_name'              => $validated['filler_name'],
                 'form_date'                => $formDate->toDateString(),
                 'supplier_id'              => $validated['supplier_id'] ?? null,
@@ -239,7 +286,16 @@ class CustomerKycController extends Controller
                 'doc_certificate'          => $docCertPath,
                 'doc_certificate_name'     => $docCertName,
                 'updated_by'               => Auth::user()->username ?? Auth::user()->name ?? 'system',
-            ]);
+            ];
+
+            if ($kyc->isRejected()) {
+                $updatePayload['approval_status'] = CnsCustomerKyc::STATUS_PENDING;
+                $updatePayload['approved_by'] = null;
+                $updatePayload['approved_at'] = null;
+                $updatePayload['rejection_reason'] = null;
+            }
+
+            $kyc->update($updatePayload);
 
             DB::commit();
 
@@ -263,6 +319,12 @@ class CustomerKycController extends Controller
                     ->with('error', 'Form KYC tidak ditemukan.');
             }
 
+            if ($kyc->isApproved()) {
+                return redirect()
+                    ->route('cns-customer-compliance-kyc.detail', ['id' => $kyc->id])
+                    ->with('error', 'KYC yang sudah APPROVED tidak dapat dihapus.');
+            }
+
             $kyc->delete();
 
             return redirect()
@@ -272,6 +334,113 @@ class CustomerKycController extends Controller
             Log::error('CNS Customer KYC destroy failed: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
             return back()->with('error', 'Gagal menghapus Form KYC: ' . $e->getMessage());
         }
+    }
+
+    public function approve($id)
+    {
+        $kyc = CnsCustomerKyc::find($id);
+        if (!$kyc) {
+            return redirect()
+                ->route('cns-customer-compliance-kyc.index')
+                ->with('error', 'Form KYC tidak ditemukan.');
+        }
+
+        if ($kyc->isApproved()) {
+            return back()->with('error', 'KYC sudah di-approve sebelumnya.');
+        }
+
+        $actor = Auth::user()->username ?? Auth::user()->name ?? 'system';
+
+        DB::transaction(function () use ($kyc, $actor) {
+            $supplierId = $this->syncToMasterCompany($kyc, $actor);
+
+            $kyc->update([
+                'supplier_id'      => $supplierId,
+                'approval_status'  => CnsCustomerKyc::STATUS_APPROVED,
+                'approved_by'      => $actor,
+                'approved_at'      => Carbon::now(),
+                'rejection_reason' => null,
+                'updated_by'       => $actor,
+            ]);
+        });
+
+        return redirect()
+            ->route('cns-customer-compliance-kyc.detail', ['id' => $kyc->id])
+            ->with('success', 'Form KYC ' . $kyc->kyc_no . ' berhasil di-approve dan tersimpan di Master Company.');
+    }
+
+    protected function syncToMasterCompany(CnsCustomerKyc $kyc, string $actor): int
+    {
+        $location = mb_substr(trim((string) ($kyc->location ?: (Auth::user()->Location ?? ''))), 0, 30);
+        $payload = $kyc->masterCompanyPayload();
+
+        $existing = null;
+        if (!empty($kyc->supplier_id)) {
+            $existing = DB::table('supplier')->where('ID', $kyc->supplier_id)->first();
+        }
+
+        if (!$existing && $payload['Company_Name'] !== '') {
+            $existing = DB::table('supplier')
+                ->where('Location', $location)
+                ->whereRaw('LOWER(TRIM(Company_Name)) = ?', [mb_strtolower($payload['Company_Name'])])
+                ->first();
+        }
+
+        if ($existing) {
+            DB::table('supplier')->where('ID', $existing->ID)->update($payload);
+            return (int) $existing->ID;
+        }
+
+        $seq = DB::table('supplier')->where('Location', $location)->count() + 1;
+        do {
+            $supplierCode = 'GEU-COMP-2' . sprintf('%04d', $seq);
+            $seq++;
+        } while (DB::table('supplier')->where('Supplier_ID', $supplierCode)->exists());
+
+        $insertData = array_merge($payload, [
+            'Location'     => $location,
+            'Supplier_ID'  => $supplierCode,
+            'Is_Company'   => 1,
+            'Is_Consignee' => 1,
+            'Is_Supplier'  => 0,
+            'Status'       => 'NORMAL',
+            'Created_By'   => mb_substr($actor, 0, 20),
+            'Note'         => 'KYC: ' . $kyc->kyc_no,
+        ]);
+
+        return (int) DB::table('supplier')->insertGetId($insertData);
+    }
+
+    public function reject(Request $request, $id)
+    {
+        $kyc = CnsCustomerKyc::find($id);
+        if (!$kyc) {
+            return redirect()
+                ->route('cns-customer-compliance-kyc.index')
+                ->with('error', 'Form KYC tidak ditemukan.');
+        }
+
+        if ($kyc->isApproved()) {
+            return back()->with('error', 'KYC yang sudah APPROVED tidak dapat ditolak.');
+        }
+
+        $validated = $request->validate([
+            'rejection_reason' => ['required', 'string', 'max:1000'],
+        ]);
+
+        $actor = Auth::user()->username ?? Auth::user()->name ?? 'system';
+
+        $kyc->update([
+            'approval_status'  => CnsCustomerKyc::STATUS_REJECTED,
+            'approved_by'      => $actor,
+            'approved_at'      => Carbon::now(),
+            'rejection_reason' => trim($validated['rejection_reason']),
+            'updated_by'       => $actor,
+        ]);
+
+        return redirect()
+            ->route('cns-customer-compliance-kyc.detail', ['id' => $kyc->id])
+            ->with('success', 'Form KYC ' . $kyc->kyc_no . ' ditolak (REJECTED).');
     }
 
     public function downloadDoc($id, $type)

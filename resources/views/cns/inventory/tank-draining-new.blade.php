@@ -1,7 +1,7 @@
-<div class="ml-2">
-    <div class="JudulContent" style="color:#699;">NEW TANK DRAINING</div>
-    <div class="card">
-        <div class="card-body pt-2">
+<div class="mt-3">
+    <div class="cns-section-header">NEW TANK DRAINING</div>
+    <div class="card cns-card">
+        <div class="card-body pt-3">
             <p class="text-muted mb-3">Isi formulir berikut untuk mencatat transaksi pengeluaran (draining) dari tangki timbun.</p>
 
             <form id="formTankDrainingNew" onsubmit="submitNewDraining(event)" enctype="multipart/form-data">
@@ -119,10 +119,10 @@
                         </div>
                     </div>
 
-                    <!-- Dokumen BAST Draining -->
+                    <!-- Dokumen BA Draining -->
                     <div class="col-md-12">
                         <div class="form-group">
-                            <label for="new_bast_document" class="font-weight-bold">Dokumen BAST Draining <span class="text-danger">*</span></label>
+                            <label for="new_bast_document" class="font-weight-bold">Dokumen BA Draining <span class="text-danger">*</span></label>
                             <input type="file" class="text-black form-control-file" id="new_bast_document" name="bast_document" accept=".pdf,.jpg,.jpeg,.png" required />
                             <small class="form-text text-muted">Wajib diupload. Format: PDF, JPG, JPEG, atau PNG (maksimal 10 MB).</small>
                         </div>
@@ -289,23 +289,23 @@
         var targetType = $('#new_target_type').val();
 
         if (!tankId) {
-            alert('Pilih tangki asal terlebih dahulu.');
+            swal('Perhatian', 'Pilih tangki asal terlebih dahulu.', 'warning');
             return;
         }
 
         if (qty <= 0) {
-            alert('Qty draining harus lebih besar dari 0.');
+            swal('Perhatian', 'Qty draining harus lebih besar dari 0.', 'warning');
             return;
         }
 
         if (qtySludge < 0) {
-            alert('Qty sludge tidak boleh kurang dari 0.');
+            swal('Perhatian', 'Qty sludge tidak boleh kurang dari 0.', 'warning');
             return;
         }
 
         var totalOut = qty + qtySludge;
         if (currentSourceStock > 0 && totalOut > currentSourceStock) {
-            alert('Total Qty Draining + Sludge (' + cnsFormatNumber(totalOut, 2) + ' KG) melebihi stok tangki yang tersedia (' + cnsFormatNumber(currentSourceStock, 2) + ' KG).');
+            swal('Perhatian', 'Total Qty Draining + Sludge (' + cnsFormatNumber(totalOut, 2) + ' KG) melebihi stok tangki yang tersedia (' + cnsFormatNumber(currentSourceStock, 2) + ' KG).', 'warning');
             return;
         }
 
@@ -314,17 +314,17 @@
             if (movingType === 'TANK') {
                 var targetTankId = $('#new_moving_target_tank_id').val();
                 if (!targetTankId) {
-                    alert('Pilih tangki tujuan.');
+                    swal('Perhatian', 'Pilih tangki tujuan.', 'warning');
                     return;
                 }
                 if (targetTankId == tankId) {
-                    alert('Tangki tujuan tidak boleh sama dengan tangki asal.');
+                    swal('Perhatian', 'Tangki tujuan tidak boleh sama dengan tangki asal.', 'warning');
                     return;
                 }
             } else if (movingType === 'EXTERNAL') {
                 var ext = $.trim($('#new_moving_target_external').val());
                 if (!ext) {
-                    alert('Pilih lokasi / gudang tujuan.');
+                    swal('Perhatian', 'Pilih lokasi / gudang tujuan.', 'warning');
                     return;
                 }
             }
@@ -333,16 +333,16 @@
         var bastInput = $('#new_bast_document')[0];
         var bastFile = bastInput && bastInput.files ? bastInput.files[0] : null;
         if (!bastFile) {
-            alert('Dokumen BAST draining wajib diupload.');
+            swal('Perhatian', 'Dokumen BA draining wajib diupload.', 'warning');
             return;
         }
         var bastExt = bastFile.name.split('.').pop().toLowerCase();
         if (['pdf', 'jpg', 'jpeg', 'png'].indexOf(bastExt) === -1) {
-            alert('Dokumen BAST harus berformat PDF, JPG, JPEG, atau PNG.');
+            swal('Perhatian', 'Dokumen BA harus berformat PDF, JPG, JPEG, atau PNG.', 'warning');
             return;
         }
         if (bastFile.size > 10 * 1024 * 1024) {
-            alert('Ukuran dokumen BAST maksimal 10 MB.');
+            swal('Perhatian', 'Ukuran dokumen BAST maksimal 10 MB.', 'warning');
             return;
         }
 
@@ -379,16 +379,17 @@
             processData: false,
             contentType: false,
             success: function(res) {
-                alert(res.message || 'Tank draining berhasil disimpan.');
-                $('#TankDrainingDet').empty();
-                refreshdata();
+                swal('Berhasil!', res.message || 'Tank draining berhasil disimpan.', 'success').then(function () {
+                    $('#TankDrainingDet').empty();
+                    refreshdata();
+                });
             },
             error: function(xhr) {
                 var msg = 'Terjadi kesalahan saat menyimpan data.';
                 if (xhr.responseJSON && xhr.responseJSON.message) {
                     msg = xhr.responseJSON.message;
                 }
-                alert(msg);
+                swal('Error', msg, 'error');
                 $btn.prop('disabled', false).text('Submit');
             }
         });

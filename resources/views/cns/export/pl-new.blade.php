@@ -7,8 +7,8 @@ use Illuminate\Database\Eloquent\Builder;
 
 ?>
 <div class="mt-3">
-	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">NEW PACKING LIST</div>
-	<div class="card">
+	<div class="cns-section-header">NEW PACKING LIST</div>
+	<div class="card cns-card">
 		<div class="card-body">
 			<div id="ContentPages">
 				<div class="FormInput_Form_Content">
@@ -203,6 +203,12 @@ use Illuminate\Database\Eloquent\Builder;
                             </div>
                         </div>
                         <div class="col-12">
+                            <div class="form-group">
+                                <label for="Remarks">Remarks</label>
+                                <textarea name="Remarks" id="Remarks" rows="3" class="form-control shadow-sm" placeholder="Remarks"></textarea>
+                            </div>
+                        </div>
+                        <div class="col-12">
                             <div class="row no-gutters" id="containerList">
                                 <label for="Container1">Container</label>
                                 <select name="Container1" id="Container1" class="form-control shadow-sm">
@@ -301,7 +307,7 @@ use Illuminate\Database\Eloquent\Builder;
                 $.unblockUI();
             },
             error:function() {
-                alert('Error fetching order details. Please try again.');
+                swal('Error', 'Error fetching order details. Please try again.', 'error');
                 $.unblockUI();
             }
         });
@@ -326,17 +332,17 @@ use Illuminate\Database\Eloquent\Builder;
 				var dataPos = data.indexOf("success");
 				if (dataPos != '-1') {
 					var cariAWB = data.split(":");
-					alert('Data Announcement Submitted!');
+					swal('Berhasil!', 'Data Announcement Submitted!', 'success');
 
 					// location.href = "partner-announcement";
                     refreshdata();
                     $('#divlistOpportunity').html('')
 				} else {
-					alert('Announcement Failed to Submit!');
+					swal('Error', 'Announcement Failed to Submit!', 'error');
 				}
 			},
 			error: function(jqXHR, textStatus, errorThrown) {
-				alert("Error Internal! Please Try again!");
+				swal('Error', 'Error Internal! Please Try again!', 'error');
 
 			}
 		});
@@ -349,9 +355,9 @@ use Illuminate\Database\Eloquent\Builder;
 			if ((type == "checkbox" || type == "radio") && this.checked) {
 				inputValues.push($(this).attr("name") + "=" + $(this).val());
 			} else if (type != "button" && type != "submit" && type != "radio" && type != "checkbox") {
-				inputValues.push($(this).attr("id") + "=" + $(this).val());
+				inputValues.push($(this).attr("id") + "=" + encodeURIComponent($(this).val() ?? ''));
 			} else if ($(this).is("textarea")) {
-				inputValues.push($(this).attr("id") + "=" + $(this).val());
+				inputValues.push($(this).attr("id") + "=" + encodeURIComponent($(this).val() ?? ''));
 			}
 		})
 		return inputValues.join('&');

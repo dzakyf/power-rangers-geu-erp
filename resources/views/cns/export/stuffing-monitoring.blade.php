@@ -11,42 +11,48 @@ $Saya =  Auth::user()->username;
 
 @section('content-wrapper')
 @csrf
-<!-- Main Content Header -->
-<div class="main-content-header">
-	<h1>Partner</h1>
-	<ol class="breadcrumb">
-		<li class="breadcrumb-item">
-			<a href="/">Stuffing Monitoring</a>
-		</li>
-		<li class="breadcrumb-item active">
-			<span class="active">Stuffing Monitoring List</span>
-		</li>
-	</ol>
-</div>
+@include('cns.partials.page-header', [
+	'title' => 'Stuffing Monitoring',
+	'breadcrumbs' => [
+		['label' => 'Export Management'],
+		['label' => 'Stuffing Monitoring'],
+	],
+])
 
-<div>
-	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">STUFFING MONITORING LIST</div>
-	<div class="card">
-		<div class="card-body">
-			<div class="mb-2">
-				Periode : <input type="date" id="tgl1" name="tgl1" value="{{ date('Y-m-01', strtotime('-7 days')) }}" class="form-control-sm" />
-				s/d <input type="date" id="tgl2" name="tgl2" value="{{ date('Y-m-d') }}" class="form-control-sm" />
-				<button onclick="refreshdataDetail()" class="btn btn-primary p-2">Refresh</button>
+<div class="card cns-card">
+	<div class="card-header">
+		<h5 class="card-title mb-0">Stuffing Monitoring List</h5>
+		<div class="d-flex align-items-center flex-wrap" style="gap: 0.5rem;">
+			<button type="button" class="btn btn-sm btn-primary" onclick="addStuffingContainer()">Add Container</button>
+			<button type="button" class="btn btn-sm btn-info" onclick="editStuffingContainer()">Edit Container</button>
+			<button type="button" class="btn btn-sm btn-danger" onclick="deleteStuffingContainer()">Delete Container</button>
+			<input type="button" id="ekselShipmentInstructionDet" name="ekselShipmentInstructionDet" class="btn btn-sm btn-warning" value="Export Excel" onclick="StuffingMonitoring.toExcel('./export/generate.php');" />
+			<button type="button" onclick="refreshdataDetail()" class="btn btn-sm btn-outline-secondary">Refresh</button>
+		</div>
+	</div>
+	<div class="card-body">
+		<div class="cns-filter-bar">
+			<div>
+				<label for="tgl1" class="d-block mb-1"><small>Dari Tanggal</small></label>
+				<input type="date" id="tgl1" name="tgl1" value="{{ date('Y-m-01', strtotime('-7 days')) }}" class="form-control form-control-sm" style="width:auto;" />
 			</div>
-			<div id="StuffingMonitoring" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
-			<div class="mt-3">
-				<button class="btn btn-primary mr-3" onclick="addStuffingContainer()">Add Container</button>
-				<button class="btn btn-info mr-3" onclick="editStuffingContainer()">Edit Container</button>
-				<button class="btn btn-danger mr-3" onclick="deleteStuffingContainer()">Delete Container</button>
-				<input type="button" id="ekselShipmentInstructionDet" name="ekselShipmentInstructionDet" class="btn btn-warning mr-3" value="Export Excel" onclick="StuffingMonitoring.toExcel('./export/generate.php');" />
+			<div>
+				<label for="tgl2" class="d-block mb-1"><small>Sampai Tanggal</small></label>
+				<input type="date" id="tgl2" name="tgl2" value="{{ date('Y-m-d') }}" class="form-control form-control-sm" style="width:auto;" />
 			</div>
+			<div>
+				<button type="button" onclick="refreshdataDetail()" class="btn btn-sm btn-primary">Filter</button>
+			</div>
+		</div>
+		<div class="cns-grid-wrapper">
+			<div id="StuffingMonitoring" class="cns-grid" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
 		</div>
 	</div>
 </div>
 
-<div class="card mt-3" id="stuffingFormCard" style="display:none;">
+<div class="card cns-card mt-3" id="stuffingFormCard" style="display:none;">
 	<div class="card-body">
-		<div class="JudulContent" id="stuffingFormTitle" style="color:#699;background-image:url(hdr_back.gif);">BUAT FORM STUFFING MONITORING</div>
+		<div class="cns-section-header" id="stuffingFormTitle">BUAT FORM STUFFING MONITORING</div>
 		<form id="StuffingMonitoringForm" enctype="multipart/form-data">
 			<input type="hidden" name="id" id="Stuffing_ID" value="" />
 			<div class="row">
@@ -267,7 +273,7 @@ $Saya =  Auth::user()->username;
 			: StuffingMonitoring.getSelectedId();
 
 		if (!id) {
-			alert('Pilih baris data yang ingin diedit.');
+			swal('Perhatian', 'Pilih baris data yang ingin diedit.', 'warning');
 			return;
 		}
 
@@ -294,7 +300,7 @@ $Saya =  Auth::user()->username;
 				openStuffingMonitoringForm('EDIT FORM STUFFING MONITORING');
 			},
 			error: function() {
-				alert('Gagal mengambil data container.');
+				swal('Error', 'Gagal mengambil data container.', 'error');
 			}
 		});
 	}
@@ -303,29 +309,35 @@ $Saya =  Auth::user()->username;
 		let id = StuffingMonitoring.getSelectedId();
 
 		if (!id) {
-			alert('Pilih baris data yang ingin dihapus.');
+			swal('Perhatian', 'Pilih baris data yang ingin dihapus.', 'warning');
 			return;
 		}
 
-		if (!confirm('Hapus container ini?')) {
-			return;
-		}
+		swal({
+			title: 'Konfirmasi',
+			text: 'Hapus container ini?',
+			icon: 'warning',
+			buttons: ['Batal', 'Ya'],
+			dangerMode: true
+		}).then(function(confirmed) {
+			if (!confirmed) return;
 
-		$.ajax({
-			url: 'cns-export-stuffing-monitoring-delete',
-			type: 'POST',
-			data: {_token: '{{ csrf_token() }}', id: id},
-			headers: {'Accept': 'application/json'},
-			success: function(response) {
-				alert(response.message || 'Container berhasil dihapus.');
-				if ($('#Stuffing_ID').val() == id) {
-					$('#stuffingFormCard').hide();
+			$.ajax({
+				url: 'cns-export-stuffing-monitoring-delete',
+				type: 'POST',
+				data: {_token: '{{ csrf_token() }}', id: id},
+				headers: {'Accept': 'application/json'},
+				success: function(response) {
+					swal('Berhasil!', response.message || 'Container berhasil dihapus.', 'success');
+					if ($('#Stuffing_ID').val() == id) {
+						$('#stuffingFormCard').hide();
+					}
+					refreshdataDetail();
+				},
+				error: function() {
+					swal('Error', 'Gagal menghapus container.', 'error');
 				}
-				refreshdataDetail();
-			},
-			error: function() {
-				alert('Gagal menghapus container.');
-			}
+			});
 		});
 	}
 
@@ -355,7 +367,7 @@ $Saya =  Auth::user()->username;
 			contentType: false,
 			headers: {'Accept': 'application/json'},
 			success: function(response) {
-				alert(response.message || 'Data berhasil disimpan.');
+				swal('Berhasil!', response.message || 'Data berhasil disimpan.', 'success');
 				$('#stuffingFormCard').hide();
 				resetStuffingMonitoringForm();
 				refreshdataDetail();
@@ -366,9 +378,9 @@ $Saya =  Auth::user()->username;
 					Object.keys(xhr.responseJSON.errors).forEach(function(key) {
 						messages.push(xhr.responseJSON.errors[key].join('\n'));
 					});
-					alert(messages.join('\n'));
+					swal('Perhatian', messages.join('\n'), 'warning');
 				} else {
-					alert('Gagal menyimpan data.');
+					swal('Error', 'Gagal menyimpan data.', 'error');
 				}
 			},
 			complete: function() {

@@ -185,6 +185,12 @@
                     <small class="text-muted">Konfigurasi formula potongan ketidakhadiran (Unpaid Leave / Alpha), Keterlambatan, BPJS TK, dan BPJS Kesehatan.</small>
                 </div>
                 <div class="card-body p-3">
+                    <div class="alert alert-info border-0 rounded-3 py-2 px-3 mb-3 small">
+                        <strong><i class="fa fa-info-circle me-1"></i> Ketentuan BPJS Kesehatan Keluarga Tambahan (Perpres 82/2018 &amp; PER-7/PB/2021 DJPb Kemenkeu):</strong>
+                        Iuran standar <strong>1%</strong> menanggung maksimal <strong>5 jiwa keluarga inti</strong> (Pegawai + Suami/Istri + maksimal 3 Anak).
+                        Setiap anggota keluarga tambahan (anak ke-4 dst., orang tua kandung, atau mertua) dikenakan tambahan iuran <strong>1% per orang</strong> dari gaji/upah (mengikuti batas bawah UMK dan batas atas Rp 12.000.000).
+                        Jumlah anggota keluarga tambahan masing-masing pegawai diatur pada halaman <em>Detail Karyawan</em>.
+                    </div>
                     <div class="row g-3" id="deductionConfigContainer">
                         <div class="col-12 text-center py-4 text-muted">Memuat parameter potongan...</div>
                     </div>
@@ -442,6 +448,16 @@ function loadDeductionConfigs() {
             if (res.success && res.data.length > 0) {
                 var html = '';
                 $.each(res.data, function(idx, item) {
+                    var inputHtml = '';
+                    if (item.value_type === 'SELECT' || item.config_key === 'bpjs_kes_extra_family_display_mode') {
+                        inputHtml = '<select id="cfg_' + item.config_key + '" class="form-select">' +
+                            '<option value="SEPARATE"' + (item.value_data === 'SEPARATE' ? ' selected' : '') + '>Dipisahkan (2 Baris di Payroll & Slip Gaji)</option>' +
+                            '<option value="COMBINED"' + (item.value_data === 'COMBINED' ? ' selected' : '') + '>Digabungkan (1 Baris di Payroll & Slip Gaji)</option>' +
+                        '</select>';
+                    } else {
+                        inputHtml = '<input type="text" id="cfg_' + item.config_key + '" class="form-control" value="' + item.value_data + '">';
+                    }
+
                     html += '<div class="col-md-6">' +
                         '<div class="card border rounded-3 p-3 bg-light h-100 shadow-sm">' +
                             '<div class="d-flex justify-content-between align-items-center mb-2">' +
@@ -450,7 +466,7 @@ function loadDeductionConfigs() {
                             '</div>' +
                             '<p class="small text-muted mb-3">' + (item.description || '-') + '</p>' +
                             '<div class="input-group">' +
-                                '<input type="text" id="cfg_' + item.config_key + '" class="form-control" value="' + item.value_data + '">' +
+                                inputHtml +
                                 '<span class="input-group-text">' + (item.unit || '') + '</span>' +
                                 '<button class="btn btn-primary" onclick="saveDeductionConfig(\'' + item.config_key + '\')">' +
                                     '<i class="fa fa-check"></i> Simpan' +

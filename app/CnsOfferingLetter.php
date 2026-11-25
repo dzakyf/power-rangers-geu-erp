@@ -135,10 +135,34 @@ class CnsOfferingLetter extends Model
     public static function formatLoadingPeriod(?string $value): string
     {
         $value = trim((string) $value);
+        if (preg_match('/^(\d{4}-\d{2}-\d{2})\s*-\s*(\d{4}-\d{2}-\d{2})$/', $value, $m)) {
+            $start = Carbon::createFromFormat('Y-m-d', $m[1])->format('d F Y');
+            $end = Carbon::createFromFormat('Y-m-d', $m[2])->format('d F Y');
+            return $start . ' - ' . $end;
+        }
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
+            return Carbon::createFromFormat('Y-m-d', $value)->format('d F Y');
+        }
         if (preg_match('/^\d{4}-\d{2}$/', $value)) {
             return Carbon::createFromFormat('Y-m', $value)->format('F Y');
         }
         return $value;
+    }
+
+    public static function parseLoadingPeriodRange(?string $value): array
+    {
+        $value = trim((string) $value);
+        if (preg_match('/^(\d{4}-\d{2}-\d{2})\s*-\s*(\d{4}-\d{2}-\d{2})$/', $value, $m)) {
+            return ['start' => $m[1], 'end' => $m[2]];
+        }
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
+            return ['start' => $value, 'end' => $value];
+        }
+        if (preg_match('/^\d{4}-\d{2}$/', $value)) {
+            $start = Carbon::createFromFormat('Y-m', $value)->startOfMonth();
+            return ['start' => $start->format('Y-m-d'), 'end' => $start->copy()->endOfMonth()->format('Y-m-d')];
+        }
+        return ['start' => '', 'end' => ''];
     }
 
     public static function loadingPeriodMonthValue(?string $value): string

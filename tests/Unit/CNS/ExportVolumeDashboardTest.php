@@ -41,7 +41,7 @@ class ExportVolumeDashboardTest extends TestCase
         $menuFile = database_path('seeds/data/menu_lists_cns.php');
         $cnsMenus = require $menuFile;
         $this->assertEquals(1, $cnsMenus['SM00080'][5], 'Dashboard folder SM00080 must have Urutan = 1 (top position)');
-        $this->assertEquals(2, $cnsMenus['SM00065'][5], 'Contract folder SM00065 must have Urutan = 2');
+        $this->assertEquals(3, $cnsMenus['SM00065'][5], 'Contract folder SM00065 must have Urutan = 3');
     }
 
     /** @test */
@@ -74,8 +74,10 @@ class ExportVolumeDashboardTest extends TestCase
 
         $data = $response->getData(true);
         $this->assertArrayHasKey('kpis', $data);
+        $this->assertArrayHasKey('todayStats', $data);
         $this->assertArrayHasKey('monthlyTrend', $data);
         $this->assertArrayHasKey('incotermChart', $data);
+        $this->assertArrayHasKey('statusChart', $data);
         $this->assertArrayHasKey('topConsigneesChart', $data);
         $this->assertArrayHasKey('countryChart', $data);
         $this->assertArrayHasKey('shipments', $data);
@@ -84,6 +86,12 @@ class ExportVolumeDashboardTest extends TestCase
         $this->assertArrayHasKey('total_containers', $data['kpis']);
         $this->assertArrayHasKey('total_shipments', $data['kpis']);
         $this->assertArrayHasKey('total_consignees', $data['kpis']);
+        $this->assertArrayHasKey('total_pending', $data['kpis']);
+
+        $this->assertArrayHasKey('shipments', $data['todayStats']);
+        $this->assertArrayHasKey('containers', $data['todayStats']);
+        $this->assertArrayHasKey('volume_mt', $data['todayStats']);
+        $this->assertArrayHasKey('last_update', $data['todayStats']);
 
         $this->assertCount(12, $data['monthlyTrend']['categories']);
         $this->assertCount(12, $data['monthlyTrend']['volume']);

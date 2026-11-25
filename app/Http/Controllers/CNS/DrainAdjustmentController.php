@@ -5,6 +5,8 @@ namespace App\Http\Controllers\CNS;
 use App\CNSDrainAdjustment;
 use App\Http\Controllers\Controller;
 use App\MasterTank;
+use App\Services\CNS\CnsCodeGenerator;
+use App\Support\DhtmlxGridPagination;
 use App\UCOStoragePelindo;
 use Carbon\Carbon;
 use Exception;
@@ -48,7 +50,10 @@ class DrainAdjustmentController extends Controller
         $status    = $request->query('approval_status');
         $search    = $request->query('search');
 
-        $query = CNSDrainAdjustment::query()->orderBy('adjustment_date', 'desc')->orderBy('id', 'desc');
+        $query = CNSDrainAdjustment::query();
+        if (!$request->filled('sort_col')) {
+            $query->orderBy('adjustment_date', 'desc')->orderBy('id', 'desc');
+        }
 
         if ($startDate) {
             $query->whereDate('adjustment_date', '>=', $startDate);
@@ -70,14 +75,45 @@ class DrainAdjustmentController extends Controller
             });
         }
 
-        $records = $query->get();
+        $colMap = [
+            1  => 'adjustment_code',
+            2  => 'adjustment_date',
+            3  => 'tank_name',
+            4  => 'qty_sistem',
+            5  => 'qty_timbang',
+            6  => 'selisih_qty',
+            7  => 'approval_status',
+            8  => 'notes',
+            10 => 'created_by',
+            11 => 'created_at',
+        ];
 
-        header("Content-type: text/xml");
-        echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
-        echo "<rows>\n";
+        $filterMap = [
+            1  => 'adjustment_code',
+            2  => function ($q, $term) {
+                $q->whereRaw("DATE_FORMAT(adjustment_date, '%d/%m/%Y') like ?", ["%{$term}%"]);
+            },
+            3  => 'tank_name',
+            4  => 'qty_sistem',
+            5  => 'qty_timbang',
+            6  => 'selisih_qty',
+            7  => 'approval_status',
+            8  => 'notes',
+            10 => 'created_by',
+            11 => function ($q, $term) {
+                $q->whereRaw("DATE_FORMAT(created_at, '%d/%m/%Y %H:%i') like ?", ["%{$term}%"]);
+            },
+        ];
 
-        $no = 1;
-        foreach ($records as $row) {
+        $paginated = DhtmlxGridPagination::paginateQuery($query, $request, [
+            'col_map'           => $colMap,
+            'filter_map'        => $filterMap,
+            'default_page_size' => 25,
+        ]);
+
+        $bodyXml = '';
+        $no = $paginated['posStart'] + 1;
+        foreach ($paginated['rows'] as $row) {
             $docCell = '';
             if (!empty($row->document_path)) {
                 $docUrl = route('cns-drain-adjustment.document', ['id' => $row->id], false);
@@ -86,24 +122,24 @@ class DrainAdjustmentController extends Controller
 
             $selisihPrefix = $row->selisih_qty > 0 ? '+' : '';
 
-            echo "<row id=\"{$row->id}\">\n";
-            echo "<cell>{$no}</cell>\n";
-            echo "<cell>" . htmlspecialchars($row->adjustment_code) . "</cell>\n";
-            echo "<cell>" . ($row->adjustment_date ? $row->adjustment_date->format('d/m/Y') : '-') . "</cell>\n";
-            echo "<cell>" . htmlspecialchars($row->tank_name) . "</cell>\n";
-            echo "<cell>" . number_format((float) $row->qty_sistem, 2, '.', ',') . " KG</cell>\n";
-            echo "<cell>" . number_format((float) $row->qty_timbang, 2, '.', ',') . " KG</cell>\n";
-            echo "<cell>" . $selisihPrefix . number_format((float) $row->selisih_qty, 2, '.', ',') . " KG</cell>\n";
-            echo "<cell>" . htmlspecialchars($row->approval_status) . "</cell>\n";
-            echo "<cell>" . htmlspecialchars($row->notes ?? '-') . "</cell>\n";
-            echo "<cell>{$docCell}</cell>\n";
-            echo "<cell>" . htmlspecialchars($row->created_by ?? '-') . "</cell>\n";
-            echo "<cell>" . ($row->created_at ? $row->created_at->format('d/m/Y H:i') : '-') . "</cell>\n";
-            echo "</row>\n";
+            $bodyXml .= "<row id=\"{$row->id}\">\n";
+            $bodyXml .= "<cell>{$no}</cell>\n";
+            $bodyXml .= "<cell>" . htmlspecialchars($row->adjustment_code) . "</cell>\n";
+            $bodyXml .= "<cell>" . ($row->adjustment_date ? $row->adjustment_date->format('d/m/Y') : '-') . "</cell>\n";
+            $bodyXml .= "<cell>" . htmlspecialchars($row->tank_name) . "</cell>\n";
+            $bodyXml .= "<cell>" . number_format((float) $row->qty_sistem, 2, '.', ',') . " KG</cell>\n";
+            $bodyXml .= "<cell>" . number_format((float) $row->qty_timbang, 2, '.', ',') . " KG</cell>\n";
+            $bodyXml .= "<cell>" . $selisihPrefix . number_format((float) $row->selisih_qty, 2, '.', ',') . " KG</cell>\n";
+            $bodyXml .= "<cell>" . htmlspecialchars($row->approval_status) . "</cell>\n";
+            $bodyXml .= "<cell>" . htmlspecialchars($row->notes ?? '-') . "</cell>\n";
+            $bodyXml .= "<cell>{$docCell}</cell>\n";
+            $bodyXml .= "<cell>" . htmlspecialchars($row->created_by ?? '-') . "</cell>\n";
+            $bodyXml .= "<cell>" . ($row->created_at ? $row->created_at->format('d/m/Y H:i') : '-') . "</cell>\n";
+            $bodyXml .= "</row>\n";
             $no++;
         }
 
-        echo "</rows>";
+        return DhtmlxGridPagination::response($paginated['total'], $paginated['posStart'], $bodyXml);
     }
 
     public function generateCode()
@@ -427,24 +463,9 @@ class DrainAdjustmentController extends Controller
         ]);
     }
 
-    protected function generateNextCode(): string
+    protected function generateNextCode(bool $lock = false): string
     {
-        $dateStr = Carbon::now()->format('Ymd');
-        $prefix = "DADJ-{$dateStr}-";
-
-        $latest = CNSDrainAdjustment::withTrashed()
-            ->where('adjustment_code', 'like', "{$prefix}%")
-            ->orderBy('id', 'desc')
-            ->value('adjustment_code');
-
-        if ($latest) {
-            $num = (int) substr($latest, strlen($prefix));
-            $next = str_pad($num + 1, 4, '0', STR_PAD_LEFT);
-        } else {
-            $next = '0001';
-        }
-
-        return "{$prefix}{$next}";
+        return CnsCodeGenerator::nextDrainAdjNo(null, $lock);
     }
 
     protected function validateAdjustmentRequest(Request $request, ?CNSDrainAdjustment $existing = null)

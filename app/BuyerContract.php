@@ -25,6 +25,11 @@ class BuyerContract extends Model
         return $this->hasMany(BuyerContractBooking::class, 'Contract_ID', 'ID');
     }
 
+    public function kyc()
+    {
+        return $this->belongsTo(CnsCustomerKyc::class, 'kyc_id', 'id');
+    }
+
     public function statusLabel(): string
     {
         return self::STATUSES[$this->Status] ?? $this->Status;

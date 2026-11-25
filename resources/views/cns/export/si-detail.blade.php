@@ -10,8 +10,8 @@
     $notifyAddr = !empty($si->Notify_Address) ? $si->Notify_Address : ($companiesKeyed->get($si->Notify)->Address ?? '');
 ?>
 <div class="mt-3">
-    <div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">SHIPPING INSTRUCTIONS</div>
-    <div class="card">
+    <div class="cns-section-header">SHIPPING INSTRUCTIONS</div>
+    <div class="card cns-card">
         <div class="card-body">
             <div id="ContentPages">
                 <div class="FormInput_Form_Content">
@@ -202,6 +202,12 @@
                                 </select>
                             </div>
                         </div>
+                        <div class="col-12">
+                            <div class="form-group">
+                                <strong><label for="Remarks">Remarks</label></strong>
+                                <textarea name="Remarks" id="Remarks" rows="3" class="text-black form-control shadow-sm" placeholder="Remarks">{{ $si->Remarks }}</textarea>
+                            </div>
+                        </div>
                         <div class="col-md-12 col-12">
                             <div class="row" id="containerList">
                                 @for ($i = 1; $i <= $slotCount; $i++)
@@ -349,7 +355,7 @@
                 $.unblockUI();
             },
             error: function(xhr) {
-                alert((xhr.responseJSON && xhr.responseJSON.error) || 'Error fetching order details. Please try again.');
+                swal('Error', (xhr.responseJSON && xhr.responseJSON.error) || 'Error fetching order details. Please try again.', 'error');
                 $.unblockUI();
             }
         });
@@ -367,22 +373,22 @@
             data: gettingVars,
             success: function(data) {
                 if (data.success) {
-                    alert('Shipping Instruction berhasil diperbarui. Status: ' + data.status);
+                    swal('Berhasil!', 'Shipping Instruction berhasil diperbarui. Status: ' + data.status, 'success');
                     if (typeof refreshdata === 'function') {
                         refreshdata();
                     }
                     $('#divlistOpportunity').html('');
                 } else {
-                    alert('Shipping Instruction gagal diperbarui.');
+                    swal('Error', 'Shipping Instruction gagal diperbarui.', 'error');
                 }
             },
             error: function(xhr) {
                 if (xhr.responseJSON && xhr.responseJSON.errors) {
-                    alert(Object.values(xhr.responseJSON.errors).flat().join('\n'));
+                    swal('Perhatian', Object.values(xhr.responseJSON.errors).flat().join('\n'), 'warning');
                 } else if (xhr.responseJSON && xhr.responseJSON.message) {
-                    alert(xhr.responseJSON.message);
+                    swal('Error', xhr.responseJSON.message, 'error');
                 } else {
-                    alert('Error Internal! Please Try again!');
+                    swal('Error', 'Error Internal! Please Try again!', 'error');
                 }
             }
         });

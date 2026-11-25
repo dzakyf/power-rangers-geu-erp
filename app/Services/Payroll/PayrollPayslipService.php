@@ -136,6 +136,9 @@ class PayrollPayslipService
                     if ($type === 'BASIC') {
                         $basicSalary += $amt;
                     } elseif ($type === 'ALLOWANCE') {
+                        if ($pId === 'PY000060' || stripos($name, 'THR') !== false || stripos($name, 'HARI RAYA') !== false) {
+                            continue;
+                        }
                         if ($pId === 'PYH00001' || stripos($name, 'TUNJANGAN PAJAK') !== false || stripos($name, 'TUNJANGAN PPH') !== false) {
                             $additionalEarnings[] = ['name' => $name, 'amount' => abs($amt)];
                         } else {
@@ -145,6 +148,24 @@ class PayrollPayslipService
                         if ($pId === 'PY000000' || stripos($name, 'PPH') !== false || stripos($name, 'PAJAK') !== false) {
                             $terCat = isset($tax['ter_category']) ? " (TER {$tax['ter_category']})" : '';
                             $deductionsItems[] = ['name' => $name . $terCat, 'amount' => abs($amt)];
+                        } elseif ($pId === 'PY000032') {
+                            $bpjsMeta = $meta['deduction_breakdown']['bpjs_kes'] ?? [];
+                            $dispMode = strtoupper(trim((string)($bpjsMeta['display_mode'] ?? 'SEPARATE')));
+                            $extraCnt = (int)($bpjsMeta['extra_family_count'] ?? 0);
+                            $label = ($dispMode === 'COMBINED' && $extraCnt > 0)
+                                ? "IURAN BPJS KESEHATAN (1% + {$extraCnt} Kel. Tambahan)"
+                                : $name;
+                            $deductionsItems[] = ['name' => $label, 'amount' => abs($amt)];
+                        } elseif ($pId === 'DED_BPJS_KES_EXTRA') {
+                            if (abs($amt) > 0) {
+                                $bpjsMeta = $meta['deduction_breakdown']['bpjs_kes'] ?? [];
+                                $extraCnt = (int)($bpjsMeta['extra_family_count'] ?? 0);
+                                $extraPct = isset($bpjsMeta['extra_family_rate']) ? (float)$bpjsMeta['extra_family_rate'] : 1.0;
+                                $label = $extraCnt > 0
+                                    ? "BPJS Kesehatan Keluarga Tambahan ({$extraCnt} org @ {$extraPct}%)"
+                                    : $name;
+                                $deductionsItems[] = ['name' => $label, 'amount' => abs($amt)];
+                            }
                         } elseif (stripos($name, 'BPJS') !== false || stripos($name, 'JHT') !== false || stripos($name, 'PENSIUN') !== false) {
                             $deductionsItems[] = ['name' => $name, 'amount' => abs($amt)];
                         } else {
@@ -182,26 +203,12 @@ class PayrollPayslipService
                         $earningsItems[] = ['name' => 'Insentif KJK', 'amount' => (float)$historicalSalary->KJK];
                     }
                 }
-
-                if (isset($historicalSalary->THR) && (float)$historicalSalary->THR > 0) {
-                    $hasThr = false;
-                    foreach ($earningsItems as $ei) {
-                        if (stripos($ei['name'], 'THR') !== false || stripos($ei['name'], 'HARI RAYA') !== false) {
-                            $hasThr = true;
-                            break;
-                        }
-                    }
-                    if (!$hasThr) {
-                        $earningsItems[] = ['name' => 'THR (Tunjangan Hari Raya)', 'amount' => (float)$historicalSalary->THR];
-                    }
-                }
             } else {
                 // Fallback struktur standar dari record salary
                 $basicSalary = (float)$historicalSalary->Pokok;
                 $dailyAllowance = (float)$historicalSalary->Tunjangan;
                 $overtime = (float)$historicalSalary->Overtime;
                 $kjk = isset($historicalSalary->KJK) ? (float)$historicalSalary->KJK : 0.0;
-                $thr = isset($historicalSalary->THR) ? (float)$historicalSalary->THR : 0.0;
                 $taxAllowance = (float)$historicalSalary->Tunjangan_PPH;
 
                 $earningsItems[] = ['name' => 'Basic salary', 'amount' => $basicSalary];
@@ -214,9 +221,6 @@ class PayrollPayslipService
                 if ($kjk > 0) {
                     $earningsItems[] = ['name' => 'Insentif KJK', 'amount' => $kjk];
                 }
-                if ($thr > 0) {
-                    $earningsItems[] = ['name' => 'THR (Tunjangan Hari Raya)', 'amount' => $thr];
-                }
 
                 if ($taxAllowance > 0) {
                     $additionalEarnings[] = ['name' => 'PPh 21 DTP / Tunjangan Pajak', 'amount' => $taxAllowance];
@@ -227,7 +231,7 @@ class PayrollPayslipService
                 $pph21Employee = abs((float)$historicalSalary->PPH);
 
                 if ($bpjsKesEmployee > 0) {
-                    $deductionsItems[] = ['name' => 'BPJS Kesehatan Employee (1%)', 'amount' => $bpjsKesEmployee];
+                    $this->appendBpjsKesDeductionItems($deductionsItems, $bpjsKesEmployee, $meta);
                 }
                 if ($jhtEmployee > 0) {
                     $deductionsItems[] = ['name' => 'BPJS Ketenagakerjaan (JHT 2%)', 'amount' => $jhtEmployee];
@@ -326,7 +330,6 @@ class PayrollPayslipService
             $dailyAllowance = (float)$calc['tunjangan'];
             $overtime = (float)$calc['overtime'];
             $kjk = isset($calc['kjk']) ? (float)$calc['kjk'] : 0.0;
-            $thr = isset($calc['thr']) ? (float)$calc['thr'] : 0.0;
             $taxAllowance = (float)$calc['tunjangan_pph'];
 
             $earningsItems = [];
@@ -340,16 +343,13 @@ class PayrollPayslipService
             if ($kjk > 0) {
                 $earningsItems[] = ['name' => 'Insentif KJK', 'amount' => $kjk];
             }
-            if ($thr > 0) {
-                $earningsItems[] = ['name' => 'THR (Tunjangan Hari Raya)', 'amount' => $thr];
-            }
 
             $additionalEarnings = [];
             if ($taxAllowance > 0) {
                 $additionalEarnings[] = ['name' => 'PPh 21 DTP / Tunjangan Pajak', 'amount' => $taxAllowance];
             }
 
-            $totalEarnings = $basicSalary + $dailyAllowance + $overtime + $kjk + $thr + $taxAllowance;
+            $totalEarnings = $basicSalary + $dailyAllowance + $overtime + $kjk + $taxAllowance;
 
             $bpjsKesEmployee = (float)$calc['bpjs_kes_amount'];
             $jhtEmployee = (float)$calc['bpjs_tk_amount'];
@@ -363,7 +363,7 @@ class PayrollPayslipService
 
             $deductionsItems = [];
             if ($bpjsKesEmployee > 0) {
-                $deductionsItems[] = ['name' => 'BPJS Kesehatan Employee (1%)', 'amount' => $bpjsKesEmployee];
+                $this->appendBpjsKesDeductionItems($deductionsItems, $bpjsKesEmployee, $meta);
             }
             if ($jhtEmployee > 0) {
                 $deductionsItems[] = ['name' => 'BPJS Ketenagakerjaan (JHT 2%)', 'amount' => $jhtEmployee];
@@ -468,5 +468,41 @@ class PayrollPayslipService
             'note'                 => $noteDisplay,
             'main_id'              => $mainId,
         ];
+    }
+
+    /**
+     * Format item potongan BPJS Kesehatan (dipisah atau digabung sesuai setting display_mode).
+     *
+     * @param array $deductionsItems
+     * @param float $bpjsKesEmployee
+     * @param array $meta
+     * @return void
+     */
+    private function appendBpjsKesDeductionItems(array &$deductionsItems, float $bpjsKesEmployee, array $meta): void
+    {
+        $bpjsMeta = $meta['deduction_breakdown']['bpjs_kes'] ?? [];
+        $dispMode = strtoupper(trim((string)($bpjsMeta['display_mode'] ?? 'SEPARATE')));
+        $extraCnt = (int)($bpjsMeta['extra_family_count'] ?? 0);
+        $extraAmt = (float)($bpjsMeta['extra_family_amount'] ?? 0);
+        $baseAmt = isset($bpjsMeta['base_amount'])
+            ? (float)$bpjsMeta['base_amount']
+            : max(0.0, $bpjsKesEmployee - $extraAmt);
+        $extraPct = isset($bpjsMeta['extra_family_rate']) ? (float)$bpjsMeta['extra_family_rate'] : 1.0;
+
+        if ($extraCnt > 0 && $extraAmt > 0 && $dispMode === 'SEPARATE') {
+            if ($baseAmt > 0) {
+                $deductionsItems[] = ['name' => 'BPJS Kesehatan Employee (1%)', 'amount' => $baseAmt];
+            }
+            $deductionsItems[] = [
+                'name'   => "BPJS Kesehatan Keluarga Tambahan ({$extraCnt} org @ {$extraPct}%)",
+                'amount' => $extraAmt,
+            ];
+            return;
+        }
+
+        $label = $extraCnt > 0
+            ? "BPJS Kesehatan Employee (1% + {$extraCnt} Kel. Tambahan)"
+            : 'BPJS Kesehatan Employee (1%)';
+        $deductionsItems[] = ['name' => $label, 'amount' => $bpjsKesEmployee];
     }
 }

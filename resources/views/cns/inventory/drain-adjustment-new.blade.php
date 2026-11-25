@@ -1,7 +1,7 @@
-<div class="ml-2">
-    <div class="JudulContent" style="color:#699;">NEW DRAIN ADJUSTMENT</div>
-    <div class="card">
-        <div class="card-body pt-2">
+<div class="mt-3">
+    <div class="cns-section-header">NEW DRAIN ADJUSTMENT</div>
+    <div class="card cns-card">
+        <div class="card-body pt-3">
             <p class="text-muted mb-3">Formulir penyesuaian stok tangki berdasarkan hasil timbang manual sebelum melakukan drain. Setelah di-approve, selisih akan otomatis menyesuaikan saldo sistem tangki.</p>
 
             <form id="formDrainAdjustmentNew" onsubmit="submitNewDrainAdjustment(event)" enctype="multipart/form-data">
@@ -212,13 +212,14 @@
             contentType: false,
             headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
             success: function(res) {
-                alert(res.message || 'Drain Adjustment berhasil disimpan.');
-                $('#DrainAdjustmentDet').empty();
-                refreshDrainAdjData();
+                swal('Berhasil!', res.message || 'Drain Adjustment berhasil disimpan.', 'success').then(function () {
+                    $('#DrainAdjustmentDet').empty();
+                    refreshDrainAdjData();
+                });
             },
             error: function(xhr) {
                 var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Terjadi kesalahan saat menyimpan data.';
-                alert(msg);
+                swal('Error', msg, 'error');
                 $('#btnSaveDrainAdjustment').prop('disabled', false).html('Simpan Drain Adjustment');
             }
         });

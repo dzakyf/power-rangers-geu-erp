@@ -53,7 +53,7 @@ return [
         'bp'      => ['bdp'],
         'finance' => [],
         'cns'     => ['cns'],
-        'hcga'    => ['hcga'],
+        'hcga'    => ['hcga', 'approval'],
         'legacy'  => ['legacy'],
     ],
 

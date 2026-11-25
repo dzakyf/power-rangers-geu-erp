@@ -40,6 +40,9 @@ class DatabaseSeeder extends Seeder
 
         if (Modules::isEnabled('hcga')) {
             $this->call(HcgaPermissionSeeder::class);
+            $this->call(PayrollThrMenuSeeder::class);
+            $this->call(ApprovalPayrollThrPolicySeeder::class);
+            $this->call(ItSupportAndGaVoucherSeeder::class);
         }
 
         // Reference data is normally imported from the live database in

@@ -2,39 +2,17 @@
 
 @section('content-wrapper')
 @csrf
-<!-- Main Content Header -->
-<div class="main-content-header">
-    <h1>Inventory</h1>
-    <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="{{ url('home-cns') }}">Home</a></li>
-        <li class="breadcrumb-item">Inventory UCO</li>
-        <li class="breadcrumb-item active">
-            <span class="active">Inbound Movement</span>
-        </li>
-    </ol>
-</div>
+@include('cns.partials.page-header', [
+    'title' => 'Inbound Movement',
+    'breadcrumbs' => [
+        ['label' => 'Inventory UCO'],
+        ['label' => 'Inbound Movement'],
+    ],
+])
 
 <style>
-    /* Table styling to match Pelindo Inventory design */
-    #ProjectionGrid .hdr tr:first-child td {
-        background-color: #174375 !important;
-        color: #000000 !important;
-        font-weight: bold !important;
-        text-align: center !important;
-        vertical-align: middle !important;
-        border-right: 1px solid #ffffff !important;
-        font-size: 12px !important;
-    }
-    #ProjectionGrid .hdr tr:nth-child(2) td {
-        background-color: #FFF2CC !important;
-        color: #000000 !important;
-        font-weight: bold !important;
-        text-align: center !important;
-        vertical-align: middle !important;
-        border-right: 1px solid #b5b5b5 !important;
-        font-size: 12px !important;
-    }
     /* Parameter subheader columns (FFA, MC, IMP, Link QC) */
+    #ProjectionGrid .hdr tr:nth-child(2) td,
     #ProjectionGrid .hdr tr:nth-child(2) td:nth-last-child(1),
     #ProjectionGrid .hdr tr:nth-child(2) td:nth-last-child(2),
     #ProjectionGrid .hdr tr:nth-child(2) td:nth-last-child(3),
@@ -45,10 +23,6 @@
         text-align: center !important;
         border: 1px solid #b5b5b5 !important;
         font-size: 12px !important;
-    }
-    #ProjectionGrid td {
-        font-size: 12px !important;
-        vertical-align: middle !important;
     }
     #ProjectionGrid .badge-light {
         font-size: 11px !important;
@@ -63,24 +37,11 @@
     #ProjectionGrid a {
         text-decoration: none !important;
     }
-    #UpcomingGrid .hdr tr:first-child td {
-        background-color: #174375 !important;
-        color: #ffffff !important;
-        font-weight: bold !important;
-        text-align: center !important;
-        vertical-align: middle !important;
-        border-right: 1px solid #ffffff !important;
-        font-size: 12px !important;
-    }
-    #UpcomingGrid td {
-        font-size: 12px !important;
-        vertical-align: middle !important;
-    }
     .card-header-tabs .nav-link {
         border: none !important;
         border-bottom: 3px solid transparent !important;
         color: #6c757d;
-        padding: 12px 24px;
+        padding: 10px 20px;
         font-size: 13px;
         border-radius: 0;
         background: transparent;
@@ -96,142 +57,225 @@
         border-bottom: 3px solid #174375 !important;
         font-weight: bold;
     }
+    .tank-metric-card {
+        border-radius: 10px;
+        padding: 18px 20px;
+        color: #ffffff;
+        position: relative;
+        min-height: 125px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        cursor: pointer;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+        transition: transform 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    }
+    .tank-metric-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 12px rgba(0, 0, 0, 0.08);
+    }
+    .tank-metric-card .metric-header {
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.85);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding-right: 64px;
+    }
+    .tank-metric-card .tank-pct-badge {
+        background: rgba(255, 255, 255, 0.22);
+        color: #ffffff;
+        font-size: 10px;
+        font-weight: 700;
+        padding: 2px 6px;
+        border-radius: 4px;
+    }
+    .tank-metric-card .metric-value {
+        font-size: 22px;
+        font-weight: 700;
+        line-height: 1.2;
+        color: #ffffff;
+        margin-top: 6px;
+        padding-right: 64px;
+    }
+    .tank-metric-card .metric-icon-box {
+        width: 52px;
+        height: 52px;
+        border-radius: 6px;
+        background: rgba(255, 255, 255, 0.18);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: absolute;
+        right: 18px;
+        top: 18px;
+    }
+    .tank-metric-card .metric-icon-box i,
+    .tank-metric-card .metric-icon-box svg {
+        font-size: 22px;
+        color: #ffffff;
+    }
+    .tank-metric-card .tank-progress {
+        height: 6px;
+        background: rgba(255, 255, 255, 0.25);
+        border-radius: 999px;
+        overflow: hidden;
+        margin: 10px 0 8px;
+    }
+    .tank-metric-card .tank-progress-bar {
+        height: 100%;
+        background: #ffffff;
+        border-radius: 999px;
+    }
+    .tank-metric-card .tank-meta {
+        display: flex;
+        justify-content: space-between;
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.9);
+        gap: 8px;
+    }
+    .bg-card-teal { background-color: #11a38f !important; }
+    .bg-card-orange { background-color: #f5a834 !important; }
+    .bg-card-coral { background-color: #ef533c !important; }
 </style>
 
-<div id="ProjectionSection" class="row m-1">
-    <div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">INBOUND MOVEMENT</div>
+<!-- Tank Monitoring Summary Cards -->
+<div id="tankMonitoringCardSection" class="mb-3" style="display:none;">
+    <div class="d-flex justify-content-between align-items-center mb-2 pb-1 border-bottom">
+        <span class="font-weight-bold text-secondary" style="font-size: 13px;">
+            <i class="fa fa-database text-info mr-1"></i> MONITORING KAPASITAS TANGKI UCO
+        </span>
+        <a href="cns-master-tank" class="badge badge-light p-1 text-primary" style="font-size: 11px;">
+            <i class="fa fa-cog mr-1"></i>Kelola Master Tangki
+        </a>
+    </div>
+    <div class="row g-3" id="tankCardsContainer">
+        <!-- Dynamic Tank Cards -->
+    </div>
+</div>
 
-    <!-- Main Card Container with Header Tabs -->
-    <div class="card w-100 shadow-sm" style="border: 1px solid #ced4da; border-radius: 4px;">
-        <div class="card-header bg-white border-bottom p-0">
-            <ul class="nav nav-tabs card-header-tabs m-0 border-bottom-0" id="inboundMovementTabs" role="tablist">
-                <li class="nav-item">
-                    <a class="nav-link active font-weight-bold" id="tab-monitoring-link" data-bs-toggle="tab" data-bs-target="#tab-monitoring" data-toggle="tab" href="#tab-monitoring" role="tab" aria-controls="tab-monitoring" aria-selected="true" onclick="switchInboundTab('monitoring'); return false;">
-                        <i class="fa fa-line-chart text-primary mr-2"></i> Monitoring Stock UCO
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link font-weight-bold" id="tab-upcoming-link" data-bs-toggle="tab" data-bs-target="#tab-upcoming" data-toggle="tab" href="#tab-upcoming" role="tab" aria-controls="tab-upcoming" aria-selected="false" onclick="switchInboundTab('upcoming'); return false;">
-                        <i class="fa fa-truck text-success mr-2"></i> Upcoming Inbound
-                        <span class="badge badge-primary ml-1" style="font-size: 10px;">API</span>
-                    </a>
-                </li>
-            </ul>
+<!-- Main Card Container -->
+<div id="ProjectionSection" class="card cns-card">
+    <div class="card-header">
+        <h5 class="card-title">Inbound Movement</h5>
+        <div id="monitoringHeaderActions" class="d-flex align-items-center flex-wrap" style="gap: 0.5rem;">
+            <input type="button" id="CreateUCO" name="CreateUCO" value="Create" class="btn btn-sm btn-primary" onclick="createUCO()" />
+            <input type="button" id="DetailQC" name="DetailQC" value="Detail/Update" class="btn btn-sm btn-info" onclick="detailQC()" />
+            <input type="button" id="ApproveInbound" name="ApproveInbound" value="Approve" class="btn btn-sm btn-success" onclick="approveSelectedInbound()" />
+            <input type="button" id="RejectInbound" name="RejectInbound" value="Reject" class="btn btn-sm btn-danger" onclick="rejectSelectedInbound()" />
+            <input type="button" id="LogUCO" name="DetailQC" value="Log" class="btn btn-sm btn-outline-secondary" onclick="swal('Perhatian', 'under development', 'warning');" />
         </div>
-        <div class="card-body p-3">
-            <div class="tab-content" id="inboundMovementTabContent">
-                <!-- TAB 1: MONITORING STOCK UCO -->
-                <div class="tab-pane fade show active" id="tab-monitoring" role="tabpanel" aria-labelledby="tab-monitoring-link">
-                    <!-- Tank Monitoring Summary Cards -->
-                    <div id="tankMonitoringCardSection" class="mb-3" style="display:none;">
-                        <div class="d-flex justify-content-between align-items-center mb-2 pb-1 border-bottom">
-                            <span class="font-weight-bold text-secondary" style="font-size: 13px;">
-                                <i class="fa fa-database text-info mr-1"></i> MONITORING KAPASITAS TANGKI UCO
-                            </span>
-                            <a href="cns-master-tank" class="badge badge-light p-1 text-primary" style="font-size: 11px;">
-                                <i class="fa fa-cog mr-1"></i>Kelola Master Tangki
-                            </a>
-                        </div>
-                        <div class="row" id="tankCardsContainer">
-                            <!-- Dynamic Tank Cards -->
-                        </div>
-                    </div>
+        <div id="upcomingHeaderActions" class="d-none align-items-center flex-wrap" style="gap: 0.5rem;">
+            <button type="button" class="btn btn-sm btn-outline-primary" id="btnRefreshUpcomingApi" onclick="loadUpcomingGridData(true)">
+                <i class="fa fa-refresh mr-1"></i> Refresh Data
+            </button>
+        </div>
+    </div>
+    <div class="card-body">
+        <ul class="nav nav-tabs card-header-tabs mb-3 mx-0 border-bottom" id="inboundMovementTabs" role="tablist">
+            <li class="nav-item">
+                <a class="nav-link active font-weight-bold" id="tab-monitoring-link" data-bs-toggle="tab" data-bs-target="#tab-monitoring" data-toggle="tab" href="#tab-monitoring" role="tab" aria-controls="tab-monitoring" aria-selected="true" onclick="switchInboundTab('monitoring'); return false;">
+                    <i class="fa fa-line-chart text-primary mr-2"></i> Monitoring Stock UCO
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link font-weight-bold" id="tab-upcoming-link" data-bs-toggle="tab" data-bs-target="#tab-upcoming" data-toggle="tab" href="#tab-upcoming" role="tab" aria-controls="tab-upcoming" aria-selected="false" onclick="switchInboundTab('upcoming'); return false;">
+                    <i class="fa fa-truck text-success mr-2"></i> Upcoming Inbound
+                    <span class="badge badge-primary ml-1" style="font-size: 10px;">API</span>
+                </a>
+            </li>
+        </ul>
 
-                    <div class="d-flex align-items-end flex-wrap gap-2 mb-2">
-                        <div class="m-1">
-                            <label class="d-block mb-1"><small>Dari Tanggal</small></label>
-                            <input type="date" id="filterStartDate" class="form-control form-control-sm" style="width:145px;" />
-                        </div>
-                        <div class="m-1">
-                            <label class="d-block mb-1"><small>Sampai Tanggal</small></label>
-                            <input type="date" id="filterEndDate" class="form-control form-control-sm" style="width:145px;" />
-                        </div>
-                        <div class="m-1" style="width:200px;">
-                            <label class="d-block mb-1"><small>Warehouse</small></label>
-                            <select id="filterWarehouse" class="form-control form-control-sm" style="width:100%;">
-                                <option value="">-- Semua --</option>
-                            </select>
-                        </div>
-                        <div class="m-1" style="width:180px;">
-                            <label class="d-block mb-1"><small>Nama Tangki</small></label>
-                            <select id="filterTank" class="form-control form-control-sm" style="width:100%;">
-                                <option value="">-- Semua --</option>
-                            </select>
-                        </div>
-                        <div class="m-1">
-                            <button class="btn btn-sm btn-primary" onclick="applyFilters()">Filter</button>
-                            <button class="btn btn-sm btn-secondary ml-1" onclick="resetFilters()">Reset</button>
-                        </div>
-                    </div>
-                    <div id="ProjectionGrid" style="width:100%;height:450px; background-color:white;overflow:hidden" class="mt-2 border"></div>
+        <div class="tab-content" id="inboundMovementTabContent">
+            <!-- TAB 1: MONITORING STOCK UCO -->
+            <div class="tab-pane fade show active" id="tab-monitoring" role="tabpanel" aria-labelledby="tab-monitoring-link">
+                <div class="cns-filter-bar">
                     <div>
-                        <input type="button" id="CreateUCO" name="CreateUCO" value="Create" class="btn btn-info mt-2 mr-2" onclick="createUCO()" />
-                        <input type="button" id="DetailQC" name="DetailQC" value="Detail/Update" class="btn btn-info mt-2 mr-2" onclick="detailQC()" />
-                        <input type="button" id="ApproveInbound" name="ApproveInbound" value="Approve" class="btn btn-success mt-2 mr-2" onclick="approveSelectedInbound()" />
-                        <input type="button" id="RejectInbound" name="RejectInbound" value="Reject" class="btn btn-danger mt-2 mr-2" onclick="rejectSelectedInbound()" />
-                        <input type="button" id="DetailQC" name="DetailQC" value="Log" class="btn btn-info mt-2 mr-2" onclick="alert('under development');" />
+                        <label class="d-block mb-1"><small>Dari Tanggal</small></label>
+                        <input type="date" id="filterStartDate" class="form-control form-control-sm" style="width:145px;" />
                     </div>
-                    @include('cns.inventory.create')
-                    @include('cns.inventory.edit')
+                    <div>
+                        <label class="d-block mb-1"><small>Sampai Tanggal</small></label>
+                        <input type="date" id="filterEndDate" class="form-control form-control-sm" style="width:145px;" />
+                    </div>
+                    <div style="width:200px;">
+                        <label class="d-block mb-1"><small>Warehouse</small></label>
+                        <select id="filterWarehouse" class="form-control form-control-sm" style="width:100%;">
+                            <option value="">-- Semua --</option>
+                        </select>
+                    </div>
+                    <div style="width:180px;">
+                        <label class="d-block mb-1"><small>Nama Tangki</small></label>
+                        <select id="filterTank" class="form-control form-control-sm" style="width:100%;">
+                            <option value="">-- Semua --</option>
+                        </select>
+                    </div>
+                    <div>
+                        <button type="button" class="btn btn-sm btn-primary" onclick="applyFilters()">Filter</button>
+                        <button type="button" class="btn btn-sm btn-secondary ml-1" onclick="resetFilters()">Reset</button>
+                    </div>
                 </div>
 
-                <!-- TAB 2: UPCOMING INBOUND -->
-                <div class="tab-pane fade" id="tab-upcoming" role="tabpanel" aria-labelledby="tab-upcoming-link">
-                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
-                        <div class="d-flex align-items-end flex-wrap gap-2">
-                            <div class="m-1">
-                                <label class="d-block mb-1"><small>Jenis Tanggal</small></label>
-                                <select id="filterUpcomingDateType" class="form-control form-control-sm" style="width:130px;">
-                                    <option value="eta" selected>Tgl ETA</option>
-                                    <option value="loading">Tgl Loading</option>
-                                </select>
-                            </div>
-                            <div class="m-1">
-                                <label class="d-block mb-1"><small>Dari Tanggal</small></label>
-                                <input type="date" id="filterUpcomingStartDate" class="form-control form-control-sm" style="width:145px;" />
-                            </div>
-                            <div class="m-1">
-                                <label class="d-block mb-1"><small>Sampai Tanggal</small></label>
-                                <input type="date" id="filterUpcomingEndDate" class="form-control form-control-sm" style="width:145px;" />
-                            </div>
-                            <div class="m-1" style="width:240px;">
-                                <label class="d-block mb-1"><small>Pencarian</small></label>
-                                <input type="text" id="filterUpcomingSearch" class="form-control form-control-sm" placeholder="Kode / Asal / Tujuan / Status" onkeyup="if(event.keyCode===13) applyUpcomingFilters()" />
-                            </div>
-                            <div class="m-1">
-                                <button class="btn btn-sm btn-primary" onclick="applyUpcomingFilters()">Filter</button>
-                                <button class="btn btn-sm btn-secondary ml-1" onclick="resetUpcomingFilters()">Reset</button>
-                            </div>
-                        </div>
+                <div class="cns-grid-wrapper">
+                    <div id="ProjectionGrid" class="cns-grid" style="width:100%;height:450px; background-color:white;overflow:hidden"></div>
+                </div>
+                @include('cns.inventory.create')
+                @include('cns.inventory.edit')
+            </div>
 
-                        <div class="d-flex gap-2">
-                            <button type="button" class="btn btn-sm btn-outline-primary" id="btnRefreshUpcomingApi" onclick="loadUpcomingGridData(true)">
-                                <i class="fa fa-refresh mr-1"></i> Refresh Data
-                            </button>
-                        </div>
+            <!-- TAB 2: UPCOMING INBOUND -->
+            <div class="tab-pane fade" id="tab-upcoming" role="tabpanel" aria-labelledby="tab-upcoming-link">
+                <div class="cns-filter-bar">
+                    <div>
+                        <label class="d-block mb-1"><small>Jenis Tanggal</small></label>
+                        <select id="filterUpcomingDateType" class="form-control form-control-sm" style="width:130px;">
+                            <option value="eta" selected>Tgl ETA</option>
+                            <option value="loading">Tgl Loading</option>
+                        </select>
                     </div>
+                    <div>
+                        <label class="d-block mb-1"><small>Dari Tanggal</small></label>
+                        <input type="date" id="filterUpcomingStartDate" class="form-control form-control-sm" style="width:145px;" />
+                    </div>
+                    <div>
+                        <label class="d-block mb-1"><small>Sampai Tanggal</small></label>
+                        <input type="date" id="filterUpcomingEndDate" class="form-control form-control-sm" style="width:145px;" />
+                    </div>
+                    <div style="width:240px;">
+                        <label class="d-block mb-1"><small>Pencarian</small></label>
+                        <input type="text" id="filterUpcomingSearch" class="form-control form-control-sm" placeholder="Kode / Asal / Tujuan / Status" onkeyup="if(event.keyCode===13) applyUpcomingFilters()" />
+                    </div>
+                    <div>
+                        <button type="button" class="btn btn-sm btn-primary" onclick="applyUpcomingFilters()">Filter</button>
+                        <button type="button" class="btn btn-sm btn-secondary ml-1" onclick="resetUpcomingFilters()">Reset</button>
+                    </div>
+                </div>
 
-                    <div id="UpcomingGrid" style="width:100% !important; min-height:450px; height:450px; background-color:white; overflow:hidden;" class="mt-2 border"></div>
-                    <div id="upcomingEmptyNotice" class="alert alert-info mt-2 mb-0" style="display:none;"></div>
-                    <div id="upcomingErrorNotice" class="alert alert-danger mt-2 mb-0" style="display:none;"></div>
+                <div class="cns-grid-wrapper">
+                    <div id="UpcomingGrid" class="cns-grid" style="width:100% !important; min-height:450px; height:450px; background-color:white; overflow:hidden;"></div>
+                </div>
+                <div id="upcomingEmptyNotice" class="alert alert-info mt-2 mb-0" style="display:none;"></div>
+                <div id="upcomingErrorNotice" class="alert alert-danger mt-2 mb-0" style="display:none;"></div>
 
-                    <div id="upcomingPaginationBar" class="d-flex justify-content-between align-items-center flex-wrap gap-2 mt-2">
+                <div id="upcomingPaginationBar" class="d-flex justify-content-between align-items-center flex-wrap gap-2 mt-2">
+                    <div class="d-flex align-items-center">
+                        <span id="upcomingPaginationInfo" class="text-muted small mr-3">Menampilkan 0 data</span>
                         <div class="d-flex align-items-center">
-                            <span id="upcomingPaginationInfo" class="text-muted small mr-3">Menampilkan 0 data</span>
-                            <div class="d-flex align-items-center">
-                                <label for="upcomingPerPage" class="text-muted small mb-0 mr-2">Per halaman:</label>
-                                <select id="upcomingPerPage" class="form-control form-control-sm" style="width:auto;" onchange="changeUpcomingPerPage(this.value)">
-                                    <option value="10">10</option>
-                                    <option value="25" selected>25</option>
-                                    <option value="50">50</option>
-                                    <option value="100">100</option>
-                                </select>
-                            </div>
+                            <label for="upcomingPerPage" class="text-muted small mb-0 mr-2">Per halaman:</label>
+                            <select id="upcomingPerPage" class="form-control form-control-sm" style="width:auto;" onchange="changeUpcomingPerPage(this.value)">
+                                <option value="10">10</option>
+                                <option value="25" selected>25</option>
+                                <option value="50">50</option>
+                                <option value="100">100</option>
+                            </select>
                         </div>
-                        <nav aria-label="Upcoming Inbound Pagination">
-                            <ul id="upcomingPaginationControls" class="pagination pagination-sm mb-0"></ul>
-                        </nav>
                     </div>
+                    <nav aria-label="Upcoming Inbound Pagination">
+                        <ul id="upcomingPaginationControls" class="pagination pagination-sm mb-0"></ul>
+                    </nav>
                 </div>
             </div>
         </div>
@@ -295,11 +339,11 @@
     function detailQC() {
         $('#FormQualityControl').hide();
         if (!inventoryId) {
-            alert('Pilih data terlebih dahulu');
+            swal('Perhatian', 'Pilih data terlebih dahulu', 'warning');
             return;
         }
         if (inventoryId === 'row_opening') {
-            alert('Opening stock tidak dapat diedit');
+            swal('Perhatian', 'Opening stock tidak dapat diedit', 'warning');
             return;
         }
         prefillEditQC(inventoryId);
@@ -312,20 +356,26 @@
         applyFilters();
     }
 
+    var ProjectionPagination;
+
     function applyFilters() {
-        var startDate = $('#filterStartDate').val();
-        var endDate = $('#filterEndDate').val();
-        var warehouse = $('#filterWarehouse').val();
-        var tank = $('#filterTank').val();
+        if (ProjectionPagination) {
+            ProjectionPagination.reload(true);
+        } else if (ProjectionGrid) {
+            var startDate = $('#filterStartDate').val();
+            var endDate = $('#filterEndDate').val();
+            var warehouse = $('#filterWarehouse').val();
+            var tank = $('#filterTank').val();
 
-        var params = [];
-        if (startDate) params.push('start_date=' + encodeURIComponent(startDate));
-        if (endDate) params.push('end_date=' + encodeURIComponent(endDate));
-        if (warehouse) params.push('warehouse=' + encodeURIComponent(warehouse));
-        if (tank) params.push('tank=' + encodeURIComponent(tank));
+            var params = [];
+            if (startDate) params.push('start_date=' + encodeURIComponent(startDate));
+            if (endDate) params.push('end_date=' + encodeURIComponent(endDate));
+            if (warehouse) params.push('warehouse=' + encodeURIComponent(warehouse));
+            if (tank) params.push('tank=' + encodeURIComponent(tank));
 
-        var url = 'cns-inventory-tracking-data' + (params.length ? '?' + params.join('&') : '');
-        ProjectionGrid.clearAndLoad(url);
+            var url = 'cns-inventory-tracking-data' + (params.length ? '?' + params.join('&') : '');
+            ProjectionGrid.clearAndLoad(url);
+        }
     }
 
     function loadTankMonitoringCards() {
@@ -335,38 +385,41 @@
                 container.empty();
                 $.each(res.data, function(_, t) {
                     var pct = t.utilization_pct || 0;
-                    var barClass = 'bg-success';
-                    var badgeClass = 'badge-success';
+                    var cardColorClass = 'bg-card-teal';
                     if (pct >= 90) {
-                        barClass = 'bg-danger';
-                        badgeClass = 'badge-danger';
+                        cardColorClass = 'bg-card-coral';
                     } else if (pct >= 70) {
-                        barClass = 'bg-warning';
-                        badgeClass = 'badge-warning';
+                        cardColorClass = 'bg-card-orange';
                     }
 
                     var stockFmt = cnsFormatNumber(t.current_stock, 2);
                     var capFmt = cnsFormatNumber(t.capacity, 2);
                     var remFmt = cnsFormatNumber(t.remaining, 2);
+                    var safeName = $('<div>').text(t.name).html();
 
-                    var cardHtml = '<div class="col-md-3 col-sm-6 mb-2">' +
-                        '<div class="card border shadow-sm h-100" style="cursor: pointer;" onclick="filterByTank(\'' + t.name + '\')" title="Klik untuk filter tabel ke ' + t.name + '">' +
-                            '<div class="card-body p-2">' +
-                                '<div class="d-flex justify-content-between align-items-center mb-1">' +
-                                    '<span class="font-weight-bold text-dark" style="font-size: 13px;">' +
-                                        '<i class="fa fa-cube text-primary mr-1"></i>' + t.name +
-                                    '</span>' +
-                                    '<span class="badge ' + badgeClass + '">' + pct + '%</span>' +
+                    var tankIconSvg = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' +
+                        '<path d="M5 7c0-2.2 3.1-4 7-4s7 1.8 7 4v10c0 2.2-3.1 4-7 4s-7-1.8-7-4V7z"/>' +
+                        '<ellipse cx="12" cy="7" rx="7" ry="2.2"/>' +
+                        '<path d="M5 12c0 1.2 3.1 2.2 7 2.2s7-1 7-2.2"/>' +
+                        '</svg>';
+
+                    var cardHtml = '<div class="col-xl-3 col-lg-6 col-md-6 col-12">' +
+                        '<div class="tank-metric-card ' + cardColorClass + '" data-tank="' + safeName + '" onclick="filterByTank(this.getAttribute(\'data-tank\'))" title="Klik untuk filter tabel ke ' + safeName + '">' +
+                            '<div>' +
+                                '<div class="metric-header">' +
+                                    '<span>' + safeName + '</span>' +
+                                    '<span class="tank-pct-badge">' + pct + '%</span>' +
                                 '</div>' +
-                                '<div class="progress mb-2" style="height: 8px;">' +
-                                    '<div class="progress-bar ' + barClass + '" role="progressbar" style="width: ' + Math.min(pct, 100) + '%;"></div>' +
+                                '<div class="metric-value">' + stockFmt + ' <span style="font-size:13px;font-weight:600;">KG</span></div>' +
+                            '</div>' +
+                            '<div class="metric-icon-box">' + tankIconSvg + '</div>' +
+                            '<div>' +
+                                '<div class="tank-progress">' +
+                                    '<div class="tank-progress-bar" style="width: ' + Math.min(pct, 100) + '%;"></div>' +
                                 '</div>' +
-                                '<div class="d-flex justify-content-between text-muted" style="font-size: 11px;">' +
-                                    '<span>Stok: <strong>' + stockFmt + '</strong> KG</span>' +
+                                '<div class="tank-meta">' +
                                     '<span>Kapasitas: ' + capFmt + ' KG</span>' +
-                                '</div>' +
-                                '<div class="text-right text-muted mt-1" style="font-size: 10px;">' +
-                                    'Sisa: ' + remFmt + ' KG' +
+                                    '<span>Sisa: ' + remFmt + ' KG</span>' +
                                 '</div>' +
                             '</div>' +
                         '</div>' +
@@ -389,34 +442,41 @@
         var rowId = ProjectionGrid.getSelectedRowId();
         var targetId = rowId ? (ProjectionGrid.getRowAttribute(rowId, 'ID') || rowId) : inventoryId;
         if (!targetId || String(targetId) === 'row_opening') {
-            alert('Pilih data transaksi terlebih dahulu');
+            swal('Perhatian', 'Pilih data transaksi terlebih dahulu', 'warning');
             return;
         }
-        if (!confirm('Approve inbound movement ini? Stok tangki akan bertambah setelah di-approve.')) {
-            return;
-        }
-        $.ajax({
-            url: 'cns-inventory-tracking-approve',
-            type: 'POST',
-            data: {
-                _token: $('meta[name="csrf-token"]').attr('content'),
-                id: targetId
-            },
-            success: function(res) {
-                if (res && res.success) {
-                    alert(res.message || 'Inbound movement berhasil di-approve');
-                    applyFilters();
-                    if (typeof loadTankMonitoringCards === 'function') {
-                        loadTankMonitoringCards();
+        swal({
+            title: 'Konfirmasi',
+            text: 'Approve inbound movement ini? Stok tangki akan bertambah setelah di-approve.',
+            icon: 'warning',
+            buttons: ['Batal', 'Ya'],
+            dangerMode: false
+        }).then(function (confirmed) {
+            if (!confirmed) return;
+            $.ajax({
+                url: 'cns-inventory-tracking-approve',
+                type: 'POST',
+                data: {
+                    _token: $('meta[name="csrf-token"]').attr('content'),
+                    id: targetId
+                },
+                success: function(res) {
+                    if (res && res.success) {
+                        swal('Berhasil!', res.message || 'Inbound movement berhasil di-approve', 'success').then(function () {
+                            applyFilters();
+                            if (typeof loadTankMonitoringCards === 'function') {
+                                loadTankMonitoringCards();
+                            }
+                        });
+                    } else {
+                        swal('Error', (res && res.message) ? res.message : 'Gagal approve data', 'error');
                     }
-                } else {
-                    alert((res && res.message) ? res.message : 'Gagal approve data');
+                },
+                error: function(xhr) {
+                    var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Gagal approve data';
+                    swal('Error', msg, 'error');
                 }
-            },
-            error: function(xhr) {
-                var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Gagal approve data';
-                alert(msg);
-            }
+            });
         });
     }
 
@@ -424,7 +484,7 @@
         var rowId = ProjectionGrid.getSelectedRowId();
         var targetId = rowId ? (ProjectionGrid.getRowAttribute(rowId, 'ID') || rowId) : inventoryId;
         if (!targetId || String(targetId) === 'row_opening') {
-            alert('Pilih data transaksi terlebih dahulu');
+            swal('Perhatian', 'Pilih data transaksi terlebih dahulu', 'warning');
             return;
         }
         var reason = prompt('Masukkan alasan penolakan (wajib diisi):');
@@ -433,7 +493,7 @@
         }
         reason = $.trim(reason);
         if (!reason) {
-            alert('Alasan penolakan wajib diisi');
+            swal('Perhatian', 'Alasan penolakan wajib diisi', 'warning');
             return;
         }
         $.ajax({
@@ -446,18 +506,19 @@
             },
             success: function(res) {
                 if (res && res.success) {
-                    alert(res.message || 'Inbound movement ditolak');
-                    applyFilters();
-                    if (typeof loadTankMonitoringCards === 'function') {
-                        loadTankMonitoringCards();
-                    }
+                    swal('Berhasil!', res.message || 'Inbound movement ditolak', 'success').then(function () {
+                        applyFilters();
+                        if (typeof loadTankMonitoringCards === 'function') {
+                            loadTankMonitoringCards();
+                        }
+                    });
                 } else {
-                    alert((res && res.message) ? res.message : 'Gagal reject data');
+                    swal('Error', (res && res.message) ? res.message : 'Gagal reject data', 'error');
                 }
             },
             error: function(xhr) {
                 var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Gagal reject data';
-                alert(msg);
+                swal('Error', msg, 'error');
             }
         });
     }
@@ -465,35 +526,41 @@
     function deleteQC() {
         var rowId = ProjectionGrid.getSelectedRowId();
         if (!rowId) {
-            alert('Pilih data terlebih dahulu');
+            swal('Perhatian', 'Pilih data terlebih dahulu', 'warning');
             return;
         }
 
-        if (!confirm('Yakin ingin menghapus data ini?')) {
-            return;
-        }
+        swal({
+            title: 'Konfirmasi',
+            text: 'Yakin ingin menghapus data ini?',
+            icon: 'warning',
+            buttons: ['Batal', 'Ya'],
+            dangerMode: true
+        }).then(function (confirmed) {
+            if (!confirmed) return;
 
-        var tanggal = ProjectionGrid.cells(rowId, 2).getValue();
-        var date = new Date(tanggal);
-        var formatted = date.getFullYear() + '-' +
-            String(date.getMonth() + 1).padStart(2, '0') + '-' +
-            String(date.getDate()).padStart(2, '0');
+            var tanggal = ProjectionGrid.cells(rowId, 2).getValue();
+            var date = new Date(tanggal);
+            var formatted = date.getFullYear() + '-' +
+                String(date.getMonth() + 1).padStart(2, '0') + '-' +
+                String(date.getDate()).padStart(2, '0');
 
-        $.ajax({
-            url: 'cns-quality-delete',
-            type: 'DELETE',
-            data: {
-                _token: $('meta[name="csrf-token"]').attr('content'),
-                Date: formatted
-            },
-            success: function(res) {
-                if (res.status === 'success') {
-                    applyFilters();
+            $.ajax({
+                url: 'cns-quality-delete',
+                type: 'DELETE',
+                data: {
+                    _token: $('meta[name="csrf-token"]').attr('content'),
+                    Date: formatted
+                },
+                success: function(res) {
+                    if (res.status === 'success') {
+                        applyFilters();
+                    }
+                },
+                error: function() {
+                    swal('Error', 'Gagal menghapus data', 'error');
                 }
-            },
-            error: function() {
-                alert('Gagal menghapus data');
-            }
+            });
         });
     }
 
@@ -502,6 +569,13 @@
     if (typeof dhtmlXGridObject !== 'undefined') {
         dhtmlXGridObject.prototype._in_header_stat_total_indo = function(e, a, h) {
             var g = function() {
+                var serverKey = (a === 9) ? 'total_qty_sj' : ((a === 10) ? 'total_in' : ((a === 11) ? 'total_out' : ((a === 12) ? 'total_stock' : null)));
+                if (serverKey && typeof this.getUserData === 'function') {
+                    var sVal = this.getUserData("", serverKey);
+                    if (sVal !== null && sVal !== undefined && sVal !== '') {
+                        return sVal;
+                    }
+                }
                 var n = 0;
                 this._build_m_order();
                 var m = this._m_order ? this._m_order[a] : a;
@@ -524,7 +598,7 @@
 
         let tHeader = [
             'No', 'Bulan', 'Tanggal',
-            'Asal Warehouse', 'Nama Tangki', 'Nopol / Kontainer', 'Fleet', 'No. Polisi', 'Driver', 'QTY SJ',
+            'Asal Warehouse', 'Nama Tangki', 'Reference No', 'Fleet', 'No. Polisi', 'Driver', 'QTY SJ',
             'IN (KG)', 'OUT (KG)', 'Jumlah Stok Pelindo (KG)',
             'Remarks', 'Link', 'Status Approval',
             'Parameter QC', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan'
@@ -699,6 +773,33 @@
             }
         });
 
+        ProjectionPagination = initCnsGridPagination(ProjectionGrid, {
+            pageSize: 25,
+            pageSizeOptions: [10, 25, 50, 100],
+            getUrl: function (params) {
+                var q = [];
+                q.push('posStart=' + params.posStart);
+                q.push('count=' + params.count);
+
+                var startDate = $('#filterStartDate').val();
+                var endDate = $('#filterEndDate').val();
+                var warehouse = $('#filterWarehouse').val();
+                var tank = $('#filterTank').val();
+
+                if (startDate) q.push('start_date=' + encodeURIComponent(startDate));
+                if (endDate)   q.push('end_date=' + encodeURIComponent(endDate));
+                if (warehouse) q.push('warehouse=' + encodeURIComponent(warehouse));
+                if (tank)      q.push('tank=' + encodeURIComponent(tank));
+
+                if (params.sortCol !== null && params.sortCol !== undefined) {
+                    q.push('sort_col=' + params.sortCol);
+                    q.push('sort_dir=' + (params.sortDir || 'asc'));
+                }
+
+                return 'cns-inventory-tracking-data?' + q.join('&');
+            }
+        });
+
         applyFilters();
     }
 
@@ -722,6 +823,8 @@
             $('#tab-upcoming-link').addClass('active').attr('aria-selected', 'true');
             $('#tab-monitoring').removeClass('show active').css('display', 'none');
             $('#tab-upcoming').addClass('show active').css('display', 'block');
+            $('#monitoringHeaderActions').removeClass('d-flex').addClass('d-none');
+            $('#upcomingHeaderActions').removeClass('d-none').addClass('d-flex');
 
             initUpcomingGrid();
             setTimeout(function() {
@@ -734,6 +837,8 @@
             $('#tab-monitoring-link').addClass('active').attr('aria-selected', 'true');
             $('#tab-upcoming').removeClass('show active').css('display', 'none');
             $('#tab-monitoring').addClass('show active').css('display', 'block');
+            $('#upcomingHeaderActions').removeClass('d-flex').addClass('d-none');
+            $('#monitoringHeaderActions').removeClass('d-none').addClass('d-flex');
 
             setTimeout(function() {
                 if (ProjectionGrid) {
@@ -757,7 +862,7 @@
         UpcomingGrid.setInitWidths("50,170,110,110,190,200,130,*");
         UpcomingGrid.setColAlign("center,left,left,left,left,left,right,center");
         UpcomingGrid.setColSorting("int,str,str,str,str,str,int,str");
-        UpcomingGrid.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro");
+        UpcomingGrid.setColTypes("ro,ro,ro,ro,ro,ro,ro,cns_badge");
         UpcomingGrid.init();
 
         loadUpcomingGridData(false);

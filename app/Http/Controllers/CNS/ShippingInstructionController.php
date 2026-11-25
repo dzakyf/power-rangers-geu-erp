@@ -5,6 +5,7 @@ namespace App\Http\Controllers\CNS;
 use App\Http\Controllers\Controller;
 use App\ShippingInstruction;
 use App\Services\CNS\ShippingInstructionPdfService;
+use App\Support\DhtmlxGridPagination;
 use App\User;
 use App\VesselSchedule;
 use App\VesselScheduleDtl;
@@ -41,18 +42,29 @@ class ShippingInstructionController extends Controller
 
     public function indexShippingInstructionXml(Request $request)
     {
-        if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
-            header("Content-type: application/xhtml+xml");
-        } else {
-            header("Content-type: text/xml");
-        }
-        echo ("<?xml version='1.0' encoding='iso-8859-1'?>\n");
+        $query = ShippingInstruction::whereBetween('SI_Date', [$request->tgl1, $request->tgl2])
+            ->whereIn('Status', ['DRAFT', 'CREATED', 'APPROVED']);
 
-        echo "<rows>";
+        $colMap = [
+            1 => 'Order_No',
+            2 => 'SI_No',
+            3 => 'SI_Date',
+            10 => 'Status',
+        ];
 
-        $vsds = VesselScheduleDtl::active()->whereNotNull('SI_No')->get();
+        $paginated = DhtmlxGridPagination::paginateQuery($query, $request, [
+            'col_map' => $colMap,
+            'default_page_size' => 25,
+        ]);
+
+        $shipments = $paginated['rows'];
+        $siNos = $shipments->pluck('SI_No')->filter()->unique()->values()->all();
+        $vsds = count($siNos)
+            ? VesselScheduleDtl::active()->whereIn('SI_No', $siNos)->get()
+            : collect();
+
         $vsdData = [];
-        foreach ($vsds as $key => $vsd) {
+        foreach ($vsds as $vsd) {
             if (!isset($vsdData[$vsd->SI_No])) {
                 $vsdData[$vsd->SI_No] = [
                     'list' => [],
@@ -71,33 +83,35 @@ class ShippingInstructionController extends Controller
             $vsdData[$vsd->SI_No]['gross_mt'] += $vsd->Gross_MT;
         }
 
-        $shipments = ShippingInstruction::whereBetween('SI_Date', [$request->tgl1, $request->tgl2])->whereIn('Status', ['DRAFT', 'CREATED', 'APPROVED'])->get();
-        foreach ($shipments as $key => $shipment) {
-            echo "<row id=\"$shipment->id\" >";
-            echo "<cell>" . ($key + 1) . "</cell>";
-            echo "<cell>" . htmlspecialchars((string) $shipment->Order_No) . "</cell>";
-            echo "<cell>" . htmlspecialchars((string) $shipment->SI_No) . "</cell>";
-            echo "<cell>" . htmlspecialchars(date("d F Y", strtotime($shipment->SI_Date))) . "</cell>";
+        $bodyXml = '';
+        $nomor = $paginated['posStart'] + 1;
+
+        foreach ($shipments as $shipment) {
+            $bodyXml .= "<row id=\"$shipment->id\" >";
+            $bodyXml .= "<cell>" . $nomor++ . "</cell>";
+            $bodyXml .= "<cell>" . htmlspecialchars((string) $shipment->Order_No) . "</cell>";
+            $bodyXml .= "<cell>" . htmlspecialchars((string) $shipment->SI_No) . "</cell>";
+            $bodyXml .= "<cell>" . htmlspecialchars(date("d F Y", strtotime($shipment->SI_Date))) . "</cell>";
             if (isset($vsdData[$shipment->SI_No])) {
-                echo "<cell>" . htmlspecialchars(implode(', ', $vsdData[$shipment->SI_No]['list'])) . "</cell>";
-                echo "<cell>" . htmlspecialchars($vsdData[$shipment->SI_No]['tare']) . "</cell>";
-                echo "<cell>" . htmlspecialchars($vsdData[$shipment->SI_No]['netto_kg']) . "</cell>";
-                echo "<cell>" . htmlspecialchars($vsdData[$shipment->SI_No]['netto_mt']) . "</cell>";
-                echo "<cell>" . htmlspecialchars($vsdData[$shipment->SI_No]['gross_kg']) . "</cell>";
-                echo "<cell>" . htmlspecialchars($vsdData[$shipment->SI_No]['gross_mt']) . "</cell>";
-            }else {
-                echo "<cell></cell>";
-                echo "<cell></cell>";
-                echo "<cell></cell>";
-                echo "<cell></cell>";
-                echo "<cell></cell>";
-                echo "<cell></cell>";
+                $bodyXml .= "<cell>" . htmlspecialchars(implode(', ', $vsdData[$shipment->SI_No]['list'])) . "</cell>";
+                $bodyXml .= "<cell>" . htmlspecialchars($vsdData[$shipment->SI_No]['tare']) . "</cell>";
+                $bodyXml .= "<cell>" . htmlspecialchars($vsdData[$shipment->SI_No]['netto_kg']) . "</cell>";
+                $bodyXml .= "<cell>" . htmlspecialchars($vsdData[$shipment->SI_No]['netto_mt']) . "</cell>";
+                $bodyXml .= "<cell>" . htmlspecialchars($vsdData[$shipment->SI_No]['gross_kg']) . "</cell>";
+                $bodyXml .= "<cell>" . htmlspecialchars($vsdData[$shipment->SI_No]['gross_mt']) . "</cell>";
+            } else {
+                $bodyXml .= "<cell></cell>";
+                $bodyXml .= "<cell></cell>";
+                $bodyXml .= "<cell></cell>";
+                $bodyXml .= "<cell></cell>";
+                $bodyXml .= "<cell></cell>";
+                $bodyXml .= "<cell></cell>";
             }
-            echo "<cell>" . htmlspecialchars((string) $shipment->Status) . "</cell>";
-            echo "</row>";
+            $bodyXml .= "<cell>" . htmlspecialchars((string) $shipment->Status) . "</cell>";
+            $bodyXml .= "</row>\n";
         }
 
-        echo "</rows>";
+        return DhtmlxGridPagination::response($paginated['total'], $paginated['posStart'], $bodyXml);
     }
 
     public function printShipmentInstruction(Request $request)
@@ -249,6 +263,7 @@ class ShippingInstructionController extends Controller
             'POD' => '',
             'HS_Code' => (string) $request->input('HS_Code', ''),
             'Product_Name' => (string) $request->input('Product_Name', ''),
+            'Remarks' => $request->input('Remarks'),
             'Status' => 'DRAFT',
             'Created_Date' => now(),
             'Created_By' => auth()->user()->username,
@@ -318,23 +333,35 @@ class ShippingInstructionController extends Controller
 
     public function generateFinalShippingInstruction(Request $request)
     {
-        $si = ShippingInstruction::where('SI_No', $request->Task)->where('Status', 'APPROVED')->first();
+        $error = DB::transaction(function () use ($request) {
+            $si = ShippingInstruction::where('SI_No', $request->Task)
+                ->where('Status', 'APPROVED')
+                ->lockForUpdate()
+                ->first();
 
-        if (!$si) {
-            echo "<script>alert('Shipping Instructions harus berstatus APPROVED sebelum dibuatkan Final SI.')</script>";
+            if (!$si) {
+                return 'Shipping Instructions harus berstatus APPROVED sebelum dibuatkan Final SI.';
+            }
+            if (!empty($si->Final_SI_No)) {
+                return "Shipping Instructions ini sudah memiliki Final SI ({$si->Final_SI_No}).";
+            }
+
+            $SINo = ShippingInstruction::generateNextFinalSiNo($request->FSI_Date);
+            ShippingInstruction::where("id", $si->id)->update([
+                'Final_SI_No' => $SINo,
+                'Final_SI_Date' => $request->FSI_Date ?: date('Y-m-d'),
+                'Status' => "FINAL",
+                'Updated_Date' => now(),
+                'Updated_By' => auth()->user()->username
+            ]);
+
+            return null;
+        }, 3);
+
+        if ($error !== null) {
+            echo "<script>alert(" . json_encode($error) . ")</script>";
             return;
         }
-
-        $counter = DB::table("shipping_instructions")->where('SI_Date', "LIKE", date("Y-m"). "%")->where('Status', "FINAL")->count();
-
-        $SINo = "FINALSI/EXP/" . sprintf('%03d',$counter + 1) . "/" . $this->getRomawi(date("n")) . "/" . date("Y");
-        ShippingInstruction::where("SI_No", $request->Task)->update([
-            'Final_SI_No' => $SINo,
-            'Final_SI_Date' => $request->FSI_Date,
-            'Status' => "FINAL",
-            'Updated_Date' => now(),
-            'Updated_By' => auth()->user()->username
-        ]);
 
         echo "<script>alert('Done Generate to Final SI')</script>";
     }
@@ -474,6 +501,9 @@ class ShippingInstructionController extends Controller
         $si->BL_No = (string) $request->input('BL_No', '');
         $si->HS_Code = (string) $request->input('HS_Code', '');
         $si->Product_Name = (string) $request->input('Product_Name', '');
+        if ($request->has('Remarks')) {
+            $si->Remarks = $request->input('Remarks');
+        }
         $si->Updated_Date = now();
         $si->Updated_By = auth()->user()->username;
 

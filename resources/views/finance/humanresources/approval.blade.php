@@ -36,16 +36,16 @@
             <div class="card-body py-3">
                 <div class="text-muted small fw-semibold">Approval Inbox Workflow</div>
                 <div class="fs-3 fw-bold text-info" id="kpiInbox">0</div>
-                <div class="small text-muted">SPPD / Settlement / Reimburse</div>
+                <div class="small text-muted">Payroll / THR / SPPD / Reimburse</div>
             </div>
         </div>
     </div>
     <div class="col-sm-6 col-xl-3">
         <div class="card border-0 shadow-sm h-100 border-start border-warning border-4">
             <div class="card-body py-3">
-                <div class="text-muted small fw-semibold">Voucher Perawatan &amp; Pajak</div>
+                <div class="text-muted small fw-semibold">Voucher GA, Perawatan &amp; Pajak</div>
                 <div class="fs-3 fw-bold text-warning" id="kpiVouchers">0</div>
-                <div class="small text-muted"><span id="kpiMaintCnt">0</span> Maintenance &bull; <span id="kpiTaxCnt">0</span> STNK/KEUR</div>
+                <div class="small text-muted"><span id="kpiGaVoucherCnt">0</span> GA &bull; <span id="kpiMaintCnt">0</span> Maint &bull; <span id="kpiTaxCnt">0</span> STNK</div>
             </div>
         </div>
     </div>
@@ -74,6 +74,12 @@
                 <button class="nav-link fw-semibold" id="tab-maint-btn" data-bs-toggle="tab" data-bs-target="#tab-maint" type="button" role="tab">
                     <i class="fa fa-tools me-1"></i> Voucher Perawatan Aset
                     <span class="badge bg-warning text-dark ms-1" id="cntMaint">0</span>
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link fw-semibold" id="tab-ga-voucher-btn" data-bs-toggle="tab" data-bs-target="#tab-ga-voucher" type="button" role="tab">
+                    <i class="fa fa-file-invoice-dollar me-1"></i> Voucher GA Order Pekerjaan
+                    <span class="badge bg-success text-white ms-1" id="cntGaVoucher">0</span>
                 </button>
             </li>
             <li class="nav-item" role="presentation">
@@ -162,6 +168,29 @@
                     </table>
                 </div>
                 <div id="PagerMaint" class="d-flex flex-wrap justify-content-between align-items-center mt-2"></div>
+            </div>
+
+            <!-- Tab GA Order Pekerjaan Vouchers -->
+            <div class="tab-pane fade" id="tab-ga-voucher" role="tabpanel">
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>No. Voucher</th>
+                                <th>No. Tiket</th>
+                                <th>Subjek &amp; Dept</th>
+                                <th>Penerima / Bank</th>
+                                <th>Jatuh Tempo</th>
+                                <th class="text-end">Nominal</th>
+                                <th class="text-end">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="FinanceGaVoucherBody">
+                            <tr><td colspan="7" class="text-center text-muted py-3">Memuat data...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div id="PagerGaVoucher" class="d-flex flex-wrap justify-content-between align-items-center mt-2"></div>
             </div>
 
             <!-- Tab 3: Voucher Pajak STNK / KEUR -->
@@ -253,12 +282,45 @@
     </div>
 </div>
 
+<!-- Modal Pembayaran Voucher GA Order Pekerjaan -->
+<div class="modal fade" id="FinanceGaPayModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h6 class="modal-title text-white">Pembayaran Voucher GA Order Pekerjaan</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="FormFinanceGaPay" class="row g-3" enctype="multipart/form-data">
+                    <input type="hidden" id="Fin_Pay_Ga_ID" name="id" />
+                    <div class="col-md-6">
+                        <label class="form-label">Tanggal Bayar <span class="text-danger">*</span></label>
+                        <input type="date" name="paid_date" class="form-control" value="{{ date('Y-m-d') }}" required />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">No. Referensi Transfer</label>
+                        <input type="text" name="payment_ref" id="Fin_Pay_Ga_Ref" class="form-control" placeholder="ex: TRF/GA/2026/001" />
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Upload Bukti Bayar (Gambar / PDF)</label>
+                        <input type="file" id="Fin_Pay_Ga_File" name="proof_file" class="form-control" accept="image/*,.pdf" />
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
+                <button type="button" class="btn btn-success btn-sm" onclick="submitFinanceGaPay();">Simpan Pembayaran</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
-var finCache = { tasks: [], maintenance: [], vehicle_tax: [], history_maintenance: [], history_tax: [] };
-var finPages = { inbox: 1, maint: 1, tax: 1, history: 1 };
+var finCache = { tasks: [], maintenance: [], vehicle_tax: [], ga_vouchers: [], history_maintenance: [], history_tax: [], history_ga_vouchers: [], history_workflows: [] };
+var finPages = { inbox: 1, maint: 1, tax: 1, ga_voucher: 1, history: 1 };
 
 function resetPagesAndRender() {
-    finPages = { inbox: 1, maint: 1, tax: 1, history: 1 };
+    finPages = { inbox: 1, maint: 1, tax: 1, ga_voucher: 1, history: 1 };
     applyFinanceSearch();
 }
 
@@ -325,13 +387,17 @@ function loadFinanceApprovalData() {
         finCache.tasks = res.tasks || [];
         finCache.maintenance = res.maintenance || [];
         finCache.vehicle_tax = res.vehicle_tax || [];
+        finCache.ga_vouchers = res.ga_vouchers || [];
         finCache.history_maintenance = res.history_maintenance || [];
         finCache.history_tax = res.history_tax || [];
+        finCache.history_ga_vouchers = res.history_ga_vouchers || [];
+        finCache.history_workflows = res.history_workflows || [];
 
         var s = res.summary || {};
         $('#kpiTotalPending').text(s.total_pending || 0);
         $('#kpiInbox').text(s.inbox_count || 0);
-        $('#kpiVouchers').text((s.maintenance_count || 0) + (s.vehicle_tax_count || 0));
+        $('#kpiVouchers').text((s.maintenance_count || 0) + (s.vehicle_tax_count || 0) + (s.ga_voucher_count || 0));
+        $('#kpiGaVoucherCnt').text(s.ga_voucher_count || 0);
         $('#kpiMaintCnt').text(s.maintenance_count || 0);
         $('#kpiTaxCnt').text(s.vehicle_tax_count || 0);
         $('#kpiTotalAmount').text(fmtRp(s.total_voucher_amount || 0));
@@ -339,7 +405,8 @@ function loadFinanceApprovalData() {
         $('#cntInbox').text(finCache.tasks.length);
         $('#cntMaint').text(finCache.maintenance.length);
         $('#cntTax').text(finCache.vehicle_tax.length);
-        $('#cntHistory').text(finCache.history_maintenance.length + finCache.history_tax.length);
+        $('#cntGaVoucher').text(finCache.ga_vouchers.length);
+        $('#cntHistory').text(finCache.history_maintenance.length + finCache.history_tax.length + finCache.history_ga_vouchers.length + finCache.history_workflows.length);
 
         applyFinanceSearch();
     });
@@ -355,9 +422,12 @@ function applyFinanceSearch() {
     renderInbox(finCache.tasks.filter(function (r) { return match(r, ['Request_No', 'Request_Type', 'Description', 'Department', 'Requester_Name', 'Requester_Username']); }));
     renderMaint(finCache.maintenance.filter(function (r) { return match(r, ['Voucher_No', 'Schedule_No', 'Asset_No', 'Asset_Name', 'PIC_Internal', 'Vendor_Name']); }));
     renderTax(finCache.vehicle_tax.filter(function (r) { return match(r, ['Voucher_No', 'Tax_Request_No', 'Asset_No', 'Registration_No', 'Product_Description']); }));
+    renderGaVouchers(finCache.ga_vouchers.filter(function (r) { return match(r, ['Voucher_No', 'Ticket_No', 'Ticket_Subject', 'Payee_Name', 'Department', 'Reporter_Name']); }));
     renderHistory(
         finCache.history_maintenance.filter(function (r) { return match(r, ['Voucher_No', 'Schedule_No', 'Asset_No', 'Asset_Name']); }),
-        finCache.history_tax.filter(function (r) { return match(r, ['Voucher_No', 'Tax_Request_No', 'Asset_No', 'Registration_No', 'Product_Description']); })
+        finCache.history_tax.filter(function (r) { return match(r, ['Voucher_No', 'Tax_Request_No', 'Asset_No', 'Registration_No', 'Product_Description']); }),
+        finCache.history_ga_vouchers.filter(function (r) { return match(r, ['Voucher_No', 'Ticket_No', 'Ticket_Subject', 'Payee_Name']); }),
+        finCache.history_workflows.filter(function (r) { return match(r, ['Request_No', 'Request_Type', 'Description', 'Department', 'Requester_Name', 'Requester_Username']); })
     );
 }
 
@@ -439,22 +509,63 @@ function renderTax(rows) {
     tbody.html(html);
 }
 
-function renderHistory(maintRows, taxRows) {
+function renderGaVouchers(rows) {
+    var tbody = $('#FinanceGaVoucherBody');
+    var meta = paginateRows(rows, 'ga_voucher');
+    renderPager('PagerGaVoucher', 'ga_voucher', meta);
+    if (!meta.slice.length) {
+        tbody.html('<tr><td colspan="7" class="text-center text-muted py-3">Tidak ada voucher GA Order Pekerjaan yang menunggu pembayaran Finance.</td></tr>');
+        return;
+    }
+    var html = '';
+    meta.slice.forEach(function (r) {
+        html += '<tr ondblclick="openFinanceDetail(\'ga_voucher\', ' + r.ID + ')" style="cursor:pointer;">'
+            + '<td class="fw-bold text-primary">' + escHtml(r.Voucher_No) + '</td>'
+            + '<td>' + escHtml(r.Ticket_No) + '</td>'
+            + '<td><strong>' + escHtml(r.Ticket_Subject || '-') + '</strong><br><small class="text-muted">' + escHtml(r.Department || '-') + ' &bull; ' + escHtml(r.Reporter_Name || r.Reporter || '-') + '</small></td>'
+            + '<td>' + escHtml(r.Payee_Name) + '<br><small class="text-muted">' + escHtml(r.Payment_Method || 'TRANSFER') + ' ' + escHtml(r.Bank_Name || '') + ' ' + escHtml(r.Bank_Account_No || '') + '</small></td>'
+            + '<td>' + escHtml(r.Due_Date || '-') + '</td>'
+            + '<td class="text-end fw-semibold">' + fmtRp(r.Amount) + '</td>'
+            + '<td class="text-end text-nowrap">'
+            +   '<button class="btn btn-xs btn-outline-primary me-1" onclick="openFinanceDetail(\'ga_voucher\', ' + r.ID + ')">Detail</button>'
+            +   '<a href="hrd-ga-ticket-voucher-print?voucher_id=' + r.ID + '" target="_blank" class="btn btn-xs btn-outline-secondary me-1">Cetak Voucher</a>'
+            +   '<button class="btn btn-xs btn-success" onclick="openFinanceGaPayModal(' + r.ID + ')">Bayar &amp; Selesai</button>'
+            + '</td></tr>';
+    });
+    tbody.html(html);
+}
+
+function renderHistory(maintRows, taxRows, gaVoucherRows, workflowRows) {
     var tbody = $('#FinanceHistoryBody');
     var combined = [];
+    (workflowRows || []).forEach(function (r) { combined.push({ kind: 'workflow', row: r }); });
     maintRows.forEach(function (r) { combined.push({ kind: 'maintenance', row: r }); });
     taxRows.forEach(function (r) { combined.push({ kind: 'tax', row: r }); });
+    (gaVoucherRows || []).forEach(function (r) { combined.push({ kind: 'ga_voucher', row: r }); });
     var meta = paginateRows(combined, 'history');
     renderPager('PagerHistory', 'history', meta);
 
     if (!meta.slice.length) {
-        tbody.html('<tr><td colspan="7" class="text-center text-muted py-3">Belum ada riwayat voucher yang selesai diproses.</td></tr>');
+        tbody.html('<tr><td colspan="7" class="text-center text-muted py-3">Belum ada riwayat approval atau voucher yang selesai diproses.</td></tr>');
         return;
     }
     var html = '';
     meta.slice.forEach(function (item) {
         var r = item.row;
-        if (item.kind === 'maintenance') {
+        if (item.kind === 'workflow') {
+            var stBadge = (String(r.Task_Status || '').toUpperCase() === 'REJECTED')
+                ? '<span class="badge bg-danger text-white">REJECTED</span>'
+                : '<span class="badge bg-success text-white">' + escHtml(r.Task_Status || 'APPROVED') + '</span>';
+            html += '<tr ondblclick="openFinanceDetail(\'workflow\', ' + r.Task_ID + ')" style="cursor:pointer;">'
+                + '<td><span class="badge bg-primary text-white">' + escHtml(r.Request_Type || 'WORKFLOW') + '</span></td>'
+                + '<td class="fw-bold">Task #' + escHtml(r.Task_ID) + '</td>'
+                + '<td class="fw-semibold">' + escHtml(r.Request_No) + '</td>'
+                + '<td>' + escHtml(r.Description || '-') + '<br><small class="text-muted">Pemohon: ' + escHtml(r.Requester_Name || r.Requester_Username || '-') + ' (' + escHtml(r.Department || '-') + ')</small></td>'
+                + '<td class="text-end fw-semibold">' + fmtRp(r.Amount) + '</td>'
+                + '<td>' + stBadge + '</td>'
+                + '<td class="text-end text-nowrap"><button class="btn btn-xs btn-outline-primary" onclick="openFinanceDetail(\'workflow\', ' + r.Task_ID + ')">Detail</button></td>'
+                + '</tr>';
+        } else if (item.kind === 'maintenance') {
             html += '<tr ondblclick="openFinanceDetail(\'maintenance\', ' + r.ID + ')" style="cursor:pointer;">'
                 + '<td><span class="badge bg-warning text-dark">Perawatan Aset</span></td>'
                 + '<td class="fw-bold">' + escHtml(r.Voucher_No || '-') + '</td>'
@@ -463,6 +574,21 @@ function renderHistory(maintRows, taxRows) {
                 + '<td class="text-end">' + fmtRp(r.Estimasi_Biaya) + '</td>'
                 + '<td><span class="badge bg-success text-white">' + escHtml(r.Status) + '</span></td>'
                 + '<td class="text-end text-nowrap"><button class="btn btn-xs btn-outline-primary" onclick="openFinanceDetail(\'maintenance\', ' + r.ID + ')">Detail</button></td>'
+                + '</tr>';
+        } else if (item.kind === 'ga_voucher') {
+            var gaDocs = '<button class="btn btn-xs btn-outline-primary me-1" onclick="openFinanceDetail(\'ga_voucher\', ' + r.ID + ')">Detail</button>'
+                + '<a href="hrd-ga-ticket-voucher-print?voucher_id=' + r.ID + '" target="_blank" class="btn btn-xs btn-outline-secondary me-1">Voucher</a>';
+            if (r.Payment_Proof_Path) {
+                gaDocs += '<a href="{{ asset("filevendor") }}/' + escHtml(r.Payment_Proof_Path) + '" target="_blank" class="btn btn-xs btn-outline-success">Bukti</a>';
+            }
+            html += '<tr ondblclick="openFinanceDetail(\'ga_voucher\', ' + r.ID + ')" style="cursor:pointer;">'
+                + '<td><span class="badge bg-success text-white">GA Order Voucher</span></td>'
+                + '<td class="fw-bold">' + escHtml(r.Voucher_No) + '</td>'
+                + '<td>' + escHtml(r.Ticket_No) + '</td>'
+                + '<td>' + escHtml(r.Payee_Name) + ' - ' + escHtml(r.Ticket_Subject || '-') + '</td>'
+                + '<td class="text-end">' + fmtRp(r.Amount) + '</td>'
+                + '<td><span class="badge bg-success text-white">' + escHtml(r.Status) + ' (' + escHtml(r.Paid_Date || '-') + ')</span></td>'
+                + '<td class="text-end text-nowrap">' + gaDocs + '</td>'
                 + '</tr>';
         } else {
             var docs = '<button class="btn btn-xs btn-outline-primary me-1" onclick="openFinanceDetail(\'tax\', ' + r.ID + ')">Detail</button>'
@@ -537,6 +663,32 @@ function submitFinanceTaxPay() {
             loadFinanceApprovalData();
         },
         error: function (xhr) { alert((xhr.responseJSON && xhr.responseJSON.message) || 'Gagal mencatat pembayaran.'); }
+    });
+}
+
+function openFinanceGaPayModal(id) {
+    $('#Fin_Pay_Ga_ID').val(id);
+    $('#Fin_Pay_Ga_Ref').val('');
+    $('#Fin_Pay_Ga_File').val('');
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('FinanceGaPayModal')).show();
+}
+
+function submitFinanceGaPay() {
+    var fd = new FormData(document.getElementById('FormFinanceGaPay'));
+    $.ajax({
+        url: 'finance-hr-approval-ga-pay',
+        type: 'POST',
+        headers: { 'X-CSRF-TOKEN': $('input[name="_token"]').val() },
+        data: fd,
+        processData: false,
+        contentType: false,
+        success: function (res) {
+            alert(res.message);
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('FinanceGaPayModal')).hide();
+            $('#FinanceApprovalDetail').empty();
+            loadFinanceApprovalData();
+        },
+        error: function (xhr) { alert((xhr.responseJSON && xhr.responseJSON.message) || 'Gagal mencatat pembayaran voucher GA.'); }
     });
 }
 

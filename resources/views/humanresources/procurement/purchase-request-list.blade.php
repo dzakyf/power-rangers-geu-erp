@@ -3,6 +3,14 @@
 @section('content-wrapper')
     <div class="main-content-header">
         <h1>PROCUREMENT</h1>
+        @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert" style="font-size: 12px;">
+            <i class="fas fa-check-circle mr-1"></i> {{ session('success') }}
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+    @endif
         <ol class="breadcrumb">
             <li class="breadcrumb-item"><a href="/dashboard1">Home</a></li>
             <li class="breadcrumb-item active"><span>Purchase Request (PR)</span></li>

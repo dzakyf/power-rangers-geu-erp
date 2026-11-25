@@ -4,8 +4,11 @@ namespace App\Services\CNS;
 
 use App\CnsGoodsReceipt;
 use App\CnsGoodsReceiptDetail;
+use App\CnsKemasanSerialNumber;
+use App\CnsMasterKemasan;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Exception;
 
 class GoodsReceiptService
@@ -76,6 +79,7 @@ class GoodsReceiptService
                 foreach ($data['items'] as $item) {
                     $qtyReceived = (float) ($item['qty_received'] ?? 0);
                     $qtyOrdered  = (float) ($item['qty_ordered'] ?? 0);
+                    $serialNumber = isset($item['serial_number']) ? trim((string) $item['serial_number']) : '';
 
                     CnsGoodsReceiptDetail::create([
                         'goods_receipt_id' => $gr->id,
@@ -87,6 +91,7 @@ class GoodsReceiptService
                         'qty_ordered'      => $qtyOrdered,
                         'qty_received'     => $qtyReceived,
                         'notes'            => $item['notes'] ?? null,
+                        'serial_number'    => $serialNumber !== '' ? $serialNumber : null,
                     ]);
                 }
             }
@@ -134,6 +139,8 @@ class GoodsReceiptService
                 $gr->details()->delete();
 
                 foreach ($data['items'] as $item) {
+                    $serialNumber = isset($item['serial_number']) ? trim((string) $item['serial_number']) : '';
+
                     CnsGoodsReceiptDetail::create([
                         'goods_receipt_id' => $gr->id,
                         'po_dtl_id'        => $item['po_dtl_id'] ?? null,
@@ -144,6 +151,7 @@ class GoodsReceiptService
                         'qty_ordered'      => (float) ($item['qty_ordered'] ?? 0),
                         'qty_received'     => (float) ($item['qty_received'] ?? 0),
                         'notes'            => $item['notes'] ?? null,
+                        'serial_number'    => $serialNumber !== '' ? $serialNumber : null,
                     ]);
                 }
             }
@@ -176,7 +184,8 @@ class GoodsReceiptService
             foreach ($gr->details as $detail) {
                 if ($detail->qty_received > 0) {
                     $refText = $gr->gr_no . ' (' . $gr->po_no . ')';
-                    $noteText = 'Penerimaan GR ' . $gr->gr_no . ' (SJ: ' . ($gr->delivery_note_no ?: '-') . ')';
+                    $snNote = !empty($detail->serial_number) ? (' | SN: ' . $detail->serial_number) : '';
+                    $noteText = 'Penerimaan GR ' . $gr->gr_no . ' (SJ: ' . ($gr->delivery_note_no ?: '-') . ')' . $snNote;
 
                     $this->inventoryService->recordStockMutation(
                         $detail->item_name,
@@ -192,6 +201,8 @@ class GoodsReceiptService
                         $detail->item_code,
                         $gr->receipt_date ? $gr->receipt_date->toDateString() : now()->toDateString()
                     );
+
+                    $this->registerSerialNumbers($gr, $detail);
 
                     // Update PO Detail if linked
                     if ($detail->po_dtl_id) {
@@ -218,6 +229,38 @@ class GoodsReceiptService
         });
     }
 
+    protected function registerSerialNumbers(CnsGoodsReceipt $gr, CnsGoodsReceiptDetail $detail): void
+    {
+        if (empty($detail->serial_number) || !Schema::hasTable('cns_kemasan_serial_numbers') || !Schema::hasTable('cns_master_kemasan')) {
+            return;
+        }
+
+        $itemName = trim((string) $detail->item_name);
+        $kemasan = CnsMasterKemasan::whereRaw('LOWER(Name) = ?', [mb_strtolower($itemName)])->first();
+        if (!$kemasan && stripos($itemName, 'flexibag') !== false) {
+            $kemasan = CnsMasterKemasan::where('Name', 'like', '%Flexibag%')->orderBy('Kemasan_ID')->first();
+        }
+        if (!$kemasan) {
+            return;
+        }
+
+        $parsed = preg_split('/[\r\n,]+/', (string) $detail->serial_number);
+        foreach ($parsed as $sn) {
+            $sn = trim($sn);
+            if ($sn === '') {
+                continue;
+            }
+            if (!CnsKemasanSerialNumber::where('serial_number', $sn)->exists()) {
+                CnsKemasanSerialNumber::create([
+                    'kemasan_id' => $kemasan->Kemasan_ID,
+                    'serial_number' => $sn,
+                    'status' => CnsKemasanSerialNumber::STATUS_AVAILABLE,
+                    'goods_receipt_id' => $gr->id,
+                ]);
+            }
+        }
+    }
+
     /**
      * Void an approved Goods Receipt.
      * Creates reversing stock mutation (OUT) and reverts PO received quantities.
@@ -237,6 +280,12 @@ class GoodsReceiptService
             $gr->status = 'VOID';
             $gr->notes = ($gr->notes ? $gr->notes . ' | ' : '') . "[VOID: {$voidReason} by {$user} at " . now()->toDateTimeString() . "]";
             $gr->save();
+
+            if (Schema::hasTable('cns_kemasan_serial_numbers')) {
+                CnsKemasanSerialNumber::where('goods_receipt_id', $gr->id)
+                    ->where('status', CnsKemasanSerialNumber::STATUS_AVAILABLE)
+                    ->delete();
+            }
 
             // Reverse stock mutations and PO detail quantities
             foreach ($gr->details as $detail) {

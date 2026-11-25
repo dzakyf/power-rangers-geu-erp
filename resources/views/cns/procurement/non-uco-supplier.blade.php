@@ -1,25 +1,27 @@
 @extends('layout.mainlayout-cns')
 
 @section('content-wrapper')
-<div class="main-content-header">
-    <h1>CNS</h1>
-    <ol class="breadcrumb">
-        <li class="breadcrumb-item">
-            <a href="/dashboard1">Procurement</a>
-        </li>
-        <li class="breadcrumb-item active">
-            <span class="active">Supplier Non-UCO</span>
-        </li>
-    </ol>
-</div>
+@include('cns.partials.page-header', [
+    'title' => 'Supplier Non-UCO',
+    'breadcrumbs' => [
+        ['label' => 'Procurement'],
+        ['label' => 'Supplier Non-UCO'],
+    ],
+])
 
-<div class="card">
+<div class="card cns-card">
+    <div class="card-header">
+        <h5 class="card-title mb-0">Data Supplier Non-UCO</h5>
+        <div class="d-flex align-items-center flex-wrap" style="gap: 0.5rem;">
+            <button type="button" class="btn btn-sm btn-primary" onclick="NonUcoSupplierNew()">New Supplier</button>
+            <button type="button" class="btn btn-sm btn-info" onclick="NonUcoSupplierDetail()">Open Detail</button>
+            <button type="button" class="btn btn-sm btn-success" onclick="NonUcoSupplierGrid.toExcel('./export/generate.php');">Excel</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="refreshdata()">Refresh</button>
+        </div>
+    </div>
     <div class="card-body">
-        <div id="NonUcoSupplierGrid" style="width:auto;height:360px;background-color:white;overflow:hidden"></div>
-        <div class="mt-2">
-            <button type="button" class="btn btn-primary" onclick="NonUcoSupplierNew()">New Supplier</button>
-            <button type="button" class="btn btn-info" onclick="NonUcoSupplierDetail()">Open Detail</button>
-            <button type="button" class="btn btn-warning" onclick="NonUcoSupplierGrid.toExcel('./export/generate.php');">Excel</button>
+        <div class="cns-grid-wrapper">
+            <div id="NonUcoSupplierGrid" class="cns-grid" style="width:auto;height:360px;background-color:white;overflow:hidden"></div>
         </div>
     </div>
 </div>
@@ -33,7 +35,7 @@
     function NonUcoSupplierDetail() {
         var id = NonUcoSupplierGrid.getSelectedId();
         if (id == null) {
-            alert('Pilih baris data');
+            swal('Perhatian', 'Pilih baris data', 'warning');
             return;
         }
         LoadM('NonUcoSupplierDiv', 'cns-procurement-non-uco-supplier-detail?ID=' + id);

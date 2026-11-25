@@ -14,41 +14,46 @@ $Saya =  Auth::user()->username;
 
 @section('content-wrapper')
 @csrf
-<!-- Main Content Header -->
-<div class="main-content-header">
-	<h1>Partner</h1>
-	<ol class="breadcrumb">
-		<li class="breadcrumb-item">
-			<a href="/">Packing List</a>
-		</li>
-		<li class="breadcrumb-item active">
-			<span class="active">Packing List List</span>
-		</li>
-	</ol>
-</div>
+@include('cns.partials.page-header', [
+	'title' => 'Packing List (Final)',
+	'breadcrumbs' => [
+		['label' => 'Export Management'],
+		['label' => 'Packing List (Final)'],
+	],
+])
 
-<div>
-	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">PACKING LIST LIST</div>
-	<div class="card">
-		<div class="card-body">
-			<div class="mb-2">
-				Periode : <input type="date" id="tgl1" name="tgl1" value="{{ date('Y-m-01', strtotime('-7 days')) }}" class="form-control-sm" />
-				s/d <input type="date" id="tgl2" name="tgl2" value="{{ date('Y-m-d') }}" class="form-control-sm" />
-				<button onclick="refreshdata()" class="btn btn-primary p-2">Refresh</button>
-			</div>
-			<div id="ShipmentInstruction" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
-			<div>
-				<input type="button" id="newSchedule" name="newSchedule" value="New PL" class="btn btn-primary mt-2 mr-2" onclick="ShipmentInstructionNewBtn()" />
-				<input type="button" id="DetailSchedule" name="DetailSchedule" value="Detail PL" class="btn btn-info mt-2 mr-2" onclick="ShipmentInstructionKlik()" />
-				<input type="button" id="printPL" name="printPL" value="Print PL" class="btn btn-secondary mt-2 mr-2" onclick="PrintPL()" />
-				<input type="button" id="ekselShipmentInstructionDet" name="ekselShipmentInstructionDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="ShipmentInstruction.toExcel('./export/generate.php');" />
-			</div>
+<div class="card cns-card">
+	<div class="card-header">
+		<h5 class="card-title mb-0">Packing List (Final)</h5>
+		<div class="d-flex align-items-center flex-wrap" style="gap: 0.5rem;">
+			<input type="button" id="newSchedule" name="newSchedule" value="New PL" class="btn btn-sm btn-primary" onclick="ShipmentInstructionNewBtn()" />
+			<input type="button" id="DetailSchedule" name="DetailSchedule" value="Detail PL" class="btn btn-sm btn-info" onclick="ShipmentInstructionKlik()" />
+			<input type="button" id="printPL" name="printPL" value="Print PL" class="btn btn-sm btn-secondary" onclick="PrintPL()" />
+			<input type="button" id="ekselShipmentInstructionDet" name="ekselShipmentInstructionDet" class="btn btn-sm btn-warning" value="Export Excel" onclick="ShipmentInstruction.toExcel('./export/generate.php');" />
+			<button type="button" onclick="refreshdata()" class="btn btn-sm btn-outline-secondary">Refresh</button>
 		</div>
 	</div>
-	<div id="divlistOpportunity"></div>
-	<div id="DivProcess"></div>
-
+	<div class="card-body">
+		<div class="cns-filter-bar">
+			<div>
+				<label for="tgl1" class="d-block mb-1"><small>Dari Tanggal</small></label>
+				<input type="date" id="tgl1" name="tgl1" value="{{ date('Y-m-01', strtotime('-7 days')) }}" class="form-control form-control-sm" style="width:auto;" />
+			</div>
+			<div>
+				<label for="tgl2" class="d-block mb-1"><small>Sampai Tanggal</small></label>
+				<input type="date" id="tgl2" name="tgl2" value="{{ date('Y-m-d') }}" class="form-control form-control-sm" style="width:auto;" />
+			</div>
+			<div>
+				<button type="button" onclick="refreshdata()" class="btn btn-sm btn-primary">Filter</button>
+			</div>
+		</div>
+		<div class="cns-grid-wrapper">
+			<div id="ShipmentInstruction" class="cns-grid" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
+		</div>
+	</div>
 </div>
+<div id="divlistOpportunity"></div>
+<div id="DivProcess"></div>
 
 <script>
 	function PrintPL()
@@ -58,7 +63,7 @@ $Saya =  Auth::user()->username;
 			window.open('cns-export-packing-list-print?Task=' + ShipmentInstruction.cells(ShipmentInstructionID, 1).getValue(), '_blank');
 			// window.open('assets/export_pl.docx', '_blank');
 		}else {
-			alert("Pilih baris data");
+			swal('Perhatian', 'Pilih baris data', 'warning');
 		}
 		return true;
 	 }
@@ -73,7 +78,7 @@ $Saya =  Auth::user()->username;
 		if (ShipmentInstructionID != null) {
 			LoadM('divlistOpportunity', 'cns-export-packing-list-detail?Task=' + ShipmentInstructionID);
 		}else {
-			alert("Pilih baris data");
+			swal('Perhatian', 'Pilih baris data', 'warning');
 		}
 		return true;
 	}

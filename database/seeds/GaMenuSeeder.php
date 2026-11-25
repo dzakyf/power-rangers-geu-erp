@@ -19,11 +19,11 @@ class GaMenuSeeder extends Seeder
 
     private const MENUS = [
         'SS00102' => ['GA Ticketing', '#', 3, 'SM00067', 10],
-        'SI01009' => ['Tickets', 'hrd-ga-ticket-index', 4, 'SS00102', 1],
-        'SI01010' => ['Work Orders', 'hrd-ga-work-order-index', 4, 'SS00102', 2],
-        'SI01011' => ['My Assignments', 'hrd-ga-my-assignment-index', 4, 'SS00102', 3],
-        'SI01012' => ['Ticket Master', 'hrd-ga-ticket-master-index', 4, 'SS00102', 4],
-        'SI01013' => ['QR Points', 'hrd-ga-qr-point-index', 4, 'SS00102', 5],
+        'SI01013' => ['Tickets', 'hrd-ga-ticket-index', 4, 'SS00102', 1],
+        'SI01014' => ['Work Orders', 'hrd-ga-work-order-index', 4, 'SS00102', 2],
+        'SI01015' => ['My Assignments', 'hrd-ga-my-assignment-index', 4, 'SS00102', 3],
+        'SI01016' => ['Ticket Master', 'hrd-ga-ticket-master-index', 4, 'SS00102', 4],
+        'SI01017' => ['QR Points', 'hrd-ga-qr-point-index', 4, 'SS00102', 5],
         'SS00103' => ['GA Inventory', '#', 3, 'SM00067', 11],
         'SI01014' => ['Low Stock', 'hrd-ga-inventory-low-stock', 4, 'SS00103', 1],
         'SI01015' => ['Stock Ledger', 'hrd-ga-inventory-ledger', 4, 'SS00103', 2],

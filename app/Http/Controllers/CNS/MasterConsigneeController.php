@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\CNS;
 
 use App\Http\Controllers\Controller;
+use App\Support\DhtmlxGridPagination;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -32,45 +33,25 @@ class MasterConsigneeController extends Controller
 
     public function indexMasterConsigneeXml(Request $request)
     {
-        header("Content-type: text/xml");
+        $query = DB::table("supplier")
+            ->where("Location", auth()->user()->Location)
+            ->where('Is_Consignee', 1)
+            ->when($request->filled('search'), function ($q) use ($request) {
+                $term = '%' . trim($request->search) . '%';
+                $q->where(function ($sub) use ($term) {
+                    $sub->where('Company_Name', 'like', $term)
+                        ->orWhere('Supplier_ID', 'like', $term);
+                });
+            });
 
-        $nomor   = 1;
-        $Fetchx  = $this->getMasterConsigneeCollection($request);
-
-        echo "<rows>";
-
-        foreach ($Fetchx as $dapat) {
-            echo "<row id=\"$dapat->ID\">";
-            echo "<cell>$nomor</cell>";
-            echo "<cell>" . htmlspecialchars($dapat->Supplier_ID) . "</cell>";
-            echo "<cell>" . htmlspecialchars($dapat->Company_Name) . "</cell>";
-            echo "<cell>" . htmlspecialchars($dapat->Is_Consignee ? 'Yes' : 'No') . "</cell>";
-            echo "<cell>" . htmlspecialchars($dapat->Is_Supplier  ? 'Yes' : 'No') . "</cell>";
-            echo "<cell>" . htmlspecialchars($dapat->Contact_Person) . "</cell>";
-            echo "<cell>" . htmlspecialchars($dapat->City) . "</cell>";
-            echo "<cell>" . htmlspecialchars($dapat->Phone) . "</cell>";
-            echo "<cell>" . htmlspecialchars($dapat->Fax) . "</cell>";
-            echo "<cell>" . htmlspecialchars($dapat->Email) . "</cell>";
-            echo "<cell>" . htmlspecialchars($dapat->Sales_Name) . "</cell>";
-            echo "<cell>" . htmlspecialchars($dapat->Sales_No ?? '') . "</cell>";
-            echo "<cell>" . htmlspecialchars($dapat->Payment) . "</cell>";
-            // echo "<cell>" . htmlspecialchars($dapat->Supplier_Category) . "</cell>";
-            // echo "<cell>" . htmlspecialchars($dapat->Supplier_Sub_Category) . "</cell>";
-            // echo "<cell>" . htmlspecialchars($dapat->Supplier_Group_Category) . "</cell>";
-            echo "<cell>" . htmlspecialchars($dapat->Address) . "</cell>";
-            echo "<cell>" . htmlspecialchars($dapat->Contact_Person) . "</cell>";
-            echo "<cell>" . htmlspecialchars($dapat->Letterhead  === null ? 'Tidak ada' : 'Ada') . "</cell>";
-            echo "<cell>" . htmlspecialchars($dapat->Footer      === null ? 'Tidak ada' : 'Ada') . "</cell>";
-            echo "<cell>" . htmlspecialchars($dapat->Logo        === null ? 'Tidak ada' : 'Ada') . "</cell>";
-            echo "<cell>" . htmlspecialchars($dapat->Logo_Inverse === null ? 'Tidak ada' : 'Ada') . "</cell>";
-            echo "<cell>" . htmlspecialchars($dapat->Stamps      === null ? 'Tidak ada' : 'Ada') . "</cell>";
-
-            echo "</row>";
-
-            $nomor++;
+        if (!$request->filled('sort_col')) {
+            $query->orderBy('Company_Name', 'ASC');
         }
 
-        echo "</rows>";
+        $paginated = DhtmlxGridPagination::paginateQuery($query, $request, MasterCompanyController::supplierGridPaginationOptions());
+        $bodyXml = MasterCompanyController::buildSupplierRowsXml($paginated['rows'], $paginated['posStart']);
+
+        return DhtmlxGridPagination::response($paginated['total'], $paginated['posStart'], $bodyXml);
     }
 
     public function newMasterConsignee()

@@ -57,6 +57,26 @@ class RecruitmentOnboardingService
      */
     public function resolvePrivilegeAndRole($position = null, $directorat = null, $department = null): array
     {
+        $buildFromRule = function ($rule, string $matchedBy) {
+            $roleId = !empty($rule->default_role_id) ? (int) $rule->default_role_id : null;
+            $roleName = !empty($rule->default_role) ? trim((string) $rule->default_role) : null;
+
+            if ($roleId && empty($roleName)) {
+                $roleObj = Role::find($roleId);
+                if ($roleObj) {
+                    $roleName = $roleObj->name;
+                }
+            }
+
+            return [
+                'priv_id'          => $rule->priv_id,
+                'default_role'     => $roleName ?: $rule->priv_id,
+                'default_role_id'  => $roleId,
+                'default_sub_menu' => $rule->default_sub_menu,
+                'matched_by'       => $matchedBy,
+            ];
+        };
+
         // 1. Cek rule berdasarkan Posisi (exact or like)
         if (!empty($position)) {
             $posRule = DB::table('privilege_access_mappings')
@@ -70,12 +90,7 @@ class RecruitmentOnboardingService
                 ->first();
 
             if ($posRule) {
-                return [
-                    'priv_id'          => $posRule->priv_id,
-                    'default_role'     => $posRule->default_role ?: $posRule->priv_id,
-                    'default_sub_menu' => $posRule->default_sub_menu,
-                    'matched_by'       => 'POSITION',
-                ];
+                return $buildFromRule($posRule, 'POSITION');
             }
         }
 
@@ -91,12 +106,7 @@ class RecruitmentOnboardingService
                 ->first();
 
             if ($dirRule) {
-                return [
-                    'priv_id'          => $dirRule->priv_id,
-                    'default_role'     => $dirRule->default_role ?: $dirRule->priv_id,
-                    'default_sub_menu' => $dirRule->default_sub_menu,
-                    'matched_by'       => 'DIRECTORAT',
-                ];
+                return $buildFromRule($dirRule, 'DIRECTORAT');
             }
         }
 
@@ -112,12 +122,7 @@ class RecruitmentOnboardingService
                 ->first();
 
             if ($deptRule) {
-                return [
-                    'priv_id'          => $deptRule->priv_id,
-                    'default_role'     => $deptRule->default_role ?: $deptRule->priv_id,
-                    'default_sub_menu' => $deptRule->default_sub_menu,
-                    'matched_by'       => 'DEPARTMENT',
-                ];
+                return $buildFromRule($deptRule, 'DEPARTMENT');
             }
         }
 
@@ -125,6 +130,7 @@ class RecruitmentOnboardingService
         return [
             'priv_id'          => 'STAFF',
             'default_role'     => 'STAFF',
+            'default_role_id'  => null,
             'default_sub_menu' => null,
             'matched_by'       => 'DEFAULT',
         ];
@@ -455,6 +461,7 @@ class RecruitmentOnboardingService
                 $resolved = [
                     'priv_id'          => $privOverride,
                     'default_role'     => $roleOverride ?: $privOverride,
+                    'default_role_id'  => !empty($payload['role_id']) ? (int) $payload['role_id'] : null,
                     'default_sub_menu' => null,
                     'matched_by'       => 'MANUAL',
                 ];
@@ -462,6 +469,7 @@ class RecruitmentOnboardingService
                 $resolved = $this->resolvePrivilegeAndRole($position, $directorat, $department);
                 if ($roleOverride) {
                     $resolved['default_role'] = $roleOverride;
+                    $resolved['default_role_id'] = !empty($payload['role_id']) ? (int) $payload['role_id'] : null;
                 }
             }
 
@@ -616,55 +624,120 @@ class RecruitmentOnboardingService
                 }
             }
 
-            // 6. Buat Akun Karyawan di Tabel users & Assign RBAC Role
-            $username = $nik;
-            $user = User::where('username', $username)
-                ->orWhere('Emp_ID', $nik)
-                ->first();
-
+            // 6. Buat atau Upgrade Akun Karyawan di Tabel users & Assign RBAC Role
             $privIdToSet = $resolved['priv_id'];
             $roleToSet   = $resolved['default_role'];
 
+            $user = User::where('username', $nik)
+                ->orWhere('Emp_ID', $nik)
+                ->first();
+
+            $upgradedFromCandidate = false;
             if (!$user) {
-                $user = User::create([
+                $candidateQuery = User::whereRaw("UPPER(COALESCE(Position, '')) = 'CANDIDATE'")
+                    ->where(function ($q) use ($recruitment) {
+                        if (!empty($recruitment->Task_ID)) {
+                            $q->where('username', $recruitment->Task_ID)
+                              ->orWhere('Emp_ID', $recruitment->Task_ID);
+                        }
+                        if (!empty($recruitment->Email)) {
+                            $q->orWhere('email', $recruitment->Email);
+                        }
+                    });
+                $user = $candidateQuery->orderBy('id', 'DESC')->first();
+                if ($user) {
+                    $upgradedFromCandidate = true;
+                }
+            }
+
+            if (!$user) {
+                $preferredEmail = !empty($recruitment->Email) ? trim((string) $recruitment->Email) : '';
+                $username = ($preferredEmail !== '' && !User::where('username', $preferredEmail)->exists())
+                    ? $preferredEmail
+                    : $nik;
+
+                $user = new User();
+                $createUserPayload = [
                     'username' => $username,
                     'Emp_ID'   => $nik,
                     'Name'     => $recruitment->Name,
-                    'email'    => $recruitment->Email ?: ($nik . '@company.local'),
+                    'email'    => $preferredEmail !== '' ? $preferredEmail : ($nik . '@company.local'),
                     'password' => Hash::make('12345678'), // Default password
                     'Location' => $location,
-                    'Position' => $position,
+                    'Position' => $roleToSet ?: $position,
                     'Priv_ID'  => $privIdToSet,
                     'Status'   => 'ACTIVE',
                     'Sub_Menu' => $resolved['default_sub_menu'] ?? '',
-                ]);
+                ];
+                if (!empty($department) && Schema::hasColumn('users', 'Department')) {
+                    $createUserPayload['Department'] = $department;
+                }
+                $user->forceFill($createUserPayload)->save();
             } else {
-                $user->update([
+                // Pertahankan password & username lama kandidat saat konversi agar login tetap mulus
+                $username = $user->username ?: $nik;
+                $updateUserPayload = [
                     'Emp_ID'   => $nik,
                     'Name'     => $recruitment->Name,
                     'Location' => $location,
-                    'Position' => $position,
+                    'Position' => $roleToSet ?: $position,
                     'Priv_ID'  => $privIdToSet,
                     'Status'   => 'ACTIVE',
-                ]);
+                ];
+                if (!empty($department) && Schema::hasColumn('users', 'Department')) {
+                    $updateUserPayload['Department'] = $department;
+                }
+                $user->forceFill($updateUserPayload)->save();
             }
 
-            // Assign Spatie Role jika ada
-            if ($user && !empty($roleToSet)) {
-                $spatieRole = Role::where('name', $roleToSet)->first();
+            // Catat linkage user_id & candidate_user_id di tabel employment
+            if ($user && !empty($employmentId)) {
+                $empLinkData = [];
+                if (Schema::hasColumn('employment', 'user_id')) {
+                    $empLinkData['user_id'] = $user->id;
+                }
+                if ($upgradedFromCandidate && Schema::hasColumn('employment', 'candidate_user_id')) {
+                    $empLinkData['candidate_user_id'] = $user->id;
+                }
+                if (Schema::hasColumn('employment', 'user_account_source')) {
+                    $empLinkData['user_account_source'] = $upgradedFromCandidate ? 'CANDIDATE_UPGRADE' : 'NEW_EMPLOYEE';
+                }
+                if (Schema::hasColumn('employment', 'user_linked_by')) {
+                    $empLinkData['user_linked_by'] = $currentUser;
+                }
+                if (Schema::hasColumn('employment', 'user_linked_at')) {
+                    $empLinkData['user_linked_at'] = now();
+                }
+                if (!empty($empLinkData)) {
+                    DB::table('employment')->where('ID', $employmentId)->update($empLinkData);
+                }
+            }
+
+            // Assign Spatie Role jika ada (prioritas default_role_id dari privilege_access_mappings)
+            $spatieRole = null;
+            if (!empty($resolved['default_role_id'])) {
+                $spatieRole = Role::find((int) $resolved['default_role_id']);
+            }
+            if (!$spatieRole && !empty($roleToSet)) {
+                $spatieRole = app(\App\Services\Rbac\RoleResolver::class)->resolve($roleToSet, $department)
+                    ?: Role::where('name', $roleToSet)->first();
                 if (!$spatieRole) {
                     // Buat role jika belum terdaftar
                     $spatieRole = Role::create(['name' => $roleToSet, 'guard_name' => 'web']);
                 }
-
-                if ($spatieRole) {
-                    $user->syncRoles([$spatieRole]);
-                }
             }
 
-            // Rebuild Sub_Menu string agar navigation menu langsung aktif
+            if ($user && $spatieRole) {
+                $user->syncRoles([$spatieRole]);
+            }
+
+            // Rebuild Sub_Menu string agar navigation menu langsung aktif; fallback ke default_sub_menu bila role kosong menu
             if ($user && class_exists(RbacService::class)) {
                 RbacService::rebuildSubMenu($user);
+                $rebuiltMenu = trim((string) DB::table('users')->where('id', $user->id)->value('Sub_Menu'));
+                if ($rebuiltMenu === '' && !empty($resolved['default_sub_menu'])) {
+                    DB::table('users')->where('id', $user->id)->update(['Sub_Menu' => $resolved['default_sub_menu']]);
+                }
             }
 
             // 7. Update status pada tabel recruitment

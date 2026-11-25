@@ -13,14 +13,23 @@
 @endphp
 
 <div class="mt-3">
-    <div class="JudulContent" style="color:#699;">{{ $isEdit ? 'VESSEL SCHEDULE' : 'NEW VESSEL SCHEDULE' }}</div>
-    <div class="card">
+    <div class="cns-section-header">{{ $isEdit ? 'VESSEL SCHEDULE' : 'NEW VESSEL SCHEDULE' }}</div>
+    <div class="card cns-card">
         <div class="card-body">
             <form id="VesselScheduleForm">
                 @csrf
                 @if($isEdit)
                     <input type="hidden" name="id" id="id" value="{{ $vs->id }}" />
                 @endif
+
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="form-group">
+                            <label for="VS_No">No Vessel Schedule</label>
+                            <input type="text" id="VS_No" name="VS_No" class="form-control shadow-sm" value="{{ $vs->VS_No ?? $vsNo ?? '' }}" readonly />
+                        </div>
+                    </div>
+                </div>
 
                 <div class="row">
                     <div class="col-md-6">

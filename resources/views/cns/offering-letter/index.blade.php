@@ -1,81 +1,35 @@
 @extends('layout.mainlayout-cns')
 
 @section('content-wrapper')
-<div class="main-content-header">
-    <h1>Document Control</h1>
-    <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="{{ url('home-cns') }}">Contract</a></li>
-        <li class="breadcrumb-item active"><span class="active">Offering Letter</span></li>
-    </ol>
-</div>
+@include('cns.partials.page-header', [
+    'title' => 'Offering Letter',
+    'breadcrumbs' => [
+        ['label' => 'Sales & Commercial'],
+        ['label' => 'Pricing & Quotation'],
+        ['label' => 'Offering Letter'],
+    ],
+])
 
-<style>
-    #OLGridWrapper {
-        width: 100%;
-        max-width: 100%;
-        overflow: hidden;
-    }
-    #OLGrid {
-        box-sizing: border-box !important;
-        max-width: 100% !important;
-    }
-    #OLGrid .xhdr {
-        height: auto !important;
-        min-height: 0 !important;
-    }
-    #OLGrid table.hdr td {
-        color: #000000 !important;
-        font-weight: bold !important;
-        text-align: center !important;
-        vertical-align: middle !important;
-        font-size: 12px !important;
-        padding: 5px 6px !important;
-        line-height: 1.2 !important;
-        height: auto !important;
-    }
-    #OLGrid table.hdr td.filter {
-        padding: 3px 4px !important;
-        font-weight: normal !important;
-    }
-    #OLGrid table.hdr td div.hdrcell {
-        padding: 0 4px !important;
-        line-height: 1.2 !important;
-        white-space: nowrap !important;
-    }
-    #OLGrid table.hdr td.filter input,
-    #OLGrid table.hdr td.filter select {
-        width: 100% !important;
-        height: 22px !important;
-        padding: 1px 4px !important;
-        font-size: 11px !important;
-        line-height: 1.2 !important;
-        box-sizing: border-box !important;
-    }
-    #OLGrid td {
-        font-size: 12px !important;
-        vertical-align: middle !important;
-    }
-</style>
-
-<div class="card">
+<div class="card cns-card">
+    <div class="card-header">
+        <h5 class="card-title">Daftar Offering Letter</h5>
+        <div class="d-flex flex-wrap" style="gap: 8px;">
+            <a href="{{ route('cns-offering-letter.create') }}" class="btn btn-primary btn-sm">
+                <i class="fa fa-plus-circle"></i> New Offering Letter
+            </a>
+            <button type="button" class="btn btn-info btn-sm" onclick="openSelectedDetail()">
+                <i class="fa fa-eye"></i> Open Detail
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="printSelected()">
+                <i class="fa fa-print"></i> Print
+            </button>
+        </div>
+    </div>
     <div class="card-body">
-        @if(session('success'))
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                {{ session('success') }}
-                <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-            </div>
-        @endif
-        @if(session('error'))
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                {{ session('error') }}
-                <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-            </div>
-        @endif
-
-        <div class="row mb-3">
+        <div class="row cns-filter-bar">
             <div class="col-md-2">
-                <label for="filterSeller" class="mb-1">Seller</label>
-                <select id="filterSeller" class="form-control">
+                <label for="filterSeller" class="small font-weight-bold mb-1">Seller</label>
+                <select id="filterSeller" class="form-control form-control-sm">
                     <option value="">Semua</option>
                     @foreach($sellers as $seller)
                         <option value="{{ $seller->code }}">{{ $seller->name }}</option>
@@ -83,41 +37,36 @@
                 </select>
             </div>
             <div class="col-md-2">
-                <label for="filterStatus" class="mb-1">Status</label>
-                <select id="filterStatus" class="form-control">
+                <label for="filterStatus" class="small font-weight-bold mb-1">Status</label>
+                <select id="filterStatus" class="form-control form-control-sm">
                     <option value="">Semua</option>
                     <option value="DRAFT">DRAFT</option>
                     <option value="APPROVED">APPROVED</option>
                 </select>
             </div>
             <div class="col-md-2">
-                <label for="filterStartDate" class="mb-1">Dari Tanggal</label>
-                <input type="date" id="filterStartDate" class="form-control">
+                <label for="filterStartDate" class="small font-weight-bold mb-1">Dari Tanggal</label>
+                <input type="date" id="filterStartDate" class="form-control form-control-sm">
             </div>
             <div class="col-md-2">
-                <label for="filterEndDate" class="mb-1">Sampai Tanggal</label>
-                <input type="date" id="filterEndDate" class="form-control">
+                <label for="filterEndDate" class="small font-weight-bold mb-1">Sampai Tanggal</label>
+                <input type="date" id="filterEndDate" class="form-control form-control-sm">
             </div>
-            <div class="col-md-4 d-flex align-items-end">
-                <button type="button" class="btn btn-primary mr-2" onclick="loadGridData()">Filter</button>
-                <button type="button" class="btn btn-light" onclick="resetFilters()">Reset</button>
+            <div class="col-md-4 d-flex align-items-end gap-2">
+                <button type="button" class="btn btn-sm btn-primary mr-2" onclick="loadGridData()">Filter</button>
+                <button type="button" class="btn btn-sm btn-light" onclick="resetFilters()">Reset</button>
             </div>
         </div>
 
-        <div id="OLGridWrapper">
-            <div id="OLGrid" style="width:100%;height:380px;background-color:white;overflow:hidden"></div>
-        </div>
-
-        <div class="mt-3">
-            <a href="{{ route('cns-offering-letter.create') }}" class="btn btn-primary">New Offering Letter</a>
-            <button type="button" class="btn btn-info" onclick="openSelectedDetail()">Open Detail</button>
-            <button type="button" class="btn btn-secondary" onclick="printSelected()">Print</button>
+        <div id="OLGridWrapper" class="cns-grid-wrapper">
+            <div id="OLGrid" class="cns-grid" style="width:100%;height:380px;background-color:white;overflow:hidden"></div>
         </div>
     </div>
 </div>
 
 <script>
     var OLGrid;
+    var OLPagination;
 
     $(document).ready(function () {
         OLGrid = new dhtmlXGridObject('OLGrid');
@@ -128,12 +77,45 @@
         OLGrid.setInitWidths("45,180,95,190,*,105,115,130,120,105,95");
         OLGrid.setColAlign("center,center,center,left,left,right,right,left,center,center,center");
         OLGrid.setColSorting("int,str,date,str,str,str,str,str,str,date,str");
-        OLGrid.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
-        OLGrid.enableSmartRendering(true);
+        OLGrid.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,cns_badge");
         OLGrid.attachEvent("onRowDblClicked", function (rowId) {
             window.location.href = "{{ url('cns-offering-letter-detail') }}/" + rowId;
         });
         OLGrid.init();
+
+        OLPagination = initCnsGridPagination(OLGrid, {
+            pageSize: 25,
+            pageSizeOptions: [10, 25, 50, 100],
+            getUrl: function (params) {
+                var q = [];
+                q.push('posStart=' + params.posStart);
+                q.push('count=' + params.count);
+
+                var seller = $('#filterSeller').val();
+                var status = $('#filterStatus').val();
+                var start  = $('#filterStartDate').val();
+                var end    = $('#filterEndDate').val();
+
+                if (seller) q.push('seller_code=' + encodeURIComponent(seller));
+                if (status) q.push('status=' + encodeURIComponent(status));
+                if (start)  q.push('start_date=' + encodeURIComponent(start));
+                if (end)    q.push('end_date=' + encodeURIComponent(end));
+
+                if (params.sortCol !== null && params.sortCol !== undefined) {
+                    q.push('sort_col=' + params.sortCol);
+                    q.push('sort_dir=' + (params.sortDir || 'asc'));
+                }
+
+                if (params.filters) {
+                    for (var colIdx in params.filters) {
+                        q.push('filters[' + colIdx + ']=' + encodeURIComponent(params.filters[colIdx]));
+                    }
+                }
+
+                return "{{ route('cns-offering-letter.xml') }}?" + q.join('&');
+            }
+        });
+
         loadGridData();
 
         $(window).on('resize', function () {
@@ -142,22 +124,9 @@
     });
 
     function loadGridData() {
-        var params = [];
-        var seller = $('#filterSeller').val();
-        var status = $('#filterStatus').val();
-        var start  = $('#filterStartDate').val();
-        var end    = $('#filterEndDate').val();
-
-        if (seller) params.push('seller_code=' + encodeURIComponent(seller));
-        if (status) params.push('status=' + encodeURIComponent(status));
-        if (start)  params.push('start_date=' + encodeURIComponent(start));
-        if (end)    params.push('end_date=' + encodeURIComponent(end));
-
-        var url = "{{ route('cns-offering-letter.xml') }}" + (params.length ? '?' + params.join('&') : '');
-        OLGrid.clearAll();
-        OLGrid.load(url, function () {
-            if (OLGrid) OLGrid.setSizes();
-        });
+        if (OLPagination) {
+            OLPagination.reload(true);
+        }
     }
 
     function resetFilters() {
@@ -171,7 +140,7 @@
     function openSelectedDetail() {
         var rowId = OLGrid.getSelectedRowId();
         if (!rowId) {
-            alert('Pilih data terlebih dahulu.');
+            swal('Perhatian', 'Pilih data terlebih dahulu.', 'warning');
             return;
         }
         window.location.href = "{{ url('cns-offering-letter-detail') }}/" + rowId;
@@ -183,15 +152,7 @@
             var offerNo = OLGrid.cells(rowId, 1).getValue();
             window.open('{{ url("cns-offering-letter-print") }}?Task=' + encodeURIComponent(offerNo), '_blank');
         } else {
-            if (typeof dhtmlx !== 'undefined' && dhtmlx.alert) {
-                dhtmlx.alert({
-                    title: "Peringatan",
-                    text: "Pilih baris data terlebih dahulu",
-                    ok: "OK"
-                });
-            } else {
-                alert('Pilih baris data terlebih dahulu');
-            }
+            swal('Peringatan', 'Pilih baris data terlebih dahulu', 'warning');
         }
         return true;
     }

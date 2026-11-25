@@ -2,6 +2,104 @@
 
 @section('content-wrapper')
 <style>
+    /* Tetapkan warna ungu gradient langsung pada topbar */
+    .main-header {
+        background: linear-gradient(45deg, var(--primary-bg-color, #623AA2), #9853af) !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.15) !important;
+    }
+    .main-header .header-icons,
+    .main-header .open-toggle,
+    .main-header .close-toggle,
+    .main-header .fe-bell,
+    .main-header .fe-more-vertical {
+        color: #ffffff !important;
+    }
+
+    /* Hilangkan tumpahan ungu 190px di bawah topbar */
+    .main-content:after {
+        display: none !important;
+    }
+    .main-content.app-content {
+        background-color: #f8fafc;
+    }
+
+    /* Metric & Card Aesthetic matching reference image */
+    .metric-card {
+        border-radius: 10px;
+        padding: 20px 22px;
+        color: #ffffff;
+        position: relative;
+        min-height: 125px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+        transition: transform 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    }
+    .metric-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 12px rgba(0, 0, 0, 0.08);
+    }
+    .metric-card .metric-header {
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.8);
+    }
+    .metric-card .metric-value {
+        font-size: 34px;
+        font-weight: 700;
+        line-height: 1.15;
+        color: #ffffff;
+        margin-top: 6px;
+    }
+    .metric-card .metric-link {
+        font-size: 11.5px;
+        color: #ffffff;
+        text-decoration: none;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        margin-top: 8px;
+    }
+    .metric-card .metric-link:hover {
+        color: #ffffff;
+        text-decoration: underline;
+    }
+    .metric-card .metric-icon-box {
+        width: 58px;
+        height: 58px;
+        border-radius: 6px;
+        background: rgba(255, 255, 255, 0.18);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: absolute;
+        right: 20px;
+        top: 50%;
+        transform: translateY(-50%);
+    }
+    .metric-card .metric-icon-box i {
+        font-size: 26px;
+        color: #ffffff;
+    }
+
+    /* Card background colors matching image */
+    .bg-card-navy {
+        background-color: #3e4f7a !important;
+    }
+    .bg-card-teal {
+        background-color: #11a38f !important;
+    }
+    .bg-card-orange {
+        background-color: #f5a834 !important;
+    }
+    .bg-card-coral {
+        background-color: #ef533c !important;
+    }
+
+    /* Table styling */
     #shipmentsTable {
         font-size: 12px;
     }
@@ -36,35 +134,207 @@
         border-color: #3b82f6;
         color: #fff;
     }
+
+    .top-summary-cards {
+        margin-top: 0 !important;
+        background: transparent !important;
+        box-shadow: none !important;
+        border: none !important;
+    }
 </style>
 
-<!-- Main Content Header -->
-<div class="main-content-header mb-3">
-    <div class="d-flex justify-content-between align-items-center flex-wrap">
-        <div>
-            <h1 class="mb-1" style="font-size: 1.5rem; font-weight: 700; color: #2c3e50;">Dashboard Export Volume</h1>
-            <ol class="breadcrumb mb-0 p-0 bg-transparent">
-                <li class="breadcrumb-item"><a href="{{ url('home-cns') }}">CNS</a></li>
-                <li class="breadcrumb-item">Dashboard</li>
-                <li class="breadcrumb-item active" aria-current="page">Export Volume</li>
-            </ol>
+@include('cns.partials.page-header', [
+    'title' => 'Dashboard Export Volume',
+    'breadcrumbs' => [
+        ['label' => 'Dashboard'],
+        ['label' => 'Export Volume'],
+    ],
+])
+
+<!-- 1. Top Row: 4 Solid Color Cards (Style matching reference image) -->
+<div class="row g-3 mb-4 top-summary-cards">
+    <!-- Card 1: Total Surat Jalan / SI (Navy) -->
+    <div class="col-xl-3 col-lg-6 col-md-6 col-12">
+        <div class="metric-card bg-card-navy">
+            <div>
+                <div class="metric-header">TOTAL SI (PROGRESS)</div>
+                <div class="metric-value" id="kpi_shipments">{{ number_format($kpis['total_shipments']) }}</div>
+            </div>
+            <div>
+                <a class="metric-link" onclick="scrollToTable()">Lihat detail</a>
+            </div>
+            <div class="metric-icon-box">
+                <i class="fe fe-file-text"></i>
+            </div>
         </div>
-        <div class="mt-2 mt-sm-0">
-            <a id="btnExportExcel" href="{{ route('cns-dashboard-export-volume.export-excel', request()->all()) }}" class="btn btn-success btn-sm shadow-sm">
-                <i class="fe fe-download me-1"></i> Export Data (CSV/Excel)
-            </a>
-            <button type="button" id="btnRefresh" class="btn btn-primary btn-sm shadow-sm ms-1">
-                <i class="fe fe-refresh-cw me-1"></i> Refresh
-            </button>
+    </div>
+
+    <!-- Card 2: Total Volume (Teal) -->
+    <div class="col-xl-3 col-lg-6 col-md-6 col-12">
+        <div class="metric-card bg-card-teal">
+            <div>
+                <div class="metric-header">TOTAL VOLUME (MT)</div>
+                <div class="metric-value" id="kpi_volume">{{ number_format($kpis['total_volume_mt'], 2, '.', ',') }}</div>
+            </div>
+            <div>
+                <a class="metric-link" onclick="scrollToTable()">Lihat detail</a>
+            </div>
+            <div class="metric-icon-box">
+                <i class="fe fe-trending-up"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Card 3: Total Kontainer (Warm Orange) -->
+    <div class="col-xl-3 col-lg-6 col-md-6 col-12">
+        <div class="metric-card bg-card-orange">
+            <div>
+                <div class="metric-header">TOTAL KONTAINER (BOX)</div>
+                <div class="metric-value" id="kpi_containers">{{ number_format($kpis['total_containers']) }}</div>
+            </div>
+            <div>
+                <a class="metric-link" onclick="scrollToTable()">Lihat detail</a>
+            </div>
+            <div class="metric-icon-box">
+                <i class="fe fe-package"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Card 4: Total Pending / Draft (Coral Red) -->
+    <div class="col-xl-3 col-lg-6 col-md-6 col-12">
+        <div class="metric-card bg-card-coral">
+            <div>
+                <div class="metric-header">TOTAL DRAFT / PENDING</div>
+                <div class="metric-value" id="kpi_pending">{{ number_format($kpis['total_pending'] ?? 0) }}</div>
+            </div>
+            <div>
+                <a class="metric-link" onclick="scrollToTable()">Lihat detail</a>
+            </div>
+            <div class="metric-icon-box">
+                <i class="fe fe-alert-triangle"></i>
+            </div>
         </div>
     </div>
 </div>
 
-<!-- Filter Section -->
-<div class="card mb-4 border-0 shadow-sm" style="border-radius: 8px;">
-    <div class="card-header bg-white py-3 border-bottom d-flex align-items-center">
-        <i class="fe fe-filter text-primary me-2" style="font-size: 1.1rem;"></i>
-        <h6 class="mb-0 font-weight-bold" style="color: #334155;">Filter Data Ekspor</h6>
+<!-- 2. Second Row: Aktivitas Hari Ini (Horizontal Summary Strip) -->
+<div class="card cns-card mb-4">
+    <div class="card-header">
+        <div class="d-flex align-items-center flex-wrap gap-2">
+            <i class="fe fe-trending-up text-dark me-2" style="font-size: 15px;"></i>
+            <h6 class="card-title">Aktivitas Hari Ini</h6>
+            <span class="badge rounded-pillrounded-pill bg-success ms-2 px-2 py-1" style="font-size: 11px; font-weight: 500;">
+                Last Update: <span id="todayLastUpdate">{{ $todayStats['last_update'] ?? date('H:i:s') }}</span>
+            </span>
+        </div>
+        <div class="d-flex align-items-center flex-wrap gap-2">
+            <a id="btnExportExcel" href="{{ route('cns-dashboard-export-volume.export-excel', request()->all()) }}" class="btn btn-success btn-sm">
+                <i class="fe fe-download me-1"></i> Export Data (CSV/Excel)
+            </a>
+            <button type="button" id="btnRefresh" class="btn btn-primary btn-sm ms-1">
+                <i class="fe fe-refresh-cw me-1"></i> Refresh
+            </button>
+        </div>
+    </div>
+    <div class="card-body py-4">
+        <div class="row text-center align-items-center">
+            <!-- Total Kirim Hari Ini -->
+            <div class="col-md-3 col-6 border-end mb-2 mb-md-0">
+                <h2 class="fw-bold mb-1" id="today_shipments" style="color: #3e4f7a; font-size: 32px;">
+                    {{ $todayStats['shipments'] ?? 0 }}
+                </h2>
+                <div class="text-muted small">Total Kirim Hari Ini</div>
+            </div>
+
+            <!-- Kontainer Hari Ini -->
+            <div class="col-md-3 col-6 border-end mb-2 mb-md-0">
+                <h2 class="fw-bold mb-1" id="today_containers" style="color: #11a38f; font-size: 32px;">
+                    {{ $todayStats['containers'] ?? 0 }}
+                </h2>
+                <div class="text-muted small">Kontainer Hari Ini</div>
+            </div>
+
+            <!-- Total Volume MT Hari Ini -->
+            <div class="col-md-3 col-6 border-end">
+                <h2 class="fw-bold mb-1" id="today_volume" style="color: #f5a834; font-size: 32px;">
+                    {{ number_format($todayStats['volume_mt'] ?? 0, 2, '.', ',') }}
+                </h2>
+                <div class="text-muted small">
+                    Total Volume (MT) Hari Ini <i class="fe fe-info text-muted ms-1" style="font-size: 11px;" title="Volume Netto MT"></i>
+                </div>
+            </div>
+
+            <!-- Dokumen Siap / Approved -->
+            <div class="col-md-3 col-6">
+                <h2 class="fw-bold mb-1" id="today_approved" style="color: #3b82f6; font-size: 32px;">
+                    {{ $todayStats['approved'] ?? 0 }}
+                </h2>
+                <div class="text-muted small">SI Siap / Approved</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 3. Third Row: Visual Charts in 8:4 Grid -->
+<div class="row g-3 mb-4">
+    <!-- Left Column (8): Multi-line Trend Chart -->
+    <div class="col-lg-8 col-12">
+        <div class="card cns-card h-100 mb-0">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <i class="fe fe-activity text-dark me-2"></i>
+                    <h6 class="card-title">Tren Volume Ekspor (MT & Kontainer)</h6>
+                </div>
+                <span class="badge bg-light text-muted border" id="chartYearBadge">
+                    {{ $selectedYear !== 'all' ? 'Tahun ' . $selectedYear : 'Semua Tahun' }}
+                </span>
+            </div>
+            <div class="card-body">
+                <div id="monthlyTrendChart" style="min-height: 380px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column (4): Two Stacked Donut Charts -->
+    <div class="col-lg-4 col-12">
+        <div class="d-flex flex-column gap-3 h-100">
+            <!-- Top Donut: Status Pickup / Incoterm MTD -->
+            <div class="card cns-card flex-fill mb-0">
+                <div class="card-header py-2 px-3">
+                    <div class="d-flex align-items-center">
+                        <i class="fe fe-truck text-dark me-2" style="font-size: 13px;"></i>
+                        <h6 class="card-title" style="font-size: 12.5px;">Status Incoterm - Month To Date (MTD)</h6>
+                    </div>
+                </div>
+                <div class="card-body p-2 d-flex flex-column justify-content-center align-items-center">
+                    <div id="incotermChart" style="width: 100%; min-height: 180px;"></div>
+                </div>
+            </div>
+
+            <!-- Bottom Donut: Hasil QC / Status Pengapalan MTD -->
+            <div class="card cns-card flex-fill mb-0">
+                <div class="card-header py-2 px-3">
+                    <div class="d-flex align-items-center">
+                        <i class="fe fe-check-circle text-dark me-2" style="font-size: 13px;"></i>
+                        <h6 class="card-title" style="font-size: 12.5px;">Status Pengapalan - Month To Date (MTD)</h6>
+                    </div>
+                </div>
+                <div class="card-body p-2 d-flex flex-column justify-content-center align-items-center">
+                    <div id="statusDonutChart" style="width: 100%; min-height: 180px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 4. Filter Section -->
+<div class="card cns-card mb-4">
+    <div class="card-header">
+        <div class="d-flex align-items-center">
+            <i class="fe fe-filter text-primary me-2"></i>
+            <h6 class="card-title">Filter Parameter Ekspor</h6>
+        </div>
     </div>
     <div class="card-body">
         <form id="filterForm" method="GET" action="{{ route('cns-dashboard-export-volume.index') }}">
@@ -146,151 +416,10 @@
     </div>
 </div>
 
-<!-- KPI Cards -->
-<div class="row mb-4">
-    <!-- Total Volume MT -->
-    <div class="col-xl-3 col-lg-6 col-md-6 col-12 mb-3">
-        <div class="card border-0 shadow-sm h-100" style="border-radius: 8px; border-left: 4px solid #3b82f6 !important;">
-            <div class="card-body py-3">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div>
-                        <span class="text-muted small font-weight-bold text-uppercase">Total Export Volume</span>
-                        <h3 class="mb-0 mt-1 font-weight-bold text-dark" id="kpi_volume">
-                            {{ number_format($kpis['total_volume_mt'], 2, '.', ',') }} <span style="font-size: 1rem; color: #64748b;">MT</span>
-                        </h3>
-                    </div>
-                    <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; background-color: #eff6ff;">
-                        <i class="fe fe-trending-up" style="font-size: 1.4rem; color: #3b82f6;"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Total Kontainer -->
-    <div class="col-xl-3 col-lg-6 col-md-6 col-12 mb-3">
-        <div class="card border-0 shadow-sm h-100" style="border-radius: 8px; border-left: 4px solid #10b981 !important;">
-            <div class="card-body py-3">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div>
-                        <span class="text-muted small font-weight-bold text-uppercase">Total Kontainer</span>
-                        <h3 class="mb-0 mt-1 font-weight-bold text-dark" id="kpi_containers">
-                            {{ number_format($kpis['total_containers']) }} <span style="font-size: 1rem; color: #64748b;">Box</span>
-                        </h3>
-                    </div>
-                    <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; background-color: #ecfdf5;">
-                        <i class="fe fe-package" style="font-size: 1.4rem; color: #10b981;"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Total Pengapalan -->
-    <div class="col-xl-3 col-lg-6 col-md-6 col-12 mb-3">
-        <div class="card border-0 shadow-sm h-100" style="border-radius: 8px; border-left: 4px solid #f59e0b !important;">
-            <div class="card-body py-3">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div>
-                        <span class="text-muted small font-weight-bold text-uppercase">Total Pengapalan</span>
-                        <h3 class="mb-0 mt-1 font-weight-bold text-dark" id="kpi_shipments">
-                            {{ number_format($kpis['total_shipments']) }} <span style="font-size: 1rem; color: #64748b;">SI</span>
-                        </h3>
-                    </div>
-                    <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; background-color: #fffbeb;">
-                        <i class="fe fe-anchor" style="font-size: 1.4rem; color: #f59e0b;"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Total Consignee Aktif -->
-    <div class="col-xl-3 col-lg-6 col-md-6 col-12 mb-3">
-        <div class="card border-0 shadow-sm h-100" style="border-radius: 8px; border-left: 4px solid #8b5cf6 !important;">
-            <div class="card-body py-3">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div>
-                        <span class="text-muted small font-weight-bold text-uppercase">Consignee Aktif</span>
-                        <h3 class="mb-0 mt-1 font-weight-bold text-dark" id="kpi_consignees">
-                            {{ number_format($kpis['total_consignees']) }} <span style="font-size: 1rem; color: #64748b;">Buyer</span>
-                        </h3>
-                    </div>
-                    <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; background-color: #f5f3ff;">
-                        <i class="fe fe-users" style="font-size: 1.4rem; color: #8b5cf6;"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Charts Section -->
-<div class="row mb-4">
-    <!-- Trend Bulanan -->
-    <div class="col-lg-8 col-12 mb-3">
-        <div class="card border-0 shadow-sm h-100" style="border-radius: 8px;">
-            <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
-                <h6 class="mb-0 font-weight-bold" style="color: #1e293b;">
-                    <i class="fe fe-bar-chart-2 text-primary me-2"></i> Tren Volume Ekspor per Bulan (MT & Kontainer)
-                </h6>
-                <span class="badge bg-light text-muted" id="chartYearBadge">{{ $selectedYear !== 'all' ? 'Tahun ' . $selectedYear : 'Semua Tahun' }}</span>
-            </div>
-            <div class="card-body">
-                <div id="monthlyTrendChart" style="min-height: 320px;"></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Incoterm Breakdown -->
-    <div class="col-lg-4 col-12 mb-3">
-        <div class="card border-0 shadow-sm h-100" style="border-radius: 8px;">
-            <div class="card-header bg-white py-3 border-bottom">
-                <h6 class="mb-0 font-weight-bold" style="color: #1e293b;">
-                    <i class="fe fe-pie-chart text-info me-2"></i> Komposisi Incoterm
-                </h6>
-            </div>
-            <div class="card-body d-flex flex-column justify-content-center align-items-center">
-                <div id="incotermChart" style="width: 100%; min-height: 300px;"></div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="row mb-4">
-    <!-- Top Consignee -->
-    <div class="col-lg-6 col-12 mb-3">
-        <div class="card border-0 shadow-sm h-100" style="border-radius: 8px;">
-            <div class="card-header bg-white py-3 border-bottom">
-                <h6 class="mb-0 font-weight-bold" style="color: #1e293b;">
-                    <i class="fe fe-award text-warning me-2"></i> Top Consignee by Volume (MT)
-                </h6>
-            </div>
-            <div class="card-body">
-                <div id="topConsigneesChart" style="min-height: 300px;"></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Negara / Pelabuhan Tujuan -->
-    <div class="col-lg-6 col-12 mb-3">
-        <div class="card border-0 shadow-sm h-100" style="border-radius: 8px;">
-            <div class="card-header bg-white py-3 border-bottom">
-                <h6 class="mb-0 font-weight-bold" style="color: #1e293b;">
-                    <i class="fe fe-map-pin text-danger me-2"></i> Distribusi Negara / Pelabuhan Tujuan
-                </h6>
-            </div>
-            <div class="card-body">
-                <div id="countryChart" style="min-height: 300px;"></div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Table Section: Detail Shipments -->
-<div class="card border-0 shadow-sm mb-4" style="border-radius: 8px;">
-    <div class="card-header bg-white py-2 px-3 border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2">
-        <h6 class="mb-0 font-weight-bold" style="color: #1e293b; font-size: 0.95rem;">
+<!-- 5. Table Section: Detail Shipments -->
+<div class="card cns-card mb-4" id="shipmentsTableCard">
+    <div class="card-header">
+        <h6 class="card-title">
             <i class="fe fe-list text-primary me-2"></i> Rincian Pengapalan Ekspor
         </h6>
         <div class="d-flex align-items-center gap-3">
@@ -342,60 +471,82 @@
 </div>
 
 <script>
+    function scrollToTable() {
+        var el = document.getElementById('shipmentsTableCard');
+        if (el) {
+            el.scrollIntoView({ behavior: 'smooth' });
+        }
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
-        // Initial chart data passed from backend
+        // Initial chart data from backend
         var monthlyTrendData = @json($monthlyTrend);
         var incotermData = @json($incotermChart);
-        var topConsigneesData = @json($topConsigneesChart);
-        var countryData = @json($countryChart);
+        var statusData = @json($statusChart);
 
-        // 1. Monthly Trend Chart (MT Volume Column + Containers Line)
+        // 1. Multi-line Trend Chart (Teal for Containers, Warm Orange for Volume MT, with circles)
         var monthlyOptions = {
             series: [{
-                name: 'Volume Ekspor (MT)',
-                type: 'column',
-                data: monthlyTrendData.volume
-            }, {
-                name: 'Jumlah Kontainer (Box)',
-                type: 'line',
+                name: 'Kontainer (Box)',
                 data: monthlyTrendData.containers
+            }, {
+                name: 'Volume Ekspor (MT)',
+                data: monthlyTrendData.volume
             }],
             chart: {
-                height: 320,
+                height: 380,
                 type: 'line',
-                toolbar: { show: true },
+                toolbar: { show: false },
                 zoom: { enabled: false }
             },
             stroke: {
-                width: [0, 3],
+                width: [2.5, 2.5],
                 curve: 'smooth'
             },
-            colors: ['#3b82f6', '#10b981'],
-            labels: monthlyTrendData.categories,
+            markers: {
+                size: 5,
+                strokeColors: '#ffffff',
+                strokeWidth: 2,
+                hover: { size: 7 }
+            },
+            colors: ['#14b8a6', '#f59e0b'],
             xaxis: {
-                categories: monthlyTrendData.categories
+                categories: monthlyTrendData.categories,
+                labels: {
+                    style: { fontSize: '11px', colors: '#64748b' }
+                }
             },
             yaxis: [{
-                title: { text: 'Volume (MT)' },
+                title: { text: 'Kontainer (Box)', style: { fontSize: '11px', color: '#14b8a6' } },
                 labels: {
-                    formatter: function (val) { return val ? val.toLocaleString() : 0; }
+                    formatter: function (val) { return Math.round(val); },
+                    style: { colors: '#64748b' }
                 }
             }, {
                 opposite: true,
-                title: { text: 'Kontainer (Box)' },
+                title: { text: 'Volume (MT)', style: { fontSize: '11px', color: '#f59e0b' } },
                 labels: {
-                    formatter: function (val) { return Math.round(val); }
+                    formatter: function (val) { return (val ? val.toLocaleString() : 0); },
+                    style: { colors: '#64748b' }
                 }
             }],
-            legend: { position: 'top' },
+            grid: {
+                borderColor: '#f1f5f9',
+                strokeDashArray: 3
+            },
+            legend: {
+                position: 'top',
+                horizontalAlign: 'center',
+                markers: { radius: 12 }
+            },
             dataLabels: { enabled: false },
             tooltip: {
                 shared: true,
                 intersect: false,
                 y: {
                     formatter: function (y, { seriesIndex }) {
-                        if (seriesIndex === 0) return (y ? y.toLocaleString() : 0) + ' MT';
-                        return (y ? y.toLocaleString() : 0) + ' Box';
+                        if (seriesIndex === 0) return (y ? Math.round(y) : 0) + ' Box';
+                        return (y ? y.toLocaleString() : 0) + ' MT';
                     }
                 }
             }
@@ -403,19 +554,28 @@
         var monthlyChart = new ApexCharts(document.querySelector("#monthlyTrendChart"), monthlyOptions);
         monthlyChart.render();
 
-        // 2. Incoterm Donut Chart
+        // 2. Top Donut Chart: Status Incoterm MTD (Gold/Yellow, Green, Red, Blue)
+        var incotermColors = ['#f59e0b', '#10b981', '#ef4444', '#3b82f6', '#64748b'];
         var incotermOptions = {
             series: incotermData.series.length > 0 ? incotermData.series : [0],
             labels: incotermData.labels.length > 0 ? incotermData.labels : ['No Data'],
             chart: {
                 type: 'donut',
-                height: 300
+                height: 180
             },
-            colors: ['#3b82f6', '#06b6d4', '#f59e0b', '#8b5cf6', '#64748b'],
-            legend: { position: 'bottom' },
-            dataLabels: {
-                enabled: true,
-                formatter: function (val) { return Math.round(val) + "%"; }
+            colors: incotermColors,
+            legend: {
+                position: 'bottom',
+                fontSize: '11px',
+                markers: { radius: 12 }
+            },
+            dataLabels: { enabled: false },
+            plotOptions: {
+                pie: {
+                    donut: {
+                        size: '68%'
+                    }
+                }
             },
             tooltip: {
                 y: {
@@ -426,89 +586,39 @@
         var incotermChartInst = new ApexCharts(document.querySelector("#incotermChart"), incotermOptions);
         incotermChartInst.render();
 
-        // 3. Top Consignees Horizontal Bar Chart
-        var consigneeOptions = {
-            series: [{
-                name: 'Volume (MT)',
-                data: topConsigneesData.series
-            }],
+        // 3. Bottom Donut Chart: Status Pengapalan MTD (Deep Forest Green, Coral Red, Amber, Slate)
+        var statusColors = ['#0f766e', '#dc2626', '#f59e0b', '#64748b', '#3b82f6'];
+        var statusOptions = {
+            series: statusData.series.length > 0 ? statusData.series : [0],
+            labels: statusData.labels.length > 0 ? statusData.labels : ['No Data'],
             chart: {
-                type: 'bar',
-                height: 300,
-                toolbar: { show: false }
+                type: 'donut',
+                height: 180
             },
-            plotOptions: {
-                bar: {
-                    horizontal: true,
-                    borderRadius: 4,
-                    dataLabels: { position: 'top' }
-                }
+            colors: statusColors,
+            legend: {
+                position: 'bottom',
+                fontSize: '11px',
+                markers: { radius: 12 }
             },
-            colors: ['#f59e0b'],
-            dataLabels: {
-                enabled: true,
-                offsetX: -6,
-                style: { fontSize: '11px', colors: ['#fff'] },
-                formatter: function (val) { return val ? val.toLocaleString() : ''; }
-            },
-            xaxis: {
-                categories: topConsigneesData.categories,
-                labels: {
-                    formatter: function (val) { return val ? val.toLocaleString() : 0; }
-                }
-            },
-            tooltip: {
-                y: {
-                    formatter: function (val) { return val.toLocaleString() + ' MT'; }
-                }
-            }
-        };
-        var topConsigneesChartInst = new ApexCharts(document.querySelector("#topConsigneesChart"), consigneeOptions);
-        topConsigneesChartInst.render();
-
-        // 4. Country / Port Breakdown Chart
-        var countryOptions = {
-            series: [{
-                name: 'Volume (MT)',
-                data: countryData.series
-            }],
-            chart: {
-                type: 'bar',
-                height: 300,
-                toolbar: { show: false }
-            },
-            plotOptions: {
-                bar: {
-                    borderRadius: 4,
-                    columnWidth: '50%'
-                }
-            },
-            colors: ['#ef4444'],
             dataLabels: { enabled: false },
-            xaxis: {
-                categories: countryData.categories,
-                labels: {
-                    rotate: -25,
-                    trim: true,
-                    maxHeight: 70
-                }
-            },
-            yaxis: {
-                title: { text: 'Volume (MT)' },
-                labels: {
-                    formatter: function (val) { return val ? val.toLocaleString() : 0; }
+            plotOptions: {
+                pie: {
+                    donut: {
+                        size: '68%'
+                    }
                 }
             },
             tooltip: {
                 y: {
-                    formatter: function (val) { return val.toLocaleString() + ' MT'; }
+                    formatter: function (val) { return val + ' SI'; }
                 }
             }
         };
-        var countryChartInst = new ApexCharts(document.querySelector("#countryChart"), countryOptions);
-        countryChartInst.render();
+        var statusChartInst = new ApexCharts(document.querySelector("#statusDonutChart"), statusOptions);
+        statusChartInst.render();
 
-        // 5. Live Filter via AJAX
+        // 4. Live Filter via AJAX
         var filterForm = document.getElementById('filterForm');
         var btnRefresh = document.getElementById('btnRefresh');
         var btnExportExcel = document.getElementById('btnExportExcel');
@@ -530,22 +640,31 @@
             })
             .then(function (res) { return res.json(); })
             .then(function (data) {
-                // 1. Update KPIs
-                document.getElementById('kpi_volume').innerHTML = (data.kpis.total_volume_mt || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' <span style="font-size: 1rem; color: #64748b;">MT</span>';
-                document.getElementById('kpi_containers').innerHTML = (data.kpis.total_containers || 0).toLocaleString() + ' <span style="font-size: 1rem; color: #64748b;">Box</span>';
-                document.getElementById('kpi_shipments').innerHTML = (data.kpis.total_shipments || 0).toLocaleString() + ' <span style="font-size: 1rem; color: #64748b;">SI</span>';
-                document.getElementById('kpi_consignees').innerHTML = (data.kpis.total_consignees || 0).toLocaleString() + ' <span style="font-size: 1rem; color: #64748b;">Buyer</span>';
+                // 1. Update Top Metric Cards
+                document.getElementById('kpi_shipments').textContent = (data.kpis.total_shipments || 0).toLocaleString();
+                document.getElementById('kpi_volume').textContent = (data.kpis.total_volume_mt || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                document.getElementById('kpi_containers').textContent = (data.kpis.total_containers || 0).toLocaleString();
+                document.getElementById('kpi_pending').textContent = (data.kpis.total_pending || 0).toLocaleString();
 
-                // 2. Update Charts
+                // 2. Update Today's Activity Strip
+                if (data.todayStats) {
+                    document.getElementById('today_shipments').textContent = data.todayStats.shipments || 0;
+                    document.getElementById('today_containers').textContent = data.todayStats.containers || 0;
+                    document.getElementById('today_volume').textContent = (data.todayStats.volume_mt || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                    document.getElementById('today_approved').textContent = data.todayStats.approved || 0;
+                    document.getElementById('todayLastUpdate').textContent = data.todayStats.last_update || '';
+                }
+
+                // 3. Update Chart Badge & Series
                 var yrVal = document.getElementById('filter_year').value;
                 document.getElementById('chartYearBadge').textContent = yrVal !== 'all' ? 'Tahun ' + yrVal : 'Semua Tahun';
 
                 monthlyChart.updateSeries([{
+                    name: 'Kontainer (Box)',
+                    data: data.monthlyTrend.containers
+                }, {
                     name: 'Volume Ekspor (MT)',
                     data: data.monthlyTrend.volume
-                }, {
-                    name: 'Jumlah Kontainer (Box)',
-                    data: data.monthlyTrend.containers
                 }]);
 
                 incotermChartInst.updateOptions({
@@ -553,23 +672,14 @@
                     labels: data.incotermChart.labels.length > 0 ? data.incotermChart.labels : ['No Data']
                 });
 
-                topConsigneesChartInst.updateOptions({
-                    xaxis: { categories: data.topConsigneesChart.categories }
-                });
-                topConsigneesChartInst.updateSeries([{
-                    name: 'Volume (MT)',
-                    data: data.topConsigneesChart.series
-                }]);
+                if (data.statusChart) {
+                    statusChartInst.updateOptions({
+                        series: data.statusChart.series.length > 0 ? data.statusChart.series : [0],
+                        labels: data.statusChart.labels.length > 0 ? data.statusChart.labels : ['No Data']
+                    });
+                }
 
-                countryChartInst.updateOptions({
-                    xaxis: { categories: data.countryChart.categories }
-                });
-                countryChartInst.updateSeries([{
-                    name: 'Volume (MT)',
-                    data: data.countryChart.series
-                }]);
-
-                // 3. Update Table
+                // 4. Update Table
                 currentShipmentsData = data.shipments || [];
                 currentPage = 1;
                 renderPaginatedTable();
@@ -579,7 +689,7 @@
             });
         }
 
-        // 6. Paginated Table Logic
+        // 5. Paginated Table Logic
         var currentShipmentsData = @json($shipments);
         var currentPage = 1;
         var pageSize = 10;
@@ -625,7 +735,7 @@
             if (totalItems === 0) {
                 tbody.innerHTML = '<tr id="emptyTableRow"><td colspan="11" class="text-center py-4 text-muted"><i class="fe fe-inbox fs-3 d-block mb-1"></i>Tidak ada data pengapalan sesuai kriteria.</td></tr>';
                 document.getElementById('paginationInfo').textContent = 'Menampilkan 0 sampai 0 dari 0 pengapalan';
-                document.getElementById('paginationControls').innerHTML = '';
+                renderPaginationButtons(1);
                 return;
             }
 
@@ -665,10 +775,6 @@
         function renderPaginationButtons(totalPages) {
             var controls = document.getElementById('paginationControls');
             controls.innerHTML = '';
-
-            if (totalPages <= 1) {
-                return;
-            }
 
             // Prev button
             var prevLi = document.createElement('li');
@@ -774,6 +880,7 @@
             });
         }
 
+        // Submit filter
         if (filterForm) {
             filterForm.addEventListener('submit', function (e) {
                 e.preventDefault();
@@ -781,12 +888,14 @@
             });
         }
 
+        // Refresh button
         if (btnRefresh) {
             btnRefresh.addEventListener('click', function () {
                 fetchAjaxData();
             });
         }
 
+        // Reset filter
         var btnResetFilter = document.getElementById('btnResetFilter');
         if (btnResetFilter) {
             btnResetFilter.addEventListener('click', function () {

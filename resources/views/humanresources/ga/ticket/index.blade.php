@@ -14,10 +14,23 @@
         <div class="card-body">
             <div class="row g-2 align-items-center mb-3">
                 <div class="col-md-2">
+                    <select id="GA_Filter_Mode" class="form-control form-control-sm">
+                        <option value="">Semua Mode</option>
+                        <option value="OPERATIONAL">Operasional GA</option>
+                        <option value="WORK_ORDER_VOUCHER">Order &amp; Voucher</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
                     <select id="GA_Filter_Status" class="form-control form-control-sm">
                         <option value="">Semua Status</option>
                         <option value="ACTIVE">Aktif</option>
                         <option value="OPEN">Open</option>
+                        <option value="WAITING_DEPT_HEAD">Approval Dept Head</option>
+                        <option value="GA_VERIFICATION">GA Verification</option>
+                        <option value="WAITING_BUDGET_APPROVAL">Approval Biaya</option>
+                        <option value="READY_FOR_VOUCHER">Siap Buat Voucher</option>
+                        <option value="VOUCHER_CREATED">Voucher Dibuat</option>
+                        <option value="PAID">Paid</option>
                         <option value="TRIAGED">Triaged</option>
                         <option value="ASSIGNED">Assigned</option>
                         <option value="IN_PROGRESS">In Progress</option>
@@ -45,11 +58,11 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="col-md-3">
-                    <input type="text" id="GA_Filter_Search" class="form-control form-control-sm" placeholder="Cari no tiket / subjek / reporter" />
+                <div class="col-md-2">
+                    <input type="text" id="GA_Filter_Search" class="form-control form-control-sm" placeholder="No tiket / subjek / voucher" />
                 </div>
-                <div class="col-md-3 d-flex flex-wrap gap-2">
-                    <button type="button" class="btn btn-sm btn-primary" onclick="GATicketApplyFilter()">Terapkan Filter</button>
+                <div class="col-md-2 d-flex flex-wrap gap-1">
+                    <button type="button" class="btn btn-sm btn-primary" onclick="GATicketApplyFilter()">Filter</button>
                     <button type="button" class="btn btn-sm btn-secondary" onclick="GATicketResetFilter()">Reset</button>
                 </div>
             </div>
@@ -61,6 +74,7 @@
                 <button type="button" class="btn btn-primary btn-sm" onclick="GATicketNew()">Tiket Baru</button>
                 <button type="button" class="btn btn-success btn-sm" onclick="GATicketDetail()">Detail / Tindak Lanjut</button>
                 <button type="button" class="btn btn-warning btn-sm text-dark" onclick="GATicketScanSla()">Scan SLA</button>
+                <a class="btn btn-outline-primary btn-sm" href="{{ url('hrd-it-ticket-index') }}">IT Support &amp; Helpdesk</a>
                 <a class="btn btn-outline-secondary btn-sm" href="{{ url('hrd-ga-ticket-master-index') }}">Master Tiket</a>
                 <a class="btn btn-outline-secondary btn-sm" href="{{ url('hrd-ga-qr-point-index') }}">QR Point</a>
             </div>
@@ -73,10 +87,12 @@
 <script>
 function GATicketQuery() {
     var params = [];
+    var mode = document.getElementById('GA_Filter_Mode').value;
     var status = document.getElementById('GA_Filter_Status').value;
     var priority = document.getElementById('GA_Filter_Priority').value;
     var category = document.getElementById('GA_Filter_Category').value;
     var search = document.getElementById('GA_Filter_Search').value;
+    if (mode) params.push('workflow_mode=' + encodeURIComponent(mode));
     if (status) params.push('status=' + encodeURIComponent(status));
     if (priority) params.push('priority=' + encodeURIComponent(priority));
     if (category) params.push('category_id=' + encodeURIComponent(category));
@@ -89,6 +105,7 @@ function GATicketApplyFilter() {
 }
 
 function GATicketResetFilter() {
+    document.getElementById('GA_Filter_Mode').value = '';
     document.getElementById('GA_Filter_Status').value = '';
     document.getElementById('GA_Filter_Priority').value = '';
     document.getElementById('GA_Filter_Category').value = '';
@@ -132,12 +149,12 @@ function GATicketScanSla() {
 
 GATicket = new dhtmlXGridObject('GATicket');
 GATicket.setImagePath('./dhtmlx/imgs/');
-GATicket.setHeader('No,No Tiket,Subjek,Kategori,Prioritas,Status,Assignee,Response Due,Resolve Due,Dibuat,Reporter');
-GATicket.attachHeader('&nbsp;,#text_filter,#text_filter,#select_filter,#select_filter,#select_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter');
-GATicket.setInitWidths('50,150,220,130,80,100,140,140,140,140,140');
-GATicket.setColAlign('center,center,left,left,center,center,left,center,center,center,left');
-GATicket.setColSorting('int,str,str,str,str,str,str,str,str,str,str');
-GATicket.setColTypes('ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro');
+GATicket.setHeader('No,No Tiket,Mode,Subjek,Kategori,Prioritas,Status,Nominal,Voucher No,Assignee,Resolve Due,Dibuat,Reporter');
+GATicket.attachHeader('&nbsp;,#text_filter,#select_filter,#text_filter,#select_filter,#select_filter,#select_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter');
+GATicket.setInitWidths('45,140,120,210,125,75,140,115,135,130,130,130,130');
+GATicket.setColAlign('center,center,center,left,left,center,center,right,center,left,center,center,left');
+GATicket.setColSorting('int,str,str,str,str,str,str,str,str,str,str,str,str');
+GATicket.setColTypes('ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro');
 GATicket.enableSmartRendering(true, 200);
 GATicket.setSkin('dhx_skyblue');
 GATicket.init();

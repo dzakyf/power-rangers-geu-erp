@@ -5,6 +5,7 @@
 <script src="{{ asset('jquery-migrate-3.4.1.min.js') }}"></script>
 <script src="{{ asset('adminor/plugins/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
 <script src="{{ asset('dhtmlx/dhtmlx.js') }}"></script>
+<script src="{{ asset('js/cns-grid-pagination.js') }}"></script>
 <script src="{{ asset('blockui.js') }}"></script>
 <script src="{{ asset('jquery.ajaxloader.1.5.1.js') }}"></script>
 <script src="{{ asset('jquery.confirm.js') }}"></script>

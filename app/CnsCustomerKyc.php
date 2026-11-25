@@ -13,6 +13,10 @@ class CnsCustomerKyc extends Model
 
     protected $table = 'cns_customer_kyc';
 
+    public const STATUS_PENDING = 'PENDING';
+    public const STATUS_APPROVED = 'APPROVED';
+    public const STATUS_REJECTED = 'REJECTED';
+
     protected $fillable = [
         'kyc_no',
         'filler_name',
@@ -37,6 +41,10 @@ class CnsCustomerKyc extends Model
         'doc_certificate',
         'doc_certificate_name',
         'location',
+        'approval_status',
+        'approved_by',
+        'approved_at',
+        'rejection_reason',
         'created_by',
         'updated_by',
     ];
@@ -44,7 +52,28 @@ class CnsCustomerKyc extends Model
     protected $casts = [
         'form_date'          => 'date',
         'incorporation_date' => 'date',
+        'approved_at'        => 'datetime',
     ];
+
+    public function scopeApproved($query)
+    {
+        return $query->where('approval_status', self::STATUS_APPROVED);
+    }
+
+    public function isPending(): bool
+    {
+        return ($this->approval_status ?: self::STATUS_PENDING) === self::STATUS_PENDING;
+    }
+
+    public function isApproved(): bool
+    {
+        return $this->approval_status === self::STATUS_APPROVED;
+    }
+
+    public function isRejected(): bool
+    {
+        return $this->approval_status === self::STATUS_REJECTED;
+    }
 
     public function getSupplierAttribute()
     {
@@ -95,5 +124,54 @@ class CnsCustomerKyc extends Model
 
         $seq = self::nextSequenceFromNumbers($existing);
         return self::formatKycNo($seq, $date);
+    }
+
+    /**
+     * Build non-empty Master Company (supplier) fields from this KYC record.
+     */
+    public function masterCompanyPayload(): array
+    {
+        $payload = [
+            'Company_Name' => mb_substr(trim((string) $this->company_name), 0, 100),
+        ];
+
+        $address = trim((string) ($this->registered_address ?: $this->admin_accounting_address));
+        if ($address !== '') {
+            $payload['Address'] = $address;
+        }
+
+        $npwp = trim((string) $this->vat_number);
+        if ($npwp !== '') {
+            $payload['NPWP'] = mb_substr($npwp, 0, 50);
+        }
+
+        $contactPerson = trim((string) ($this->trading_contact_person ?: $this->finance_contact_person));
+        if ($contactPerson !== '') {
+            $payload['Contact_Person'] = mb_substr($contactPerson, 0, 30);
+        }
+
+        $contactDetails = trim(implode("\n", array_filter([
+            $this->trading_contact_details,
+            $this->finance_contact_details,
+        ])));
+
+        if ($contactDetails !== '') {
+            if (preg_match_all('/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/', $contactDetails, $emailMatches)) {
+                $emails = array_values(array_unique(array_map('strtolower', $emailMatches[0])));
+                $emails = array_slice($emails, 0, 10);
+                $payload['Email'] = mb_substr($emails[0], 0, 60);
+                $payload['Emails'] = json_encode($emails);
+                $contactDetails = str_replace($emailMatches[0], ' ', $contactDetails);
+            }
+
+            if (preg_match('/(\+?\d[\d\s\-().]{6,}\d)/', $contactDetails, $phoneMatch)) {
+                $phone = trim(preg_replace('/\s+/', ' ', $phoneMatch[1]));
+                if ($phone !== '') {
+                    $payload['Phone'] = mb_substr($phone, 0, 60);
+                }
+            }
+        }
+
+        return $payload;
     }
 }

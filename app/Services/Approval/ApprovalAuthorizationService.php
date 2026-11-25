@@ -45,6 +45,13 @@ class ApprovalAuthorizationService
         return false;
     }
 
+    public function canForceApprove($user): bool
+    {
+        return function_exists('can_force_approve')
+            ? can_force_approve($user)
+            : false;
+    }
+
     public function assertCanReleaseClaim($user): void
     {
         if (!$this->isWildcardAdmin($user)) {

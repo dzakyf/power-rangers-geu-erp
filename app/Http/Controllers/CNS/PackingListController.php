@@ -5,6 +5,7 @@ namespace App\Http\Controllers\CNS;
 use App\Http\Controllers\Controller;
 use App\PackingList;
 use App\ShippingInstruction;
+use App\Support\DhtmlxGridPagination;
 use App\User;
 use App\VesselSchedule;
 use App\VesselScheduleDtl;
@@ -24,18 +25,29 @@ class PackingListController extends Controller
 
     public function indexPackingListXml(Request $request)
     {
-        if (stristr($_SERVER["HTTP_ACCEPT"], "application/xhtml+xml")) {
-            header("Content-type: application/xhtml+xml");
-        } else {
-            header("Content-type: text/xml");
-        }
-        echo ("<?xml version='1.0' encoding='iso-8859-1'?>\n");
+        $query = PackingList::whereBetween('PL_Date', [$request->tgl1, $request->tgl2])
+            ->whereIn('Status', ["CREATED", "APPROVED"]);
 
-        echo "<rows>";
+        $colMap = [
+            1 => 'Packing_List_No',
+            2 => 'Final_SI_No',
+            3 => 'PL_Date',
+            10 => 'Status',
+        ];
+
+        $paginated = DhtmlxGridPagination::paginateQuery($query, $request, [
+            'col_map' => $colMap,
+            'default_page_size' => 25,
+        ]);
+
+        $shipments = $paginated['rows'];
+        $siNos = $shipments->where('Is_Final', '!=', 1)->pluck('SI_No')->filter()->unique()->values()->all();
+        $vsds = count($siNos)
+            ? VesselScheduleDtl::active()->whereIn('SI_No', $siNos)->get()
+            : collect();
 
         $vsdData = [];
-        $vsds = VesselScheduleDtl::active()->whereNotNull('SI_No')->get();
-        foreach ($vsds as $key => $vsd) {
+        foreach ($vsds as $vsd) {
             if (!isset($vsdData[$vsd->SI_No])) {
                 $vsdData[$vsd->SI_No] = [
                     'list' => [],
@@ -54,33 +66,58 @@ class PackingListController extends Controller
             $vsdData[$vsd->SI_No]['gross_mt'] += $vsd->Gross_MT;
         }
 
-        $shipments = PackingList::whereBetween('PL_Date',[$request->tgl1, $request->tgl2])->whereIn('Status', ["CREATED", "APPROVED"])->get();
-        foreach ($shipments as $key => $shipment) {
-            echo "<row id=\"$shipment->id\" >";
-            echo "<cell>" . ($key + 1) . "</cell>";
-            echo "<cell>" . htmlspecialchars($shipment->Packing_List_No) . "</cell>";
-            echo "<cell>" . htmlspecialchars($shipment->Final_SI_No) . "</cell>";
-            echo "<cell>" . htmlspecialchars(date("d F Y", strtotime($shipment->PL_Date))) . "</cell>";
-            if (isset($vsdData[$shipment->SI_No])) {
-                echo "<cell>" . htmlspecialchars(implode(', ', $vsdData[$shipment->SI_No]['list'])) . "</cell>";
-                echo "<cell>" . htmlspecialchars($vsdData[$shipment->SI_No]['tare']) . "</cell>";
-                echo "<cell>" . htmlspecialchars($vsdData[$shipment->SI_No]['netto_kg']) . "</cell>";
-                echo "<cell>" . htmlspecialchars($vsdData[$shipment->SI_No]['netto_mt']) . "</cell>";
-                echo "<cell>" . htmlspecialchars($vsdData[$shipment->SI_No]['gross_kg']) . "</cell>";
-                echo "<cell>" . htmlspecialchars($vsdData[$shipment->SI_No]['gross_mt']) . "</cell>";
-            }else {
-                echo "<cell></cell>";
-                echo "<cell></cell>";
-                echo "<cell></cell>";
-                echo "<cell></cell>";
-                echo "<cell></cell>";
-                echo "<cell></cell>";
+        $bcDataCache = [];
+        $bodyXml = '';
+        $nomor = $paginated['posStart'] + 1;
+
+        foreach ($shipments as $shipment) {
+            $refLabel = $shipment->Final_SI_No;
+            $rowVsd = $vsdData[$shipment->SI_No] ?? null;
+
+            if (!empty($shipment->Is_Final) && !empty($shipment->BC_No)) {
+                if (!isset($bcDataCache[$shipment->BC_No])) {
+                    $resolved = $this->resolveStuffingDataByBc($shipment->BC_No);
+                    $bcContainers = $resolved['containers'];
+                    $bcDataCache[$shipment->BC_No] = [
+                        'list' => $bcContainers->map(function ($item) {
+                            return $item->Container . ' (' . $item->Seal . ')';
+                        })->all(),
+                        'tare' => (float) $bcContainers->sum('Tare'),
+                        'netto_kg' => (float) ($shipment->Total_Netto_KG ?? $resolved['totals']['netto_kg']),
+                        'netto_mt' => round((float) ($shipment->Total_Netto_KG ?? $resolved['totals']['netto_kg']) / 1000, 2),
+                        'gross_kg' => (float) ($shipment->Total_Gross_KG ?? $resolved['totals']['gross_kg']),
+                        'gross_mt' => round((float) ($shipment->Total_Gross_KG ?? $resolved['totals']['gross_kg']) / 1000, 2),
+                    ];
+                }
+                $rowVsd = $bcDataCache[$shipment->BC_No];
+                $refLabel = $shipment->Final_SI_No ?: ('BC: ' . $shipment->BC_No);
             }
-            echo "<cell>" . htmlspecialchars($shipment->Status ?? 'CREATED') . "</cell>";
-            echo "</row>";
+
+            $bodyXml .= "<row id=\"$shipment->id\" >";
+            $bodyXml .= "<cell>" . $nomor++ . "</cell>";
+            $bodyXml .= "<cell>" . htmlspecialchars($shipment->Packing_List_No) . "</cell>";
+            $bodyXml .= "<cell>" . htmlspecialchars((string) $refLabel) . "</cell>";
+            $bodyXml .= "<cell>" . htmlspecialchars(date("d F Y", strtotime($shipment->PL_Date))) . "</cell>";
+            if ($rowVsd) {
+                $bodyXml .= "<cell>" . htmlspecialchars(implode(', ', $rowVsd['list'])) . "</cell>";
+                $bodyXml .= "<cell>" . htmlspecialchars($rowVsd['tare']) . "</cell>";
+                $bodyXml .= "<cell>" . htmlspecialchars($rowVsd['netto_kg']) . "</cell>";
+                $bodyXml .= "<cell>" . htmlspecialchars($rowVsd['netto_mt']) . "</cell>";
+                $bodyXml .= "<cell>" . htmlspecialchars($rowVsd['gross_kg']) . "</cell>";
+                $bodyXml .= "<cell>" . htmlspecialchars($rowVsd['gross_mt']) . "</cell>";
+            } else {
+                $bodyXml .= "<cell></cell>";
+                $bodyXml .= "<cell></cell>";
+                $bodyXml .= "<cell></cell>";
+                $bodyXml .= "<cell></cell>";
+                $bodyXml .= "<cell></cell>";
+                $bodyXml .= "<cell></cell>";
+            }
+            $bodyXml .= "<cell>" . htmlspecialchars($shipment->Status ?? 'CREATED') . "</cell>";
+            $bodyXml .= "</row>\n";
         }
 
-        echo "</rows>";
+        return DhtmlxGridPagination::response($paginated['total'], $paginated['posStart'], $bodyXml);
     }
 
     public function printPackingList(Request $request)
@@ -166,12 +203,17 @@ class PackingListController extends Controller
             $logoDataUri = $this->imageToDataUri($logoPath);
         }
 
-        $vsds = VesselScheduleDtl::active()->where('SI_No', $shipment->SI_No)->get();
-
-        // ── Hitung total ──────────────────────────────────────────────────
-        $gross = (float) $vsds->sum('Gross_KG');
-        $netto = (float) $vsds->sum('Netto_KG');
-        $mt    = round($netto / 1000, 2);
+        if (!empty($shipment->Is_Final) && !empty($shipment->BC_No)) {
+            $bcData = $this->resolveStuffingDataByBc($shipment->BC_No);
+            $vsds = $bcData['containers'];
+            $gross = (float) ($shipment->Total_Gross_KG ?? $bcData['totals']['gross_kg']);
+            $netto = (float) ($shipment->Total_Netto_KG ?? $bcData['totals']['netto_kg']);
+        } else {
+            $vsds = VesselScheduleDtl::active()->where('SI_No', $shipment->SI_No)->get();
+            $gross = (float) $vsds->sum('Gross_KG');
+            $netto = (float) $vsds->sum('Netto_KG');
+        }
+        $mt = round($netto / 1000, 2);
 
         $approver = $shipment->approved_by
             ? User::find($shipment->approved_by)
@@ -292,8 +334,132 @@ class PackingListController extends Controller
         return view('cns.export.pl-new', compact('plno','fsis', 'companies', 'masProducts', 'users'));
     }
 
+    public function newFinalPackingList(Request $request)
+    {
+        $counter = PackingList::where('PL_Date', "LIKE", date("Y-m") . "%")->count();
+        $plno = "PL-GEU/EXP-BC/" . sprintf('%03d', $counter + 1) . "/" . $this->getRomawi(date("n")) . "/" . date("Y");
+
+        $bcNumbers = VesselSchedule::selectRaw("DISTINCT COALESCE(NULLIF(BC_No, ''), NULLIF(Booking_No, ''), Order_No) as bc_no")
+            ->whereRaw("COALESCE(NULLIF(BC_No, ''), NULLIF(Booking_No, ''), Order_No) IS NOT NULL")
+            ->whereRaw("COALESCE(NULLIF(BC_No, ''), NULLIF(Booking_No, ''), Order_No) != ''")
+            ->orderBy('bc_no')
+            ->pluck('bc_no');
+
+        $selectedBcNo = (string) $request->query('bc_no', '');
+        if ($selectedBcNo === '' && $request->filled('vs_id')) {
+            $vs = VesselSchedule::find($request->query('vs_id'));
+            if ($vs) {
+                $selectedBcNo = (string) ($vs->BC_No ?: ($vs->Booking_No ?: $vs->Order_No));
+            }
+        }
+
+        $companies = DB::table('supplier')->where("Status", "NORMAL")->where("Location", auth()->user()->Location)->get();
+        $masProducts = DB::table('master_product_cns')->get();
+        $users = User::where('Status', 'ACTIVE')->orderBy('Name')->get();
+
+        return view('cns.export.pl-final-new', compact('plno', 'bcNumbers', 'selectedBcNo', 'companies', 'masProducts', 'users'));
+    }
+
+    public function getStuffingByBc(Request $request)
+    {
+        $bcNo = trim((string) $request->input('bc_no', ''));
+        if ($bcNo === '') {
+            return response()->json(['error' => 'Nomor BC wajib dipilih'], 422);
+        }
+
+        $data = $this->resolveStuffingDataByBc($bcNo);
+        if ($data['schedules']->isEmpty()) {
+            return response()->json(['error' => 'Data Stuffing dengan Nomor BC tersebut tidak ditemukan'], 404);
+        }
+
+        return response()->json([
+            'bc_no' => $bcNo,
+            'header' => $data['header'],
+            'containers' => $data['containers']->values(),
+            'totals' => $data['totals'],
+            'description' => $data['description'],
+        ]);
+    }
+
     public function newPackingListSubmit(Request $request)
     {
+        $isFinalByBc = $request->boolean('Is_Final') && $request->filled('BC_No');
+
+        if ($isFinalByBc) {
+            $bcNo = trim((string) $request->input('BC_No'));
+            $bcData = $this->resolveStuffingDataByBc($bcNo);
+            if ($bcData['schedules']->isEmpty()) {
+                return $request->expectsJson()
+                    ? response()->json(['error' => 'Data Stuffing dengan Nomor BC tersebut tidak ditemukan'], 404)
+                    : response('error', 404);
+            }
+
+            $firstSchedule = $bcData['schedules']->first();
+            $si = $bcData['si'];
+
+            $pl = new PackingList();
+            $pl->Packing_List_No = $request->input('Packing_List_No');
+            $pl->BC_No = $bcNo;
+            $pl->Is_Final = 1;
+            $pl->Final_SI_No = $request->input('Final_SI_No') ?: ($si->Final_SI_No ?? null);
+            $pl->SI_No = $si->SI_No ?? ($firstSchedule->SI_No ?? '');
+            $pl->Order_No = $request->input('Order_No') ?: ($firstSchedule->Order_No ?? '');
+            $pl->SI_Date = $si->SI_Date ?? ($request->input('PL_Date') ?: date('Y-m-d'));
+            $pl->Final_SI_Date = $si->Final_SI_Date ?? null;
+            $pl->Qty = trim(($request->input('Qty1') ?? '') . ' x ' . ($request->input('Qty2') ?? ''));
+            $pl->Qty1 = $request->input('Qty1') ?? (string) $bcData['totals']['container_count'];
+            $pl->Qty2 = $request->input('Qty2') ?? '20 FT';
+            $pl->PL_Date = $request->input('PL_Date') ?: date('Y-m-d');
+            $pl->Shipper = $request->input('Shipper') ?? '';
+            $pl->Consignee = $request->input('Consignee') ?? '';
+            $pl->Notify = $request->input('Notify') ?? '';
+            $pl->Destination_Port = $request->input('Destination_Port') ?? '';
+            $pl->Delivery_Terms = $request->input('Delivery_Terms') ?? '';
+            $pl->Contract_No = $request->input('Contract_No') ?? ($firstSchedule->Contract_No ?? '');
+            $pl->Voyage = $request->input('Voyage') ?? ($firstSchedule->Vessel ?? '');
+            $pl->ETD = $request->input('ETD') ?: ($firstSchedule->ETD ?: date('Y-m-d'));
+            $pl->ETA = $request->input('ETA') ?: ($firstSchedule->ETA ?: date('Y-m-d'));
+            $pl->Stuffing = $request->input('Stuffing') ?: ($firstSchedule->Stuffing ?: date('Y-m-d'));
+            $pl->POL = $request->input('POL') ?? ($firstSchedule->POL ?? '');
+            $pl->POD = $request->input('POD') ?? ($firstSchedule->POD ?? '');
+            $pl->PEB_Date = $request->input('PEB_Date') ?: ($si->PEB_Date ?? date('Y-m-d'));
+            $pl->PEB_No = $request->input('PEB_No') ?? '';
+            $pl->BL_No = $request->input('BL_No') ?? '';
+            $pl->HS_Code = $request->input('HS_Code') ?? '';
+            $pl->Product_Name = $request->input('Product_Name') ?? '';
+            $pl->Remarks = $request->input('Remarks');
+            $pl->Description = $request->input('Description') ?: $bcData['description'];
+            $pl->Total_Netto_KG = $request->filled('Total_Netto_KG')
+                ? (float) $request->input('Total_Netto_KG')
+                : $bcData['totals']['netto_kg'];
+            $pl->Total_Gross_KG = $request->filled('Total_Gross_KG')
+                ? (float) $request->input('Total_Gross_KG')
+                : $bcData['totals']['gross_kg'];
+            $pl->approved_by = $request->input('approved_by');
+            $pl->Status = "CREATED";
+            $pl->Created_Date = now();
+            $pl->Created_By = auth()->user()->username;
+            $pl->save();
+
+            $vs = VesselSchedule::where("id", $firstSchedule->id)->first();
+            if ($vs) {
+                $vsd = $bcData['containers']->map(function ($item) {
+                    return $item->Container . ' (' . $item->Seal . ')';
+                })->implode(', ');
+
+                $vsLog = json_decode(json_encode($vs), true);
+                $vsLog['Last_ID'] = $vsLog['id'];
+                unset($vsLog['id']);
+                $vsLog['Container'] = $vsd;
+                $vsLog['Action_By'] = auth()->user()->username;
+                $vsLog['Action_Date'] = now();
+                $vsLog['Action_Status'] = "CREATE FINAL PACKING LIST WITH NO: " . $request->input('Packing_List_No');
+                VesselScheduleLog::create($vsLog);
+            }
+
+            return response("success");
+        }
+
         $shipment = ShippingInstruction::where("Final_SI_No", $request->Final_SI_No)->first();
 
         if (!$shipment) {
@@ -329,6 +495,7 @@ class PackingListController extends Controller
         $pl->BL_No = $request->input('BL_No') ?? '';
         $pl->HS_Code = $request->input('HS_Code');
         $pl->Product_Name = $request->input('Product_Name');
+        $pl->Remarks = $request->input('Remarks');
         $pl->approved_by = $request->input('approved_by');
         $pl->Status = "CREATED";
         $pl->Created_Date = now();
@@ -386,14 +553,20 @@ class PackingListController extends Controller
         $selectedSi = null;
         $containers = collect();
         if ($pl) {
-            if (!empty($pl->Final_SI_No)) {
-                $selectedSi = ShippingInstruction::where('Final_SI_No', $pl->Final_SI_No)->first();
-            }
-            if (!$selectedSi && !empty($pl->SI_No)) {
-                $selectedSi = ShippingInstruction::where('SI_No', $pl->SI_No)->first();
-            }
-            if ($selectedSi) {
-                $containers = VesselScheduleDtl::active()->where('SI_No', $selectedSi->SI_No)->get();
+            if (!empty($pl->Is_Final) && !empty($pl->BC_No)) {
+                $bcData = $this->resolveStuffingDataByBc($pl->BC_No);
+                $containers = $bcData['containers'];
+                $selectedSi = $bcData['si'];
+            } else {
+                if (!empty($pl->Final_SI_No)) {
+                    $selectedSi = ShippingInstruction::where('Final_SI_No', $pl->Final_SI_No)->first();
+                }
+                if (!$selectedSi && !empty($pl->SI_No)) {
+                    $selectedSi = ShippingInstruction::where('SI_No', $pl->SI_No)->first();
+                }
+                if ($selectedSi) {
+                    $containers = VesselScheduleDtl::active()->where('SI_No', $selectedSi->SI_No)->get();
+                }
             }
         }
 
@@ -442,6 +615,18 @@ class PackingListController extends Controller
         $pl->BL_No = $request->input('BL_No', $pl->BL_No);
         $pl->HS_Code = $request->input('HS_Code', $pl->HS_Code);
         $pl->Product_Name = $request->input('Product_Name', $pl->Product_Name);
+        if ($request->has('Remarks')) {
+            $pl->Remarks = $request->input('Remarks');
+        }
+        if ($request->has('Description')) {
+            $pl->Description = $request->input('Description');
+        }
+        if ($request->filled('Total_Netto_KG')) {
+            $pl->Total_Netto_KG = (float) $request->input('Total_Netto_KG');
+        }
+        if ($request->filled('Total_Gross_KG')) {
+            $pl->Total_Gross_KG = (float) $request->input('Total_Gross_KG');
+        }
         if ($request->has('approved_by')) {
             $pl->approved_by = $request->input('approved_by');
         }
@@ -589,5 +774,127 @@ class PackingListController extends Controller
         }
 
         return 'data:image/' . $mime . ';base64,' . base64_encode($binary);
+    }
+
+    private function resolveSchedulesByBc(string $bcNo)
+    {
+        return VesselSchedule::where(function ($q) use ($bcNo) {
+            $q->where('BC_No', $bcNo)
+                ->orWhere(function ($sub) use ($bcNo) {
+                    $sub->where(function ($empty) {
+                        $empty->whereNull('BC_No')->orWhere('BC_No', '');
+                    })->where(function ($fallback) use ($bcNo) {
+                        $fallback->where('Booking_No', $bcNo)->orWhere('Order_No', $bcNo);
+                    });
+                });
+        })->orderBy('id')->get();
+    }
+
+    private function resolveStuffingDataByBc(string $bcNo): array
+    {
+        $schedules = $this->resolveSchedulesByBc($bcNo);
+        if ($schedules->isEmpty()) {
+            return [
+                'schedules' => collect(),
+                'containers' => collect(),
+                'si' => null,
+                'header' => [],
+                'totals' => [
+                    'container_count' => 0,
+                    'tare' => 0,
+                    'netto_kg' => 0,
+                    'netto_mt' => 0,
+                    'gross_kg' => 0,
+                    'gross_mt' => 0,
+                ],
+                'description' => '',
+            ];
+        }
+
+        $taskIds = $schedules->pluck('Task_ID')->filter()->unique()->values()->all();
+        $orderNos = $schedules->pluck('Order_No')->filter()->unique()->values()->all();
+
+        $containers = VesselScheduleDtl::active()
+            ->where(function ($q) use ($taskIds, $orderNos) {
+                if (count($taskIds)) {
+                    $q->whereIn('Task_ID', $taskIds);
+                }
+                if (count($orderNos)) {
+                    count($taskIds) ? $q->orWhereIn('Order_No', $orderNos) : $q->whereIn('Order_No', $orderNos);
+                }
+            })
+            ->orderBy('id')
+            ->get();
+
+        $first = $schedules->first();
+        $si = null;
+        if (!empty($first->SI_No)) {
+            $si = ShippingInstruction::where('SI_No', $first->SI_No)->first();
+        }
+        if (!$si && count($orderNos)) {
+            $si = ShippingInstruction::whereIn('Order_No', $orderNos)->first();
+        }
+
+        $totalNettoKg = round((float) $containers->sum('Netto_KG'), 2);
+        $totalGrossKg = round((float) $containers->sum('Gross_KG'), 2);
+        $totals = [
+            'container_count' => $containers->count(),
+            'tare' => round((float) $containers->sum('Tare'), 2),
+            'netto_kg' => $totalNettoKg,
+            'netto_mt' => round($totalNettoKg / 1000, 2),
+            'gross_kg' => $totalGrossKg,
+            'gross_mt' => round($totalGrossKg / 1000, 2),
+        ];
+
+        $productName = (string) ($si->Product_Name ?? ($first->Product_Name ?? 'REFINED USED COOKING OIL'));
+        $description = $this->buildFinalDescription($productName, $totalNettoKg, $totalGrossKg);
+
+        $header = [
+            'Order_No' => $first->Order_No ?? '',
+            'SI_No' => $si->SI_No ?? ($first->SI_No ?? ''),
+            'Final_SI_No' => $si->Final_SI_No ?? '',
+            'SI_Date' => $si->SI_Date ?? '',
+            'Shipper' => $si->Shipper ?? '',
+            'Consignee' => $si->Consignee ?? '',
+            'Notify' => $si->Notify ?? '',
+            'Destination_Port' => $si->Destination_Port ?? '',
+            'Delivery_Terms' => $si->Delivery_Terms ?? '',
+            'Contract_No' => $si->Contract_No ?? ($first->Contract_No ?? ''),
+            'Voyage' => $si->Voyage ?? ($first->Vessel ?? ''),
+            'ETD' => $si->ETD ?? ($first->ETD ?? ''),
+            'ETA' => $si->ETA ?? ($first->ETA ?? ''),
+            'Stuffing' => $first->Stuffing ?? ($si->Stuffing ?? ''),
+            'POL' => $first->POL ?? ($si->POL ?? ''),
+            'POD' => $first->POD ?? ($si->POD ?? ''),
+            'PEB_No' => $si->PEB_No ?? '',
+            'PEB_Date' => $si->PEB_Date ?? '',
+            'BL_No' => $si->BL_No ?? '',
+            'HS_Code' => $si->HS_Code ?? '',
+            'Product_Name' => $productName,
+            'Qty1' => $containers->count() > 0 ? (string) $containers->count() : '',
+            'Qty2' => $si->Qty2 ?? '20 FT',
+        ];
+
+        return [
+            'schedules' => $schedules,
+            'containers' => $containers,
+            'si' => $si,
+            'header' => $header,
+            'totals' => $totals,
+            'description' => $description,
+        ];
+    }
+
+    private function buildFinalDescription(string $productName, float $nettoKg, float $grossKg): string
+    {
+        $lines = [];
+        $trimmedProduct = trim($productName);
+        if ($trimmedProduct !== '') {
+            $lines[] = strtoupper($trimmedProduct);
+        }
+        $lines[] = 'NW: ' . number_format($nettoKg, 2, '.', ',') . ' KGS';
+        $lines[] = 'GW: ' . number_format($grossKg, 2, '.', ',') . ' KGS';
+
+        return implode("\n", $lines);
     }
 }

@@ -1,37 +1,37 @@
 @extends('layout.mainlayout-cns')
 
 @section('content-wrapper')
-<!-- Main Content Header -->
-<div class="main-content-header">
-	<h1>CNS</h1>
-	<ol class="breadcrumb">
-		<li class="breadcrumb-item">
-			<a href="/dashboard1">Master Consignee</a>
-		</li>
-		<li class="breadcrumb-item active">
-			<span class="active">Data</span>
-		</li>
-	</ol>
-</div>
-<!-- End Main Content Header -->
+@include('cns.partials.page-header', [
+	'title' => 'Master Consignee',
+	'breadcrumbs' => [
+		['label' => 'Master Data'],
+		['label' => 'Master Consignee'],
+	],
+])
 
-<!-- Stats Card -->
-<div class="badan mb-2">
-	<div class="row m-1 align-items-end">
-		<div class="col-auto">
-			<label for="filter_search" class="d-block mb-1">Filter Name / Company ID</label>
-			<input type="text" id="filter_search" class="form-control d-inline-block w-auto mr-2" placeholder="Cari Name / Company ID..." onkeydown="if(event.key==='Enter'){refreshdata();}" />
-
-			<button type="button" class="btn btn-primary" onclick="refreshdata()">Filter</button>
+<div class="card cns-card">
+	<div class="card-header">
+		<h5 class="card-title mb-0">Data Master Consignee</h5>
+		<div class="d-flex align-items-center flex-wrap" style="gap: 0.5rem;">
+			<button type="button" class="btn btn-sm btn-primary" id="NewConsigneeBtn" onclick="NewConsignee();">New Consignee</button>
+			<button type="button" class="btn btn-sm btn-success" id="ExportConsigneeBtn" onclick="MasterConsignee.toExcel('./export/generate.php');">Excel</button>
+			<button type="button" class="btn btn-sm btn-outline-secondary" onclick="refreshdata();">Refresh</button>
 		</div>
 	</div>
+	<div class="card-body">
+		<div class="cns-filter-bar">
+			<div>
+				<label for="filter_search" class="d-block mb-1"><small>Filter Name / Company ID</small></label>
+				<input type="text" id="filter_search" class="form-control form-control-sm" style="width:220px;" placeholder="Cari Name / Company ID..." onkeydown="if(event.key==='Enter'){refreshdata();}" />
+			</div>
+			<div>
+				<button type="button" class="btn btn-sm btn-primary" onclick="refreshdata()">Filter</button>
+			</div>
+		</div>
 
-	<div class="m-2">
-		<div id="MasterConsignee" style="width:auto; height:400px;"></div>
-	</div>
-	<div class="m-2">
-		<button class="btn btn-primary" id="NewConsigneeBtn" onclick="NewConsignee();">New Consignee</button>
-		<button class="btn btn-success" id="ExportConsigneeBtn" onclick="MasterConsignee.toExcel('./export/generate.php');">Excel</button>
+		<div class="cns-grid-wrapper">
+			<div id="MasterConsignee" class="cns-grid" style="width:auto; height:400px;"></div>
+		</div>
 	</div>
 </div>
 <script>
@@ -44,10 +44,12 @@
 		LoadM('MasterCompanyDet', 'cns-master-consignee-detail?ID=' + MasterConsigneeID);
 	}
 
+	var MasterConsigneePagination;
+
 	function refreshdata() {
-		const search = document.getElementById('filter_search').value.trim();
-		const url = search ? `xml-cns-master-consignee?search=${encodeURIComponent(search)}` : 'xml-cns-master-consignee';
-		MasterConsignee.clearAndLoad(url);
+		if (MasterConsigneePagination) {
+			MasterConsigneePagination.reload(true);
+		}
 	}
 
 	MasterConsignee = new dhtmlXGridObject('MasterConsignee');
@@ -60,10 +62,30 @@
 	MasterConsignee.setColTypes("dyn,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
 	MasterConsignee.attachEvent("onRowDblClicked", DetailConsignee);
 	MasterConsignee.setColSorting("int,str,str,str,str,str,str,str,str,str,str,str,str,str,str,str,str,str,str,str");
-	MasterConsignee.enableSmartRendering(true, 50);
 	MasterConsignee.enableMultiline(true);
 	MasterConsignee.setSkin("dhx_skyblue");
 	MasterConsignee.init();
+	MasterConsigneePagination = initCnsGridPagination(MasterConsignee, {
+		pageSize: 25,
+		pageSizeOptions: [10, 25, 50, 100],
+		getUrl: function (params) {
+			var q = new URLSearchParams();
+			q.append('posStart', params.posStart);
+			q.append('count', params.count);
+			if (params.sortCol !== null && params.sortCol !== undefined) {
+				q.append('sort_col', params.sortCol);
+				q.append('sort_dir', params.sortDir || 'asc');
+			}
+			if (params.filters) {
+				Object.keys(params.filters).forEach(function (colIdx) {
+					q.append('filter[' + colIdx + ']', params.filters[colIdx]);
+				});
+			}
+			var search = document.getElementById('filter_search').value.trim();
+			if (search) q.append('search', search);
+			return 'xml-cns-master-consignee?' + q.toString();
+		}
+	});
 	refreshdata();
 </script>
 <div id="MasterCompanyDet"></div>

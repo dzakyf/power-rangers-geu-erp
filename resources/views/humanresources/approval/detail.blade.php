@@ -20,7 +20,7 @@
     }
 @endphp
 
-<div class="card shadow-sm border" id="ApprovalTaskDetailCard" data-task-id="{{ $task->ID }}" data-request-no="{{ $task->Request_No }}" data-request-type="{{ $task->Request_Type }}" data-requester="{{ $task->Requester_Name }}" data-position="{{ $task->Position_Code }} - {{ $task->Position_Name }}">
+<div class="card shadow-sm border" id="ApprovalTaskDetailCard" data-task-id="{{ $task->ID }}" data-request-id="{{ $task->Request_ID }}" data-request-no="{{ $task->Request_No }}" data-request-type="{{ $task->Request_Type }}" data-requester="{{ $task->Requester_Name }}" data-position="{{ $task->Position_Code }} - {{ $task->Position_Name }}">
     {{-- Card Header --}}
     <div class="card-header bg-white py-3 d-flex flex-wrap justify-content-between align-items-center gap-2 border-bottom">
         <div class="d-flex align-items-center">
@@ -64,6 +64,12 @@
                 </a>
             @endif
 
+            @if(strtoupper(trim((string) $task->Request_Type)) === 'PAYROLL_THR')
+                <a href="{{ url('payroll-thr-approval') }}" target="_blank" class="btn btn-info btn-sm text-white shadow-sm">
+                    <i class="fe fe-gift me-1"></i> Lihat Detail Batch THR
+                </a>
+            @endif
+
             @if($canAct)
             <button type="button" class="btn btn-success btn-sm shadow-sm" onclick="ApprovalInboxAct('APPROVE', {{ $task->ID }});">
                 <i class="fe fe-check me-1"></i> Setujui (Approve)
@@ -82,6 +88,12 @@
             @if($canRelease)
             <button type="button" class="btn btn-warning btn-sm shadow-sm" onclick="ApprovalInboxRelease({{ $task->ID }});">
                 <i class="fe fe-unlock me-1"></i> Release Claim
+            </button>
+            @endif
+
+            @if(!empty($canForceApprove))
+            <button type="button" class="btn btn-dark btn-sm text-white shadow-sm" onclick="ApprovalInboxForceApprove({{ $task->ID }});" title="Bypass seluruh sisa stage approval">
+                <i class="fa fa-check-double me-1"></i> Force Approve
             </button>
             @endif
         </div>
@@ -178,6 +190,13 @@
             </div>
         </div>
 
+        {{-- Section 2b: Payroll & Bank Transfer Breakdown (untuk PAYROLL / SALARY / PAYROLL_THR) --}}
+        @if(!empty($payrollBreakdown))
+            <div class="row">
+                @include('humanresources.payroll.partials.approval-payroll-breakdown', ['payrollBreakdown' => $payrollBreakdown])
+            </div>
+        @endif
+
         {{-- Section 3: Candidates --}}
         <div class="mt-4">
             <h6 class="fw-bold text-dark mb-2 d-flex justify-content-between align-items-center">
@@ -251,7 +270,7 @@
                         @php
                             $actionUpper = strtoupper((string) $log->Action);
                             $actionBadge = 'bg-secondary text-white';
-                            if (in_array($actionUpper, ['APPROVE', 'APPROVED', 'FINAL_APPROVED'])) {
+                            if (in_array($actionUpper, ['APPROVE', 'APPROVED', 'FINAL_APPROVED', 'FORCE_APPROVED'])) {
                                 $actionBadge = 'bg-success text-white';
                             } elseif (in_array($actionUpper, ['REJECT', 'REJECTED'])) {
                                 $actionBadge = 'bg-danger text-white';

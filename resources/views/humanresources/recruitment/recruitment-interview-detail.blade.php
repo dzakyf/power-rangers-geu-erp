@@ -1,39 +1,11 @@
-<?php
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Auth;
-
-$LSP = Auth::user()->Location ?? '';
-$Saya = Auth::user()->username ?? '';
-$priv = Auth::user()->Priv_ID ?? '';
-
-$candidateId = request('ID') ?? ($_GET['ID'] ?? null);
-$datahasil = null;
-$datahasil2 = null;
-$requisition = null;
-
-if ($candidateId) {
-    $datahasil = DB::table("recruitment")->where("ID", $candidateId)->first();
-    if ($datahasil) {
-        $datahasil2 = DB::table("recruitment_detail")
-            ->where("ID", $datahasil->ID)
-            ->orWhere("Task_ID", $datahasil->Task_ID)
-            ->first();
-
-        if (!empty($datahasil->Requisition_ID)) {
-            $requisition = DB::table("requisition")->where("Task_ID", $datahasil->Requisition_ID)->first();
-        }
-    }
-}
-?>
-
-@if(!$datahasil)
+@if(empty($datahasil))
 <div class="alert alert-warning d-flex align-items-center shadow-sm">
     <i class="fa fa-triangle-exclamation me-2 fs-18"></i>
     <span>Data kandidat wawancara tidak ditemukan atau telah diproses.</span>
 </div>
 @else
 @php
+    $Saya = Auth::user()->username ?? '';
     $statusUpper = strtoupper((string) ($datahasil->Status ?? ''));
     $interviewStatusUpper = strtoupper((string) ($datahasil->Interview_Status ?? ''));
     
@@ -209,215 +181,67 @@ if ($candidateId) {
             </div>
 
             {{-- ========================================================================= --}}
-            {{-- SECTION 2: ADVANCED INFORMATION / KUESIONER KANDIDAT                      --}}
+            {{-- SECTION 2: PERTANYAAN WAJIB (KHUSUS INTERVIEW HR / TA)                    --}}
             {{-- ========================================================================= --}}
+            @php
+                $usiaVal = !empty($datahasil2->Usia) ? $datahasil2->Usia : ($age !== '-' ? $age : '');
+                $cityFallback = $datahasil->City_Living ?? ($datahasil->City ?? '');
+                $addrFallback = $datahasil->Address_Living ?? ($datahasil->Address ?? '');
+                $defaultDomisili = trim($addrFallback . ($cityFallback ? ', ' . $cityFallback : ''), ', ');
+                $domisiliVal = !empty($datahasil2->Domisili) ? $datahasil2->Domisili : $defaultDomisili;
+            @endphp
             <div class="card border shadow-sm mb-4">
                 <div class="card-header bg-white py-2 px-3 border-bottom d-flex justify-content-between align-items-center">
                     <span class="fw-bold text-dark fs-13">
-                        <i class="fa fa-clipboard-question text-primary me-2"></i>Kuesioner Wajib &amp; Profil Mendalam Pelamar
+                        <i class="fa fa-clipboard-question text-primary me-2"></i>Pertanyaan Wajib
                     </span>
-                    <span class="badge bg-light text-muted border">
-                        Data Isian Pelamar
+                    <span class="badge bg-primary-transparent text-primary border">
+                        Diisi oleh Interviewer HR/TA
                     </span>
                 </div>
                 <div class="card-body p-3">
-                    {{-- Nav Tabs Kuesioner --}}
-                    <ul class="nav nav-tabs nav-tabs-bordered mb-3" style="gap: 16px" id="kuesionerTab" role="tablist">
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link active fw-semibold" id="tab-motivasi" data-bs-toggle="tab" data-bs-target="#content-motivasi" type="button" role="tab" aria-controls="content-motivasi" aria-selected="true">
-                                <i class="fa fa-compass me-1"></i> Motivasi &amp; Pengalaman
-                            </button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link fw-semibold" id="tab-karakter" data-bs-toggle="tab" data-bs-target="#content-karakter" type="button" role="tab" aria-controls="content-karakter" aria-selected="false">
-                                <i class="fa fa-user-gear me-1"></i> Karakteristik &amp; Keahlian
-                            </button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link fw-semibold" id="tab-preferensi" data-bs-toggle="tab" data-bs-target="#content-preferensi" type="button" role="tab" aria-controls="content-preferensi" aria-selected="false">
-                                <i class="fa fa-sliders me-1"></i> Preferensi Kerja &amp; Ekspektasi
-                            </button>
-                        </li>
-                    </ul>
-
-                    {{-- Tab Contents --}}
-                    <div class="tab-content pt-2" id="kuesionerTabContent">
-                        {{-- Tab 1: Motivasi & Pengalaman --}}
-                        <div class="tab-pane fade show active" id="content-motivasi" role="tabpanel" aria-labelledby="tab-motivasi">
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <label for="Describe_Self" class="form-label small fw-semibold text-dark">
-                                        1. Ceritakan tentang diri Anda (Describe Yourself)
-                                    </label>
-                                    <textarea class="form-control form-control-sm bg-light" id="Describe_Self" name="Describe_Self" rows="3">{{ $datahasil2->Describe_Self ?? '' }}</textarea>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="Left_Job" class="form-label small fw-semibold text-dark">
-                                        2. Alasan meninggalkan pekerjaan terakhir (Why you left last job?)
-                                    </label>
-                                    <textarea class="form-control form-control-sm bg-light" id="Left_Job" name="Left_Job" rows="3">{{ $datahasil2->Left_Job ?? '' }}</textarea>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="Previous_Boss" class="form-label small fw-semibold text-dark">
-                                        3. Pandangan objektif tentang atasan terdahulu (What do you truly think about your previous boss?)
-                                    </label>
-                                    <textarea class="form-control form-control-sm bg-light" id="Previous_Boss" name="Previous_Boss" rows="3">{{ $datahasil2->Previous_Boss ?? '' }}</textarea>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="Describe_Know" class="form-label small fw-semibold text-dark">
-                                        4. Pengetahuan tentang perusahaan kami (What do you know about our company?)
-                                    </label>
-                                    <textarea class="form-control form-control-sm bg-light" id="Describe_Know" name="Describe_Know" rows="3">{{ $datahasil2->Describe_Know ?? '' }}</textarea>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="Describe_Improve" class="form-label small fw-semibold text-dark">
-                                        5. Upaya pengembangan keahlian terkini (What did you do to improve your knowledge lately?)
-                                    </label>
-                                    <textarea class="form-control form-control-sm bg-light" id="Describe_Improve" name="Describe_Improve" rows="3">{{ $datahasil2->Describe_Improve ?? '' }}</textarea>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="Describe_Looking" class="form-label small fw-semibold text-dark">
-                                        6. Hal yang dicari pada posisi ini (What are you looking for in this position?)
-                                    </label>
-                                    <textarea class="form-control form-control-sm bg-light" id="Describe_Looking" name="Describe_Looking" rows="3">{{ $datahasil2->Describe_Looking ?? '' }}</textarea>
-                                </div>
-                                <div class="col-12">
-                                    <label for="Describe_Interest" class="form-label small fw-semibold text-dark">
-                                        7. Alasan tertarik bergabung dengan perusahaan (Why are you interested to work here?)
-                                    </label>
-                                    <textarea class="form-control form-control-sm bg-light" id="Describe_Interest" name="Describe_Interest" rows="2">{{ $datahasil2->Describe_Interest ?? '' }}</textarea>
-                                </div>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label for="Last_Salary" class="form-label small fw-semibold text-dark">
+                                1. Last Salary (Gaji Terakhir)
+                            </label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-light fw-bold">Rp</span>
+                                <input type="text" class="form-control" id="Last_Salary" name="Last_Salary" value="{{ $datahasil2->Last_Salary ?? '' }}" placeholder="Contoh: 5.000.000" />
                             </div>
                         </div>
-
-                        {{-- Tab 2: Karakteristik & Keahlian --}}
-                        <div class="tab-pane fade" id="content-karakter" role="tabpanel" aria-labelledby="tab-karakter">
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <label for="Describe_Strong" class="form-label small fw-semibold text-dark">
-                                        <i class="fa fa-award text-success me-1"></i> Kelebihan / Kekuatan Utama (Strengths)
-                                    </label>
-                                    <textarea class="form-control form-control-sm bg-light" id="Describe_Strong" name="Describe_Strong" rows="3">{{ $datahasil2->Describe_Strong ?? '' }}</textarea>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="Describe_Weak" class="form-label small fw-semibold text-dark">
-                                        <i class="fa fa-circle-exclamation text-warning me-1"></i> Kelemahan Terbesar &amp; Solusinya (Weaknesses)
-                                    </label>
-                                    <textarea class="form-control form-control-sm bg-light" id="Describe_Weak" name="Describe_Weak" rows="3">{{ $datahasil2->Describe_Weak ?? '' }}</textarea>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="Computer" class="form-label small fw-semibold text-dark">
-                                        <i class="fa fa-laptop-code text-primary me-1"></i> Keahlian Komputer &amp; Software
-                                    </label>
-                                    <textarea class="form-control form-control-sm bg-light" id="Computer" name="Computer" rows="3">{{ $datahasil2->Computer ?? '' }}</textarea>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="Free_Time" class="form-label small fw-semibold text-dark">
-                                        <i class="fa fa-umbrella-beach text-info me-1"></i> Pemanfaatan Waktu Luang / Hobi (Leisure Time)
-                                    </label>
-                                    <textarea class="form-control form-control-sm bg-light" id="Free_Time" name="Free_Time" rows="3">{{ $datahasil2->Free_Time ?? '' }}</textarea>
-                                </div>
-                                <div class="col-12">
-                                    <label for="Questions_Us" class="form-label small fw-semibold text-dark">
-                                        <i class="fa fa-circle-question text-secondary me-1"></i> Pertanyaan Kandidat untuk Perusahaan (Do you have any questions?)
-                                    </label>
-                                    <textarea class="form-control form-control-sm bg-light" id="Questions_Us" name="Questions_Us" rows="2">{{ $datahasil2->Questions_Us ?? '' }}</textarea>
-                                </div>
+                        <div class="col-md-4">
+                            <label for="Salary_Expectation" class="form-label small fw-semibold text-dark">
+                                2. Expected Salary (Ekspektasi Gaji)
+                            </label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-light fw-bold">Rp</span>
+                                <input type="text" class="form-control" id="Salary_Expectation" name="Salary_Expectation" value="{{ $datahasil2->Salary_Expectation ?? '' }}" placeholder="Contoh: 6.500.000" />
                             </div>
                         </div>
-
-                        {{-- Tab 3: Preferensi Kerja & Ekspektasi --}}
-                        <div class="tab-pane fade" id="content-preferensi" role="tabpanel" aria-labelledby="tab-preferensi">
-                            <div class="row g-3">
-                                <div class="col-md-4">
-                                    <label for="Last_Salary" class="form-label small fw-semibold text-dark">
-                                        Gaji Terakhir (Last Salary)
-                                    </label>
-                                    <div class="input-group input-group-sm">
-                                        <span class="input-group-text bg-light fw-bold">Rp</span>
-                                        <input type="text" class="form-control" id="Last_Salary" name="Last_Salary" value="{{ $datahasil2->Last_Salary ?? '' }}" placeholder="Contoh: 5.000.000" />
-                                    </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <label for="Salary_Expectation" class="form-label small fw-semibold text-dark">
-                                        Ekspektasi Gaji (Salary Expectation)
-                                    </label>
-                                    <div class="input-group input-group-sm">
-                                        <span class="input-group-text bg-light fw-bold">Rp</span>
-                                        <input type="text" class="form-control" id="Salary_Expectation" name="Salary_Expectation" value="{{ $datahasil2->Salary_Expectation ?? '' }}" placeholder="Contoh: 5.000.000" />
-                                    </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <label for="Facility_Expectation" class="form-label small fw-semibold text-dark">
-                                        Ekspektasi Fasilitas Lainnya
-                                    </label>
-                                    <input type="text" class="form-control form-control-sm" id="Facility_Expectation" name="Facility_Expectation" value="{{ $datahasil2->Facility_Expectation ?? '' }}" placeholder="Contoh: Asuransi, Transport, Laptop" />
-                                </div>
-                                <div class="col-md-3">
-                                    <label for="Environment" class="form-label small fw-semibold text-dark">
-                                        Lingkungan Kerja Favorit
-                                    </label>
-                                    <select class="form-select form-select-sm" id="Environment" name="Environment">
-                                        @php $envVal = $datahasil2->Environment ?? 'OFFICE'; @endphp
-                                        <option value="OFFICE" {{ $envVal === 'OFFICE' ? 'selected' : '' }}>OFFICE</option>
-                                        <option value="FIELD" {{ $envVal === 'FIELD' ? 'selected' : '' }}>FIELD</option>
-                                        <option value="FACTORY" {{ $envVal === 'FACTORY' ? 'selected' : '' }}>FACTORY</option>
-                                        <option value="WORKSHOP" {{ $envVal === 'WORKSHOP' ? 'selected' : '' }}>WORKSHOP</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-3">
-                                    <label for="Overtime" class="form-label small fw-semibold text-dark">
-                                        Bersedia Kerja Lembur?
-                                    </label>
-                                    <select class="form-select form-select-sm" id="Overtime" name="Overtime">
-                                        @php $otVal = strtoupper((string) ($datahasil2->Overtime ?? 'YES')); @endphp
-                                        <option value="YES" {{ $otVal === 'YES' ? 'selected' : '' }}>YES (Bersedia)</option>
-                                        <option value="NO" {{ $otVal === 'NO' ? 'selected' : '' }}>NO (Tidak)</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-3">
-                                    <label for="Holiday" class="form-label small fw-semibold text-dark">
-                                        Bersedia Kerja Hari Libur?
-                                    </label>
-                                    <select class="form-select form-select-sm" id="Holiday" name="Holiday">
-                                        @php $holVal = strtoupper((string) ($datahasil2->Holiday ?? 'YES')); @endphp
-                                        <option value="YES" {{ $holVal === 'YES' ? 'selected' : '' }}>YES (Bersedia)</option>
-                                        <option value="NO" {{ $holVal === 'NO' ? 'selected' : '' }}>NO (Tidak)</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-3">
-                                    <label for="Shift_Work" class="form-label small fw-semibold text-dark">
-                                        Nyaman Bekerja Shift?
-                                    </label>
-                                    <select class="form-select form-select-sm" id="Shift_Work" name="Shift_Work">
-                                        @php $shiftVal = strtoupper((string) ($datahasil2->Shift_Work ?? 'YES')); @endphp
-                                        <option value="YES" {{ $shiftVal === 'YES' ? 'selected' : '' }}>YES (Bersedia)</option>
-                                        <option value="NO" {{ $shiftVal === 'NO' ? 'selected' : '' }}>NO (Tidak)</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-4">
-                                    <label for="Out_Town" class="form-label small fw-semibold text-dark">
-                                        Bersedia Dinas Luar Kota?
-                                    </label>
-                                    <select class="form-select form-select-sm" id="Out_Town" name="Out_Town">
-                                        @php $outVal = strtoupper((string) ($datahasil2->Out_Town ?? 'YES')); @endphp
-                                        <option value="YES" {{ $outVal === 'YES' ? 'selected' : '' }}>YES (Bersedia)</option>
-                                        <option value="NO" {{ $outVal === 'NO' ? 'selected' : '' }}>NO (Tidak)</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-4">
-                                    <label for="Describe_Long" class="form-label small fw-semibold text-dark">
-                                        Target Lama Bekerja
-                                    </label>
-                                    <input type="text" class="form-control form-control-sm" id="Describe_Long" name="Describe_Long" value="{{ $datahasil2->Describe_Long ?? '' }}" placeholder="Contoh: Jangka Panjang (> 3 Tahun)" />
-                                </div>
-                                <div class="col-md-4">
-                                    <label for="Describe_Target" class="form-label small fw-semibold text-dark">
-                                        Rencana Karir 5 Tahun Kedepan
-                                    </label>
-                                    <input type="text" class="form-control form-control-sm" id="Describe_Target" name="Describe_Target" value="{{ $datahasil2->Describe_Target ?? '' }}" placeholder="Contoh: Menjadi Team Leader / Supervisor" />
-                                </div>
-                            </div>
+                        <div class="col-md-4">
+                            <label for="Usia" class="form-label small fw-semibold text-dark">
+                                3. Usia
+                            </label>
+                            <input type="text" class="form-control form-control-sm" id="Usia" name="Usia" value="{{ $usiaVal }}" placeholder="Contoh: 26 Tahun" />
+                        </div>
+                        <div class="col-md-6">
+                            <label for="Domisili" class="form-label small fw-semibold text-dark">
+                                4. Domisili
+                            </label>
+                            <input type="text" class="form-control form-control-sm" id="Domisili" name="Domisili" value="{{ $domisiliVal }}" placeholder="Contoh: Jakarta Barat / Bekasi" />
+                        </div>
+                        <div class="col-md-6">
+                            <label for="Notice_Period" class="form-label small fw-semibold text-dark">
+                                6. Notice Period (Estimasi Waktu Bergabung)
+                            </label>
+                            <input type="text" class="form-control form-control-sm" id="Notice_Period" name="Notice_Period" value="{{ $datahasil2->Notice_Period ?? '' }}" placeholder="Contoh: Immediate / 1 Bulan / 2 Minggu" />
+                        </div>
+                        <div class="col-12">
+                            <label for="Computer" class="form-label small fw-semibold text-dark">
+                                5. Keahlian Komputer (Software Tertentu yang Relevan dengan Kebutuhan Posisi)
+                            </label>
+                            <textarea class="form-control form-control-sm" id="Computer" name="Computer" rows="2" placeholder="Contoh: Microsoft Excel (Pivot, VLOOKUP), SAP, AutoCAD, Accurate...">{{ $datahasil2->Computer ?? '' }}</textarea>
                         </div>
                     </div>
                 </div>
@@ -476,22 +300,13 @@ if ($candidateId) {
                             <div class="form-text fs-11">User PIC pewawancara tercatat di sistem.</div>
                         </div>
 
-                        {{-- Catatan Wawancara --}}
-                        <div class="col-md-6">
+                        {{-- Catatan Penilaian HR (Gabungan Catatan Ringkas & Ulasan Hasil Akhir) --}}
+                        <div class="col-12">
                             <label for="Interview_Note" class="form-label small fw-semibold text-dark">
-                                Catatan Ringkas Pewawancara (Interview Note)
+                                Catatan Penilaian HR
                             </label>
-                            <textarea class="form-control form-control-sm" id="Interview_Note" name="Interview_Note" rows="4" placeholder="Tuliskan poin observasi atau catatan khusus selama interview...">{{ $datahasil->Interview_Note ?? '' }}</textarea>
-                            <div class="form-text fs-11">Catatan internal proses wawancara.</div>
-                        </div>
-
-                        {{-- Hasil / Ulasan Lengkap Wawancara --}}
-                        <div class="col-md-6">
-                            <label for="Interview_Result" class="form-label small fw-semibold text-dark">
-                                Ulasan Hasil Akhir Wawancara (Interview Result)
-                            </label>
-                            <textarea class="form-control form-control-sm" id="Interview_Result" name="Interview_Result" rows="4" placeholder="Tuliskan ringkasan penilaian kompetensi, kesesuaian budaya kerja, dan rekomendasi...">{{ $datahasil->Interview_Result ?? '' }}</textarea>
-                            <div class="form-text fs-11">Rangkuman hasil akhir yang akan dievaluasi pada tahap selanjutnya.</div>
+                            <textarea class="form-control form-control-sm" id="Interview_Note" name="Interview_Note" rows="4" placeholder="Tuliskan ringkasan hasil wawancara di luar 6 pertanyaan wajib serta penilaian HR terhadap kompetensi, pengalaman, kemampuan, dan kesesuaian kandidat dengan posisi yang dilamar...">{{ !empty($datahasil->Interview_Note) ? $datahasil->Interview_Note : ($datahasil->Interview_Result ?? '') }}</textarea>
+                            <div class="form-text fs-11">Digunakan untuk mencatat ringkasan hasil interview HR di luar 6 pertanyaan wajib serta penilaian kompetensi, pengalaman, kemampuan, dan kesesuaian kandidat dengan kebutuhan posisi.</div>
                         </div>
 
                         {{-- Unggah Berkas Rekap Wawancara --}}

@@ -6,7 +6,9 @@ use App\CNSDrainAdjustment;
 use App\Http\Controllers\Controller;
 use App\MasterTank;
 use App\SalesOrderCNS;
+use App\Services\CNS\CnsCodeGenerator;
 use App\SludgeMovement;
+use App\Support\DhtmlxGridPagination;
 use App\TankDraining;
 use App\UCOStoragePelindo;
 use Carbon\Carbon;
@@ -57,26 +59,74 @@ class TankDrainingController extends Controller
         ];
         [, , $sources] = $this->getSludgeStockSummary($tanks, $filters);
 
-        header("Content-type: text/xml");
-        echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
-        echo "<rows>\n";
+        $colKeyMap = [
+            1 => 'draining_code',
+            2 => 'draining_date',
+            3 => 'tank_name',
+            4 => 'tujuan_draining',
+            5 => 'qty_sludge',
+            6 => 'used_qty',
+            7 => 'moved_qty',
+            8 => 'sisa_qty',
+        ];
 
-        $no = 1;
-        foreach ($sources as $src) {
-            echo "<row id=\"{$src['draining_id']}\">\n";
-            echo "<cell>{$no}</cell>\n";
-            echo "<cell>" . htmlspecialchars($src['draining_code']) . "</cell>\n";
-            echo "<cell>" . htmlspecialchars($src['draining_date']) . "</cell>\n";
-            echo "<cell>" . htmlspecialchars($src['tank_name']) . "</cell>\n";
-            echo "<cell>" . number_format((float) $src['qty_sludge'], 2, '.', ',') . " KG</cell>\n";
-            echo "<cell>" . number_format((float) $src['used_qty'], 2, '.', ',') . " KG</cell>\n";
-            echo "<cell>" . number_format((float) ($src['moved_qty'] ?? 0), 2, '.', ',') . " KG</cell>\n";
-            echo "<cell>" . number_format((float) $src['sisa_qty'], 2, '.', ',') . " KG</cell>\n";
-            echo "</row>\n";
+        $headerFilters = $request->query('filter', []);
+        if (is_array($headerFilters) && !empty($headerFilters)) {
+            $sources = array_values(array_filter($sources, function ($src) use ($headerFilters, $colKeyMap) {
+                foreach ($headerFilters as $colIdx => $rawValue) {
+                    $term = trim((string) ($rawValue ?? ''));
+                    $colIdx = (int) $colIdx;
+                    if ($term === '' || !isset($colKeyMap[$colIdx])) {
+                        continue;
+                    }
+                    $val = (string) ($src[$colKeyMap[$colIdx]] ?? '');
+                    if (stripos($val, $term) === false) {
+                        return false;
+                    }
+                }
+                return true;
+            }));
+        }
+
+        $paginateOptions = ['default_page_size' => 25];
+        if ($request->filled('sort_col')) {
+            $sortCol = (int) $request->query('sort_col');
+            $sortDir = strtolower((string) $request->query('sort_dir', 'asc')) === 'desc' ? -1 : 1;
+            if (isset($colKeyMap[$sortCol])) {
+                $sortKey = $colKeyMap[$sortCol];
+                $numericCols = [5, 6, 7, 8];
+                $isNumeric = in_array($sortCol, $numericCols, true);
+                $paginateOptions['sort_callback'] = function ($a, $b) use ($sortKey, $sortDir, $isNumeric) {
+                    $va = $a[$sortKey] ?? '';
+                    $vb = $b[$sortKey] ?? '';
+                    $cmp = $isNumeric
+                        ? ((float) $va <=> (float) $vb)
+                        : strcasecmp((string) $va, (string) $vb);
+                    return $cmp * $sortDir;
+                };
+            }
+        }
+
+        $paginated = DhtmlxGridPagination::paginateCollection($sources, $request, $paginateOptions);
+
+        $bodyXml = '';
+        $no = $paginated['posStart'] + 1;
+        foreach ($paginated['rows'] as $src) {
+            $bodyXml .= "<row id=\"{$src['draining_id']}\">\n";
+            $bodyXml .= "<cell>{$no}</cell>\n";
+            $bodyXml .= "<cell>" . htmlspecialchars($src['draining_code']) . "</cell>\n";
+            $bodyXml .= "<cell>" . htmlspecialchars($src['draining_date']) . "</cell>\n";
+            $bodyXml .= "<cell>" . htmlspecialchars($src['tank_name']) . "</cell>\n";
+            $bodyXml .= "<cell>" . htmlspecialchars($src['tujuan_draining'] ?? '-') . "</cell>\n";
+            $bodyXml .= "<cell>" . number_format((float) $src['qty_sludge'], 2, '.', ',') . " KG</cell>\n";
+            $bodyXml .= "<cell>" . number_format((float) $src['used_qty'], 2, '.', ',') . " KG</cell>\n";
+            $bodyXml .= "<cell>" . number_format((float) ($src['moved_qty'] ?? 0), 2, '.', ',') . " KG</cell>\n";
+            $bodyXml .= "<cell>" . number_format((float) $src['sisa_qty'], 2, '.', ',') . " KG</cell>\n";
+            $bodyXml .= "</row>\n";
             $no++;
         }
 
-        echo "</rows>";
+        return DhtmlxGridPagination::response($paginated['total'], $paginated['posStart'], $bodyXml);
     }
 
     public function storeSludgeMovement(Request $request)
@@ -97,52 +147,49 @@ class TankDrainingController extends Controller
             ], 422);
         }
 
-        $draining = TankDraining::find((int) $request->draining_id);
-        if (!$draining || (float) ($draining->qty_sludge ?? 0) <= 0) {
-            return response()->json([
-                'status'  => 'error',
-                'message' => 'Data draining sludge tidak ditemukan.',
-            ], 404);
-        }
-
-        $available = $this->getAvailableTankSludgeQty($draining);
         $qty = round((float) $request->qty, 2);
-        if ($qty > $available) {
+
+        return DB::transaction(function () use ($request, $qty) {
+            $draining = TankDraining::where('id', (int) $request->draining_id)->lockForUpdate()->first();
+            if (!$draining || (float) ($draining->qty_sludge ?? 0) <= 0) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Data draining sludge tidak ditemukan.',
+                ], 404);
+            }
+
+            $available = $this->getAvailableTankSludgeQty($draining);
+            if ($qty > $available) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => "Qty moving ({$qty} KG) melebihi sisa sludge draining ({$available} KG).",
+                ], 422);
+            }
+
+            $movement = SludgeMovement::create([
+                'movement_code'         => $this->generateNextSludgeMovementCode(true),
+                'movement_date'         => $request->movement_date,
+                'draining_id'           => $draining->id,
+                'source_tank_id'        => $draining->tank_id,
+                'source_tank_name'      => $draining->tank_name,
+                'target_warehouse_id'   => (int) $request->target_warehouse_id,
+                'target_warehouse_name' => trim((string) $request->target_warehouse_name),
+                'qty'                   => $qty,
+                'notes'                 => $request->notes,
+                'created_by'            => Auth::check() ? Auth::user()->username : 'system',
+            ]);
+
             return response()->json([
-                'status'  => 'error',
-                'message' => "Qty moving ({$qty} KG) melebihi sisa sludge draining ({$available} KG).",
-            ], 422);
-        }
-
-        $movement = SludgeMovement::create([
-            'movement_code'         => $this->generateNextSludgeMovementCode(),
-            'movement_date'         => $request->movement_date,
-            'draining_id'           => $draining->id,
-            'source_tank_id'        => $draining->tank_id,
-            'source_tank_name'      => $draining->tank_name,
-            'target_warehouse_id'   => (int) $request->target_warehouse_id,
-            'target_warehouse_name' => trim((string) $request->target_warehouse_name),
-            'qty'                   => $qty,
-            'notes'                 => $request->notes,
-            'created_by'            => Auth::check() ? Auth::user()->username : 'system',
-        ]);
-
-        return response()->json([
-            'status'  => 'success',
-            'message' => 'Moving sludge berhasil disimpan.',
-            'data'    => $movement,
-        ]);
+                'status'  => 'success',
+                'message' => 'Moving sludge berhasil disimpan.',
+                'data'    => $movement,
+            ]);
+        });
     }
 
-    protected function generateNextSludgeMovementCode(): string
+    protected function generateNextSludgeMovementCode(bool $lock = false): string
     {
-        $prefix = 'SLM-' . date('Ym') . '-';
-        $last = SludgeMovement::withTrashed()
-            ->where('movement_code', 'like', $prefix . '%')
-            ->orderBy('id', 'desc')
-            ->value('movement_code');
-        $nextNum = $last ? ((int) substr($last, strlen($prefix))) + 1 : 1;
-        return $prefix . str_pad((string) $nextNum, 4, '0', STR_PAD_LEFT);
+        return CnsCodeGenerator::nextSludgeMovementNo(null, $lock);
     }
 
     protected function getAvailableTankSludgeQty(TankDraining $draining): float
@@ -201,7 +248,19 @@ class TankDrainingController extends Controller
             if ($tankId) {
                 $q->where('tank_id', $tankId);
             }
-            $drainings = $q->get(['id', 'draining_code', 'draining_date', 'tank_id', 'tank_name', 'qty_sludge']);
+            $drainings = $q->get([
+                'id',
+                'draining_code',
+                'draining_date',
+                'tank_id',
+                'tank_name',
+                'qty_sludge',
+                'target_type',
+                'moving_target_type',
+                'moving_target_tank_name',
+                'moving_target_external',
+                'sales_order_no',
+            ]);
         } catch (\Throwable $e) {
             $drainings = collect();
         }
@@ -282,12 +341,24 @@ class TankDrainingController extends Controller
             $sisa = max(0.0, round($awal - $used - $moved, 2));
             $dateStr = $d->draining_date ? $d->draining_date->format('d/m/Y') : '-';
 
+            $tujuanDraining = $d->target_type ?: '-';
+            if ($d->target_type === 'MOVING') {
+                $detail = $d->moving_target_type === 'TANK'
+                    ? 'Tangki: ' . ($d->moving_target_tank_name ?? '-')
+                    : 'Eksternal: ' . ($d->moving_target_external ?? '-');
+                $tujuanDraining = 'MOVING (' . $detail . ')';
+            } elseif ($d->target_type === 'PENJUALAN') {
+                $detail = $d->sales_order_no ? 'SO: ' . $d->sales_order_no : 'Penjualan Umum';
+                $tujuanDraining = 'PENJUALAN (' . $detail . ')';
+            }
+
             $item = [
-                'draining_id'   => $dId,
-                'draining_code' => (string) $d->draining_code,
-                'draining_date' => $dateStr,
-                'tank_id'       => (int) $d->tank_id,
-                'tank_name'     => (string) $d->tank_name,
+                'draining_id'     => $dId,
+                'draining_code'   => (string) $d->draining_code,
+                'draining_date'   => $dateStr,
+                'tank_id'         => (int) $d->tank_id,
+                'tank_name'       => (string) $d->tank_name,
+                'tujuan_draining' => $tujuanDraining,
                 'qty_sludge'    => $awal,
                 'used_qty'      => $used,
                 'moved_qty'     => $moved,
@@ -398,7 +469,10 @@ class TankDrainingController extends Controller
         $targetType = $request->query('target_type');
         $search     = $request->query('search');
 
-        $query = TankDraining::query()->orderBy('draining_date', 'desc')->orderBy('id', 'desc');
+        $query = TankDraining::query();
+        if (!$request->filled('sort_col')) {
+            $query->orderBy('draining_date', 'desc')->orderBy('id', 'desc');
+        }
 
         if ($startDate) {
             $query->whereDate('draining_date', '>=', $startDate);
@@ -423,14 +497,50 @@ class TankDrainingController extends Controller
             });
         }
 
-        $drainings = $query->get();
+        $colMap = [
+            1  => 'draining_code',
+            2  => 'draining_date',
+            3  => 'tank_name',
+            4  => 'qty',
+            5  => 'qty_sludge',
+            6  => 'target_type',
+            8  => 'notes',
+            10 => 'created_by',
+            11 => 'created_at',
+        ];
 
-        header("Content-type: text/xml");
-        echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
-        echo "<rows>\n";
+        $filterMap = [
+            1  => 'draining_code',
+            2  => function ($q, $term) {
+                $q->whereRaw("DATE_FORMAT(draining_date, '%d/%m/%Y') like ?", ["%{$term}%"]);
+            },
+            3  => 'tank_name',
+            4  => 'qty',
+            5  => 'qty_sludge',
+            6  => 'target_type',
+            7  => function ($q, $term) {
+                $q->where(function ($sub) use ($term) {
+                    $sub->where('moving_target_tank_name', 'like', "%{$term}%")
+                        ->orWhere('moving_target_external', 'like', "%{$term}%")
+                        ->orWhere('sales_order_no', 'like', "%{$term}%");
+                });
+            },
+            8  => 'notes',
+            10 => 'created_by',
+            11 => function ($q, $term) {
+                $q->whereRaw("DATE_FORMAT(created_at, '%d/%m/%Y %H:%i') like ?", ["%{$term}%"]);
+            },
+        ];
 
-        $no = 1;
-        foreach ($drainings as $row) {
+        $paginated = DhtmlxGridPagination::paginateQuery($query, $request, [
+            'col_map'           => $colMap,
+            'filter_map'        => $filterMap,
+            'default_page_size' => 25,
+        ]);
+
+        $bodyXml = '';
+        $no = $paginated['posStart'] + 1;
+        foreach ($paginated['rows'] as $row) {
             $tujuanDetail = '-';
             if ($row->target_type === 'MOVING') {
                 $tujuanDetail = $row->moving_target_type === 'TANK'
@@ -446,24 +556,24 @@ class TankDrainingController extends Controller
                 $bastCell = htmlspecialchars($bastUrl) . '^Lihat BAST^_blank';
             }
 
-            echo "<row id=\"{$row->id}\">\n";
-            echo "<cell>{$no}</cell>\n";
-            echo "<cell>" . htmlspecialchars($row->draining_code) . "</cell>\n";
-            echo "<cell>" . ($row->draining_date ? $row->draining_date->format('d/m/Y') : '-') . "</cell>\n";
-            echo "<cell>" . htmlspecialchars($row->tank_name) . "</cell>\n";
-            echo "<cell>" . number_format((float) $row->qty, 2, '.', ',') . " KG</cell>\n";
-            echo "<cell>" . number_format((float) ($row->qty_sludge ?? 0), 2, '.', ',') . " KG</cell>\n";
-            echo "<cell>" . htmlspecialchars($row->target_type) . "</cell>\n";
-            echo "<cell>" . htmlspecialchars($tujuanDetail) . "</cell>\n";
-            echo "<cell>" . htmlspecialchars($row->notes ?? '-') . "</cell>\n";
-            echo "<cell>{$bastCell}</cell>\n";
-            echo "<cell>" . htmlspecialchars($row->created_by ?? '-') . "</cell>\n";
-            echo "<cell>" . ($row->created_at ? $row->created_at->format('d/m/Y H:i') : '-') . "</cell>\n";
-            echo "</row>\n";
+            $bodyXml .= "<row id=\"{$row->id}\">\n";
+            $bodyXml .= "<cell>{$no}</cell>\n";
+            $bodyXml .= "<cell>" . htmlspecialchars($row->draining_code) . "</cell>\n";
+            $bodyXml .= "<cell>" . ($row->draining_date ? $row->draining_date->format('d/m/Y') : '-') . "</cell>\n";
+            $bodyXml .= "<cell>" . htmlspecialchars($row->tank_name) . "</cell>\n";
+            $bodyXml .= "<cell>" . number_format((float) $row->qty, 2, '.', ',') . " KG</cell>\n";
+            $bodyXml .= "<cell>" . number_format((float) ($row->qty_sludge ?? 0), 2, '.', ',') . " KG</cell>\n";
+            $bodyXml .= "<cell>" . htmlspecialchars($row->target_type) . "</cell>\n";
+            $bodyXml .= "<cell>" . htmlspecialchars($tujuanDetail) . "</cell>\n";
+            $bodyXml .= "<cell>" . htmlspecialchars($row->notes ?? '-') . "</cell>\n";
+            $bodyXml .= "<cell>{$bastCell}</cell>\n";
+            $bodyXml .= "<cell>" . htmlspecialchars($row->created_by ?? '-') . "</cell>\n";
+            $bodyXml .= "<cell>" . ($row->created_at ? $row->created_at->format('d/m/Y H:i') : '-') . "</cell>\n";
+            $bodyXml .= "</row>\n";
             $no++;
         }
 
-        echo "</rows>";
+        return DhtmlxGridPagination::response($paginated['total'], $paginated['posStart'], $bodyXml);
     }
 
     public function generateCode()
@@ -510,26 +620,6 @@ class TankDrainingController extends Controller
             ], 422);
         }
 
-        $sourceTank = MasterTank::findOrFail($request->tank_id);
-
-        if ($pendingAdj = CNSDrainAdjustment::pending()->where('tank_id', $sourceTank->id)->orderBy('id', 'desc')->first()) {
-            return response()->json([
-                'success' => false,
-                'message' => "Tangki {$sourceTank->name} masih memiliki Drain Adjustment ({$pendingAdj->adjustment_code}) berstatus PENDING. Harap selesaikan approval terlebih dahulu sebelum melakukan draining.",
-            ], 422);
-        }
-
-        $currentStock = $this->calculateTankBalance($sourceTank->name);
-        $qtySludge = (float) ($request->qty_sludge ?? 0);
-        $totalOut = (float) $request->qty + $qtySludge;
-
-        if ($totalOut > $currentStock) {
-            return response()->json([
-                'success' => false,
-                'message' => "Total Qty Draining + Sludge (" . number_format($totalOut, 2) . " KG) melebihi stok tangki {$sourceTank->name} yang tersedia (" . number_format($currentStock, 2) . " KG).",
-            ], 422);
-        }
-
         $username = Auth::user()->username ?? 'SYSTEM';
 
         $movingTargetTankName = null;
@@ -548,8 +638,34 @@ class TankDrainingController extends Controller
 
         DB::beginTransaction();
         try {
+            $sourceTank = MasterTank::where('id', $request->tank_id)->lockForUpdate()->firstOrFail();
+
+            if ($pendingAdj = CNSDrainAdjustment::pending()->where('tank_id', $sourceTank->id)->orderBy('id', 'desc')->first()) {
+                DB::rollBack();
+                Storage::disk('local')->delete($bastFileMeta['path']);
+                return response()->json([
+                    'success' => false,
+                    'message' => "Tangki {$sourceTank->name} masih memiliki Drain Adjustment ({$pendingAdj->adjustment_code}) berstatus PENDING. Harap selesaikan approval terlebih dahulu sebelum melakukan draining.",
+                ], 422);
+            }
+
+            $currentStock = $this->calculateTankBalance($sourceTank->name);
+            $qtySludge = (float) ($request->qty_sludge ?? 0);
+            $totalOut = (float) $request->qty + $qtySludge;
+
+            if ($totalOut > $currentStock) {
+                DB::rollBack();
+                Storage::disk('local')->delete($bastFileMeta['path']);
+                return response()->json([
+                    'success' => false,
+                    'message' => "Total Qty Draining + Sludge (" . number_format($totalOut, 2) . " KG) melebihi stok tangki {$sourceTank->name} yang tersedia (" . number_format($currentStock, 2) . " KG).",
+                ], 422);
+            }
+
+            $drainingCode = $request->draining_code ?: $this->generateNextCode(true);
+
             $draining = TankDraining::create([
-                'draining_code'          => $request->draining_code,
+                'draining_code'          => $drainingCode,
                 'draining_date'          => $request->draining_date,
                 'tank_id'                => $sourceTank->id,
                 'tank_name'              => $sourceTank->name,
@@ -569,7 +685,7 @@ class TankDrainingController extends Controller
             ]);
 
             // Catat Outbound di UCOStoragePelindo untuk tangki asal
-            $outboundNotes = "Tank Draining [{$request->draining_code}] Tujuan {$request->target_type}";
+            $outboundNotes = "Tank Draining [{$drainingCode}] Tujuan {$request->target_type}";
             if ($request->target_type === 'MOVING') {
                 $outboundNotes .= $request->moving_target_type === 'TANK' ? " ke {$movingTargetTankName}" : " ke {$request->moving_target_external}";
             } elseif ($salesOrderNo) {
@@ -583,7 +699,7 @@ class TankDrainingController extends Controller
                 'Nama_Tangki'      => $sourceTank->name,
                 'Created_By'       => $username,
                 'Transaction_Date' => $request->draining_date,
-                'Reference_Number' => $request->draining_code,
+                'Reference_Number' => $drainingCode,
                 'Notes'            => $outboundNotes,
             ]);
 
@@ -596,8 +712,8 @@ class TankDrainingController extends Controller
                     'Nama_Tangki'      => $movingTargetTankName,
                     'Created_By'       => $username,
                     'Transaction_Date' => $request->draining_date,
-                    'Reference_Number' => $request->draining_code,
-                    'Notes'            => "Tank Draining [{$request->draining_code}] Moving dari {$sourceTank->name}",
+                    'Reference_Number' => $drainingCode,
+                    'Notes'            => "Tank Draining [{$drainingCode}] Moving dari {$sourceTank->name}",
                 ]);
             }
 
@@ -769,7 +885,7 @@ class TankDrainingController extends Controller
             empty($draining->bast_document_path)
             || !Storage::disk('local')->exists($draining->bast_document_path),
             404,
-            'Dokumen BAST tidak ditemukan.'
+            'Dokumen BA tidak ditemukan.'
         );
 
         $path = Storage::disk('local')->path($draining->bast_document_path);
@@ -808,24 +924,9 @@ class TankDrainingController extends Controller
         }
     }
 
-    protected function generateNextCode(): string
+    protected function generateNextCode(bool $lock = false): string
     {
-        $dateStr = Carbon::now()->format('Ymd');
-        $prefix = "DRN-{$dateStr}-";
-
-        $latest = TankDraining::withTrashed()
-            ->where('draining_code', 'like', "{$prefix}%")
-            ->orderBy('id', 'desc')
-            ->value('draining_code');
-
-        if ($latest) {
-            $num = (int) substr($latest, strlen($prefix));
-            $next = str_pad($num + 1, 4, '0', STR_PAD_LEFT);
-        } else {
-            $next = '0001';
-        }
-
-        return "{$prefix}{$next}";
+        return CnsCodeGenerator::nextDrainingNo(null, $lock);
     }
 
     protected function validateDrainingRequest(Request $request, ?TankDraining $existing = null)
@@ -849,8 +950,8 @@ class TankDrainingController extends Controller
         ], [
             'moving_target_tank_id.different' => 'Tangki tujuan tidak boleh sama dengan tangki asal.',
             'draining_code.unique'            => 'Kode draining sudah pernah digunakan.',
-            'bast_document.required'          => 'Dokumen BAST draining wajib diupload.',
-            'bast_document.mimes'             => 'Dokumen BAST harus berformat PDF, JPG, JPEG, atau PNG.',
+            'bast_document.required'          => 'Dokumen BA draining wajib diupload.',
+            'bast_document.mimes'             => 'Dokumen BA harus berformat PDF, JPG, JPEG, atau PNG.',
             'bast_document.max'               => 'Ukuran dokumen BAST maksimal 10 MB.',
         ]);
     }

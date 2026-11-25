@@ -1,44 +1,3 @@
-<?php
-
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Schema;
-use Illuminate\Database\Eloquent\Builder;
-
-$LSP = Auth::user()->Location;
-$Saya = Auth::user()->username;
-
-$GridView = 'employee-lists';
-$AllCols = employee_grid_columns();
-$DefaultCols = employee_grid_default_columns();
-$ActiveCols = $DefaultCols;
-if (Schema::hasTable('user_grid_prefs')) {
-    $SavedJson = DB::table('user_grid_prefs')->where('username', $Saya)->where('view', $GridView)->value('columns_json');
-    $SavedCols = $SavedJson ? json_decode($SavedJson, true) : null;
-    if (is_array($SavedCols) && count($SavedCols)) {
-        $ValidCols = array_values(array_intersect($SavedCols, array_keys($AllCols)));
-        if (count($ValidCols)) {
-            $ActiveCols = $ValidCols;
-        }
-    }
-}
-$Meta = [];
-foreach ($AllCols as $ck => $cm) {
-    $Meta[$ck] = ['label' => $cm[0], 'width' => $cm[1], 'align' => $cm[2], 'filter' => $cm[3], 'sort' => $cm[4], 'type' => 'ro'];
-}
-
-// Quick stats untuk Card Ringkasan
-$totalEmp = DB::table('employment')->count();
-$activeEmp = DB::table('employment')->where('Status', 'ACTIVE')->count();
-$probationEmp = DB::table('employment')->where('Employment_Status', 'LIKE', '%PROBATION%')->count();
-$contractEmp = DB::table('employment')
-    ->where(function ($q) {
-        $q->where('Employment_Status', 'LIKE', '%KONTRAK%')->orWhere('Employment_Status', 'LIKE', '%PKWT%');
-    })
-    ->count();
-?>
-
 @extends('layout.mainlayout-hrd')
 
 @section('content-wrapper')
@@ -251,6 +210,12 @@ $contractEmp = DB::table('employment')
                 <button type="button" class="btn btn-sm btn-primary rounded-pill px-3" onclick="openThrSchemeModal();">
                     <i class="fa fa-file-signature me-1"></i> Setting Skema THR (PKWT/MoU)
                 </button>
+                @if ($canManageEmpAccounts)
+                    <button type="button" class="btn btn-sm btn-success text-white rounded-pill px-3"
+                        onclick="openUserAccountModal();">
+                        <i class="fa fa-user-plus me-1"></i> Buat / Hubungkan Akun User
+                    </button>
+                @endif
             </div>
 
             <div class="d-flex align-items-center gap-2">
@@ -374,13 +339,11 @@ $contractEmp = DB::table('employment')
                     scrollTop: $("#divlistProjectOrg").offset().top - 80
                 }, 300);
                 $("#divlistProjectOrg").html(`
-                                        div class = "card p-4 text-center border-0 shadow-sm" >
-                                        <
-                                        div class = "spinner-border text-primary mx-auto mb-2"
-                                        role = "status" > < /div> <
-                                            span class = "small text-muted" > Memuat rincian detail karyawan... < /span> <
-                                            /div>
-                                        `);
+                    <div class="card p-4 text-center border-0 shadow-sm">
+                        <div class="spinner-border text-primary mx-auto mb-2" role="status"></div>
+                        <span class="small text-muted">Memuat rincian detail karyawan...</span>
+                    </div>
+                `);
                 LoadM('divlistProjectOrg', 'employee-lists-detail?ID=' + rid + "&nama=" + encodeURI(nma));
             }
             return true;
@@ -424,7 +387,7 @@ $contractEmp = DB::table('employment')
             if (!selectedIds) {
                 alert(
                     'Pilih minimal 1 karyawan pada tabel terlebih dahulu (gunakan Ctrl/Shift+Klik untuk memilih lebih dari satu).'
-                    );
+                );
                 return;
             }
             var url = '{{ url('hrd-employee-thr-scheme-modal') }}?ids=' + encodeURIComponent(selectedIds);
@@ -439,6 +402,33 @@ $contractEmp = DB::table('employment')
                 }).fail(function(xhr) {
                     $('#appModalBody').html('<div class="alert alert-danger mb-0">Gagal memuat form (' + xhr
                         .status + '). Silakan coba lagi.</div>');
+                });
+            } else {
+                LoadM('divlistProjectOrg', url);
+            }
+        }
+
+        function openUserAccountModal() {
+            var selectedIds = EmployeeLists.getSelectedRowId();
+            if (!selectedIds) {
+                alert(
+                    'Pilih minimal 1 karyawan pada tabel terlebih dahulu (gunakan Ctrl/Shift+Klik untuk memilih lebih dari satu).'
+                );
+                return;
+            }
+            var url = '{{ url('hrd-employee-user-account-modal') }}?ids=' + encodeURIComponent(selectedIds);
+            if (window.AppModal && typeof window.AppModal.open === 'function') {
+                window.AppModal.open({
+                    title: 'Buat / Hubungkan Akun User Karyawan',
+                    body: '<div class="text-center py-4"><div class="spinner-border text-success" role="status"></div><div class="small text-muted mt-2">Memeriksa data karyawan & akun kandidat...</div></div>',
+                    size: 'xl'
+                });
+                $.get(url, function(html) {
+                    $('#appModalBody').html(html);
+                }).fail(function(xhr) {
+                    var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : (
+                        'Gagal memuat form (' + xhr.status + ').');
+                    $('#appModalBody').html('<div class="alert alert-danger mb-0">' + msg + '</div>');
                 });
             } else {
                 LoadM('divlistProjectOrg', url);

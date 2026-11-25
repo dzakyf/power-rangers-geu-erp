@@ -3,12 +3,26 @@
 namespace App\Services\GA;
 
 use Carbon\Carbon;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use InvalidArgumentException;
 
 class TicketService
 {
+    const DOMAIN_GA = 'GA';
+    const DOMAIN_IT = 'IT';
+
+    const MODE_OPERATIONAL = 'OPERATIONAL';
+    const MODE_WORK_ORDER_VOUCHER = 'WORK_ORDER_VOUCHER';
+    const MODE_IT_SUPPORT = 'IT_SUPPORT';
+    const MODE_IT_INCIDENT = 'IT_INCIDENT';
+    const MODE_IT_DEVICE_REQUEST = 'IT_DEVICE_REQUEST';
+
+    const ACTION_PREVENTIVE = 'PREVENTIVE';
+    const ACTION_CORRECTIVE = 'CORRECTIVE';
+
     const STATUS_OPEN = 'OPEN';
     const STATUS_TRIAGED = 'TRIAGED';
     const STATUS_ASSIGNED = 'ASSIGNED';
@@ -18,6 +32,28 @@ class TicketService
     const STATUS_CLOSED = 'CLOSED';
     const STATUS_REJECTED = 'REJECTED';
     const STATUS_REOPENED = 'REOPENED';
+
+    // Status alur IT Support & Helpdesk
+    const STATUS_TROUBLESHOOTING = 'TROUBLESHOOTING';
+    const STATUS_ESCALATED = 'ESCALATED';
+    const STATUS_USER_CONFIRMED = 'USER_CONFIRMED';
+    const STATUS_VALIDATED = 'VALIDATED';
+    const STATUS_ROOT_CAUSE_ANALYSIS = 'ROOT_CAUSE_ANALYSIS';
+    const STATUS_RECOVERY = 'RECOVERY';
+    const STATUS_TESTING = 'TESTING';
+    const STATUS_SYSTEM_NORMAL = 'SYSTEM_NORMAL';
+    const STATUS_WAITING_MANAGER_APPROVAL = 'WAITING_MANAGER_APPROVAL';
+    const STATUS_DEVICE_PREPARATION = 'DEVICE_PREPARATION';
+    const STATUS_ASSIGNED_TO_USER = 'ASSIGNED_TO_USER';
+    const STATUS_HANDOVER = 'HANDOVER';
+
+    // Status alur GA Order Pekerjaan & Voucher Pembayaran
+    const STATUS_WAITING_DEPT_HEAD = 'WAITING_DEPT_HEAD';
+    const STATUS_GA_VERIFICATION = 'GA_VERIFICATION';
+    const STATUS_WAITING_BUDGET_APPROVAL = 'WAITING_BUDGET_APPROVAL';
+    const STATUS_READY_FOR_VOUCHER = 'READY_FOR_VOUCHER';
+    const STATUS_VOUCHER_CREATED = 'VOUCHER_CREATED';
+    const STATUS_PAID = 'PAID';
 
     protected $notifications;
 
@@ -34,6 +70,26 @@ class TicketService
         $company = trim((string) ($data['Company_ID'] ?? $user->Company_ID));
         $priority = strtoupper(trim((string) ($data['Priority'] ?? 'NORMAL')));
         $source = strtoupper(trim((string) ($data['Source'] ?? 'FORM')));
+
+        $domainType = strtoupper(trim((string) ($data['Domain_Type'] ?? self::DOMAIN_GA)));
+        if (!in_array($domainType, [self::DOMAIN_GA, self::DOMAIN_IT], true)) {
+            $domainType = self::DOMAIN_GA;
+        }
+        $workflowMode = strtoupper(trim((string) ($data['Workflow_Mode'] ?? self::MODE_OPERATIONAL)));
+        $validModes = [
+            self::MODE_OPERATIONAL,
+            self::MODE_WORK_ORDER_VOUCHER,
+            self::MODE_IT_SUPPORT,
+            self::MODE_IT_INCIDENT,
+            self::MODE_IT_DEVICE_REQUEST,
+        ];
+        if (!in_array($workflowMode, $validModes, true)) {
+            $workflowMode = self::MODE_OPERATIONAL;
+        }
+        $actionType = strtoupper(trim((string) ($data['Action_Type'] ?? self::ACTION_CORRECTIVE)));
+        if (!in_array($actionType, [self::ACTION_PREVENTIVE, self::ACTION_CORRECTIVE], true)) {
+            $actionType = self::ACTION_CORRECTIVE;
+        }
 
         $category = $this->resolveCategory($data['Category_ID'] ?? null, $location, $company);
         $subcategory = null;
@@ -65,13 +121,13 @@ class TicketService
 
         $subject = trim((string) ($data['Ticket_Subject'] ?? ''));
         $description = trim((string) ($data['Description'] ?? ''));
-        $ticketNo = $this->generateTicketNo($location);
+        $ticketNo = $this->generateTicketNo($location, $domainType === self::DOMAIN_IT ? 'IT' : 'GA');
 
-        return DB::transaction(function () use ($data, $user, $reporter, $onBehalfId, $location, $company, $priority, $source, $category, $subcategory, $sla, $responseDue, $resolveDue, $now, $subject, $description, $ticketNo) {
+        return DB::transaction(function () use ($data, $user, $reporter, $onBehalfId, $location, $company, $priority, $source, $domainType, $workflowMode, $actionType, $category, $subcategory, $sla, $responseDue, $resolveDue, $now, $subject, $description, $ticketNo) {
             $ticketId = DB::table('ticket')->insertGetId([
                 'Ticket_No' => $ticketNo,
                 'Proposed_Date' => $now->toDateString(),
-                'Ticket_Type' => 'GA',
+                'Ticket_Type' => $domainType === self::DOMAIN_IT ? 'IT' : 'GA',
                 'Ticket_Category' => $category ? mb_substr((string) $category->Name, 0, 250) : 'General',
                 'Ticket_Subject' => mb_substr($subject, 0, 250),
                 'GEU_Express_ID' => mb_substr((string) ($data['GEU_Express_ID'] ?? $location), 0, 150),
@@ -99,6 +155,9 @@ class TicketService
                 'Asset_No' => $assetNo !== '' ? mb_substr($assetNo, 0, 50) : null,
                 'Damage_Severity' => $damageSeverity !== '' ? mb_substr($damageSeverity, 0, 30) : null,
                 'Company_ID' => $company,
+                'Domain_Type' => $domainType,
+                'Workflow_Mode' => $workflowMode,
+                'Action_Type' => $actionType,
                 'Reporter_User_Id' => (int) $reporter->id,
                 'Reporter_Name' => mb_substr((string) ($reporter->Name ?? $reporter->username), 0, 150),
                 'Reporter_Department' => mb_substr((string) ($reporter->Department ?? ''), 0, 100),
@@ -114,6 +173,9 @@ class TicketService
                 'Response_Due_At' => $responseDue,
                 'Resolve_Due_At' => $resolveDue,
                 'Description' => $description,
+                'Device_Spec' => !empty($data['Device_Spec']) ? trim((string) $data['Device_Spec']) : null,
+                'Estimated_Amount' => isset($data['Estimated_Amount']) ? max(0, (float) $data['Estimated_Amount']) : 0,
+                'Preferred_Vendor_ID' => !empty($data['Preferred_Vendor_ID']) ? (int) $data['Preferred_Vendor_ID'] : null,
                 'Cost_Center' => mb_substr((string) ($data['Cost_Center'] ?? ($reporter->Department ?? '')), 0, 50),
                 'Department' => mb_substr((string) ($data['Department'] ?? ($reporter->Department ?? '')), 0, 100),
                 'Created_By' => (string) $user->username,
@@ -130,30 +192,39 @@ class TicketService
                 );
             }
 
+            $skipAutoAssign = !empty($data['Skip_Auto_Assign'])
+                || in_array($workflowMode, [self::MODE_WORK_ORDER_VOUCHER, self::MODE_IT_DEVICE_REQUEST], true);
+            $keepStatus = ($domainType === self::DOMAIN_IT);
             $assigned = false;
-            if ($category && !empty($category->Default_Team_ID)) {
-                $this->applyAssignment($ticketId, 'TEAM', (int) $category->Default_Team_ID, null, null, (string) $user->username, 'Routing kategori default.', $now);
-                $assigned = true;
-            } else {
-                $rule = $this->findRoutingRule($location, $company, $category ? (int) $category->ID : null, $subcategory ? (int) $subcategory->ID : null, $priority);
-                if ($rule) {
-                    $this->applyAssignment($ticketId, 'TEAM', (int) $rule->Team_ID, null, null, (string) $user->username, 'Routing otomatis.', $now);
+
+            if (!$skipAutoAssign) {
+                if ($category && !empty($category->Default_Team_ID)) {
+                    $this->applyAssignment($ticketId, 'TEAM', (int) $category->Default_Team_ID, null, null, (string) $user->username, 'Routing kategori default.', $now, $keepStatus);
+                    $assigned = true;
+                } else {
+                    $rule = $this->findRoutingRule($location, $company, $category ? (int) $category->ID : null, $subcategory ? (int) $subcategory->ID : null, $priority);
+                    if ($rule) {
+                        $this->applyAssignment($ticketId, 'TEAM', (int) $rule->Team_ID, null, null, (string) $user->username, 'Routing otomatis.', $now, $keepStatus);
+                        $assigned = true;
+                    }
+                }
+
+                if (!$assigned && !empty($data['Assignee_User_Id'])) {
+                    $this->applyAssignment($ticketId, 'USER', null, (int) $data['Assignee_User_Id'], null, (string) $user->username, 'Assignment saat pembuatan.', $now, $keepStatus);
                     $assigned = true;
                 }
             }
 
-            if (!$assigned && !empty($data['Assignee_User_Id'])) {
-                $this->applyAssignment($ticketId, 'USER', null, (int) $data['Assignee_User_Id'], null, (string) $user->username, 'Assignment saat pembuatan.', $now);
-                $assigned = true;
+            if (empty($data['Suppress_Create_Notification'])) {
+                $statusText = ($assigned && !$keepStatus) ? 'ASSIGNED' : 'OPEN';
+                $this->notifications->notifyUser(
+                    (int) $reporter->id,
+                    'Tiket ' . ($domainType === self::DOMAIN_IT ? 'IT' : 'GA') . ' dibuat: ' . $ticketNo,
+                    'Tiket "' . $subject . '" telah dibuat dengan status ' . $statusText . '.',
+                    $domainType === self::DOMAIN_IT ? 'it_ticket' : 'ga_ticket',
+                    ['Ticket_ID' => $ticketId, 'Ticket_No' => $ticketNo]
+                );
             }
-
-            $this->notifications->notifyUser(
-                (int) $reporter->id,
-                'Tiket GA dibuat: ' . $ticketNo,
-                'Tiket "' . $subject . '" telah dibuat dengan status ' . ($assigned ? 'ASSIGNED' : 'OPEN') . '.',
-                'ga_ticket',
-                ['Ticket_ID' => $ticketId, 'Ticket_No' => $ticketNo]
-            );
 
             return $this->find($ticketId);
         });
@@ -257,12 +328,12 @@ class TicketService
         });
     }
 
-    public function assign($ticketId, array $data, $user)
+    public function assign($ticketId, array $data, $user, $keepStatus = false)
     {
         $ticketId = (int) $ticketId;
         $type = strtoupper(trim((string) ($data['Assignee_Type'] ?? 'USER')));
 
-        return DB::transaction(function () use ($ticketId, $data, $user, $type) {
+        return DB::transaction(function () use ($ticketId, $data, $user, $type, $keepStatus) {
             $ticket = DB::table('ticket')->where('ID', $ticketId)->lockForUpdate()->first();
             $this->assertGaTicket($ticket);
 
@@ -284,7 +355,7 @@ class TicketService
                 throw new InvalidArgumentException('Vendor wajib dipilih untuk assignment tipe VENDOR.');
             }
 
-            $this->applyAssignment($ticketId, $type, $teamId, $userId, $supplierId, (string) $user->username, (string) ($data['Reason'] ?? 'Assignment manual.'), Carbon::now());
+            $this->applyAssignment($ticketId, $type, $teamId, $userId, $supplierId, (string) $user->username, (string) ($data['Reason'] ?? 'Assignment manual.'), Carbon::now(), $keepStatus);
 
             return $this->find($ticketId);
         });
@@ -452,6 +523,8 @@ class TicketService
             ->leftJoin('users as reporter', 'reporter.id', '=', 'g.Reporter_User_Id')
             ->leftJoin('users as assignee', 'assignee.id', '=', 'g.Assignee_User_Id')
             ->leftJoin('supplier as vendor', 'vendor.ID', '=', 'g.Assignee_Supplier_ID')
+            ->leftJoin('supplier as pref_vendor', 'pref_vendor.ID', '=', 'g.Preferred_Vendor_ID')
+            ->leftJoin('ga_payment_voucher as pv', 'pv.ID', '=', 'g.Payment_Voucher_ID')
             ->where('t.ID', (int) $ticketId)
             ->where('t.Module', 'GA')
             ->select([
@@ -475,6 +548,9 @@ class TicketService
                 't.Created_Date',
                 't.Completion_Note',
                 'g.ID as Ga_ID',
+                'g.Domain_Type',
+                'g.Workflow_Mode',
+                'g.Action_Type',
                 'g.Reporter_User_Id',
                 'g.Reporter_Name',
                 'g.Reporter_Department',
@@ -498,6 +574,42 @@ class TicketService
                 'g.Description as Ga_Description',
                 'g.Triage_Note',
                 'g.Rejection_Reason',
+                'g.Diagnosis_Note',
+                'g.Root_Cause',
+                'g.Recovery_Note',
+                'g.Testing_Status',
+                'g.Testing_Note',
+                'g.Testing_At',
+                'g.Escalated_Flag',
+                'g.Escalation_Note',
+                'g.Escalated_To_Ticket_ID',
+                'g.Device_Spec',
+                'g.Device_Asset_No',
+                'g.Device_Assigned_User_Id',
+                'g.Handover_Note',
+                'g.Handover_At',
+                'g.PR_No',
+                'g.Kb_Flag',
+                'g.Kb_Title',
+                'g.Kb_Solution',
+                'g.User_Confirmed_At',
+                'g.User_Confirmed_By',
+                'g.User_Rating',
+                'g.User_Feedback',
+                'g.Monitoring_Note',
+                'g.Backup_Verified',
+                'g.Backup_Verified_At',
+                'g.Backup_Note',
+                'g.Dept_Approval_Request_ID',
+                'g.Budget_Approval_Request_ID',
+                'g.Approval_Revision_Count',
+                'g.Estimated_Amount',
+                'g.Verified_Amount',
+                'g.GA_Verified_By',
+                'g.GA_Verified_At',
+                'g.GA_Verification_Note',
+                'g.Preferred_Vendor_ID',
+                'g.Payment_Voucher_ID',
                 'g.Cost_Center',
                 'g.Department as Ga_Department',
                 'g.Reopen_Count',
@@ -509,6 +621,11 @@ class TicketService
                 'reporter.Name as Reporter_User_Name',
                 'assignee.Name as Assignee_Name',
                 'vendor.Company_Name as Vendor_Name',
+                'pref_vendor.Company_Name as Preferred_Vendor_Name',
+                'pv.Voucher_No',
+                'pv.Status as Voucher_Status',
+                'pv.Amount as Voucher_Amount',
+                'pv.Paid_Date as Voucher_Paid_Date',
             ])
             ->first();
     }
@@ -517,10 +634,20 @@ class TicketService
     {
         $query = $this->baseQuery();
 
+        if (!empty($filters['domain_type'])) {
+            $query->where('g.Domain_Type', strtoupper(trim((string) $filters['domain_type'])));
+        }
+        if (!empty($filters['workflow_mode'])) {
+            $query->where('g.Workflow_Mode', strtoupper(trim((string) $filters['workflow_mode'])));
+        }
+        if (!empty($filters['action_type'])) {
+            $query->where('g.Action_Type', strtoupper(trim((string) $filters['action_type'])));
+        }
+
         if (!empty($filters['status'])) {
             $status = strtoupper(trim((string) $filters['status']));
             if ($status === 'ACTIVE') {
-                $query->whereNotIn('t.Ticket_Status', [self::STATUS_CLOSED, self::STATUS_REJECTED]);
+                $query->whereNotIn('t.Ticket_Status', [self::STATUS_CLOSED, self::STATUS_REJECTED, self::STATUS_PAID]);
             } else {
                 $statuses = array_filter(array_map('trim', explode(',', $status)));
                 $query->whereIn('t.Ticket_Status', $statuses);
@@ -540,7 +667,8 @@ class TicketService
             $query->where(function ($q) use ($search) {
                 $q->where('t.Ticket_No', 'like', '%' . $search . '%')
                     ->orWhere('t.Ticket_Subject', 'like', '%' . $search . '%')
-                    ->orWhere('g.Reporter_Name', 'like', '%' . $search . '%');
+                    ->orWhere('g.Reporter_Name', 'like', '%' . $search . '%')
+                    ->orWhere('pv.Voucher_No', 'like', '%' . $search . '%');
             });
         }
         if (!empty($filters['date_from'])) {
@@ -575,9 +703,18 @@ class TicketService
     public function myAssignmentsQuery($user, array $filters = [])
     {
         $query = $this->baseQuery()
-            ->whereNotIn('t.Ticket_Status', [self::STATUS_CLOSED, self::STATUS_REJECTED]);
+            ->whereNotIn('t.Ticket_Status', [self::STATUS_CLOSED, self::STATUS_REJECTED, self::STATUS_PAID]);
         $this->scopeToUser($query, $user);
 
+        if (!empty($filters['domain_type'])) {
+            $query->where('g.Domain_Type', strtoupper(trim((string) $filters['domain_type'])));
+        }
+        if (!empty($filters['workflow_mode'])) {
+            $query->where('g.Workflow_Mode', strtoupper(trim((string) $filters['workflow_mode'])));
+        }
+        if (!empty($filters['action_type'])) {
+            $query->where('g.Action_Type', strtoupper(trim((string) $filters['action_type'])));
+        }
         if (!empty($filters['status'])) {
             $query->where('t.Ticket_Status', strtoupper(trim((string) $filters['status'])));
         }
@@ -685,9 +822,13 @@ class TicketService
         return $count;
     }
 
-    public function generateTicketNo($location)
+    public function generateTicketNo($location, $prefixCode = 'GA')
     {
-        $prefix = 'GA/' . preg_replace('/[^A-Za-z0-9\-]/', '', (string) $location) . '/' . Carbon::now()->format('YmdHis');
+        $code = strtoupper(preg_replace('/[^A-Za-z0-9\-]/', '', (string) $prefixCode));
+        if ($code === '') {
+            $code = 'GA';
+        }
+        $prefix = $code . '/' . preg_replace('/[^A-Za-z0-9\-]/', '', (string) $location) . '/' . Carbon::now()->format('YmdHis');
         for ($i = 0; $i < 20; $i++) {
             $candidate = $prefix . '-' . strtoupper(substr(md5(uniqid((string) mt_rand(), true)), 0, 6));
             if (!DB::table('ticket')->where('Ticket_No', $candidate)->exists()) {
@@ -727,9 +868,259 @@ class TicketService
             self::STATUS_CLOSED => 'Closed',
             self::STATUS_REJECTED => 'Rejected',
             self::STATUS_REOPENED => 'Reopened',
+            self::STATUS_TROUBLESHOOTING => 'Troubleshooting',
+            self::STATUS_ESCALATED => 'Escalated',
+            self::STATUS_USER_CONFIRMED => 'Konfirmasi User',
+            self::STATUS_VALIDATED => 'Validasi Gangguan',
+            self::STATUS_ROOT_CAUSE_ANALYSIS => 'Analisis Root Cause',
+            self::STATUS_RECOVERY => 'Perbaikan / Recovery',
+            self::STATUS_TESTING => 'Testing Sistem',
+            self::STATUS_SYSTEM_NORMAL => 'Sistem Normal',
+            self::STATUS_WAITING_MANAGER_APPROVAL => 'Menunggu Approval Manager',
+            self::STATUS_DEVICE_PREPARATION => 'Persiapan Perangkat',
+            self::STATUS_ASSIGNED_TO_USER => 'Assign ke User',
+            self::STATUS_HANDOVER => 'Serah Terima',
+            self::STATUS_WAITING_DEPT_HEAD => 'Approval Dept Head',
+            self::STATUS_GA_VERIFICATION => 'GA Verification',
+            self::STATUS_WAITING_BUDGET_APPROVAL => 'Approval Biaya',
+            self::STATUS_READY_FOR_VOUCHER => 'Siap Buat Voucher',
+            self::STATUS_VOUCHER_CREATED => 'Voucher Dibuat',
+            self::STATUS_PAID => 'Dibayar (Paid)',
         ];
 
         return $labels[$status] ?? $status;
+    }
+
+    public function attachFiles($ticketId, array $files, $username)
+    {
+        $ticketId = (int) $ticketId;
+        $allowedExt = ['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx', 'xls', 'xlsx'];
+        $maxBytes = 5 * 1024 * 1024;
+        $saved = [];
+
+        $flat = [];
+        array_walk_recursive($files, function ($item) use (&$flat) {
+            if ($item instanceof UploadedFile) {
+                $flat[] = $item;
+            }
+        });
+
+        if (empty($flat)) {
+            return $saved;
+        }
+
+        $year = date('Y');
+        $month = date('m');
+        $relDir = 'ga_ticket_attachments/' . $year . '/' . $month;
+        $absDir = storage_path('app/' . $relDir);
+        if (!is_dir($absDir)) {
+            mkdir($absDir, 0755, true);
+        }
+
+        $now = Carbon::now();
+        foreach ($flat as $file) {
+            if (!$file->isValid()) {
+                throw new InvalidArgumentException('Lampiran gagal diunggah.');
+            }
+            $ext = strtolower((string) $file->getClientOriginalExtension());
+            if (!in_array($ext, $allowedExt, true)) {
+                throw new InvalidArgumentException('Format lampiran ' . $ext . ' tidak diizinkan (pdf, jpg, jpeg, png, doc, docx, xls, xlsx).');
+            }
+            $size = (int) $file->getSize();
+            if ($size > $maxBytes) {
+                throw new InvalidArgumentException('Ukuran tiap lampiran maksimal 5 MB.');
+            }
+
+            $origName = mb_substr((string) $file->getClientOriginalName(), 0, 250);
+            $mime = mb_substr((string) ($file->getClientMimeType() ?: 'application/octet-stream'), 0, 100);
+            $filename = Str::uuid()->toString() . '.' . $ext;
+            $file->move($absDir, $filename);
+
+            $relPath = $relDir . '/' . $filename;
+            $id = DB::table('ga_ticket_attachment')->insertGetId([
+                'Ticket_ID'   => $ticketId,
+                'File_Path'   => $relPath,
+                'File_Name'   => $origName,
+                'Mime_Type'   => $mime,
+                'File_Size'   => $size,
+                'Uploaded_By' => (string) $username,
+                'Created_At'  => $now,
+            ]);
+
+            $saved[] = DB::table('ga_ticket_attachment')->where('ID', $id)->first();
+        }
+
+        return $saved;
+    }
+
+    public function attachments($ticketId)
+    {
+        return DB::table('ga_ticket_attachment')
+            ->where('Ticket_ID', (int) $ticketId)
+            ->orderBy('ID', 'asc')
+            ->get();
+    }
+
+    public function findAttachment($attachmentId)
+    {
+        return DB::table('ga_ticket_attachment')->where('ID', (int) $attachmentId)->first();
+    }
+
+    public function recordHistory($ticketId, $from, $to, $note, $changedBy, Carbon $now = null)
+    {
+        $this->insertHistory((int) $ticketId, $from, $to, $note, (string) $changedBy, $now ?: Carbon::now());
+    }
+
+    public function assignRecord($ticketId, $type, $teamId, $userId, $supplierId, $assignedBy, $reason, Carbon $now = null, $keepStatus = false)
+    {
+        $this->applyAssignment($ticketId, $type, $teamId, $userId, $supplierId, $assignedBy, $reason, $now ?: Carbon::now(), $keepStatus);
+    }
+
+    public function progressSteps($ticket)
+    {
+        if (!$ticket) {
+            return [];
+        }
+
+        $mode = strtoupper((string) ($ticket->Workflow_Mode ?? self::MODE_OPERATIONAL));
+        $status = strtoupper((string) ($ticket->Ticket_Status ?? self::STATUS_OPEN));
+
+        if ($mode === self::MODE_IT_SUPPORT) {
+            $order = [
+                ['key' => self::STATUS_OPEN,            'label' => 'Tiket Dibuat (Open)'],
+                ['key' => self::STATUS_IN_PROGRESS,     'label' => 'Review IT'],
+                ['key' => self::STATUS_TROUBLESHOOTING, 'label' => 'Diagnosa & Troubleshooting'],
+                ['key' => self::STATUS_RESOLVED,        'label' => 'Penyelesaian'],
+                ['key' => self::STATUS_USER_CONFIRMED,  'label' => 'Konfirmasi & Feedback'],
+                ['key' => self::STATUS_CLOSED,          'label' => 'Closed & Monitoring'],
+            ];
+            $rankMap = [
+                self::STATUS_OPEN => 0,
+                self::STATUS_ON_HOLD => 1,
+                self::STATUS_REOPENED => 1,
+                self::STATUS_IN_PROGRESS => 1,
+                self::STATUS_TROUBLESHOOTING => 2,
+                self::STATUS_ESCALATED => 2,
+                self::STATUS_RESOLVED => 3,
+                self::STATUS_USER_CONFIRMED => 4,
+                self::STATUS_CLOSED => 5,
+            ];
+            return $this->buildStepperState($order, $rankMap, $status);
+        }
+
+        if ($mode === self::MODE_IT_INCIDENT) {
+            $order = [
+                ['key' => self::STATUS_OPEN,                'label' => 'Laporan / Alert'],
+                ['key' => self::STATUS_VALIDATED,           'label' => 'Validasi Gangguan'],
+                ['key' => self::STATUS_ROOT_CAUSE_ANALYSIS, 'label' => 'Analisis Root Cause'],
+                ['key' => self::STATUS_RECOVERY,            'label' => 'Perbaikan / Recovery'],
+                ['key' => self::STATUS_TESTING,             'label' => 'Testing & Sistem Normal'],
+                ['key' => self::STATUS_CLOSED,              'label' => 'Closed & Backup Log'],
+            ];
+            $rankMap = [
+                self::STATUS_OPEN => 0,
+                self::STATUS_ON_HOLD => 1,
+                self::STATUS_REOPENED => 1,
+                self::STATUS_VALIDATED => 1,
+                self::STATUS_ROOT_CAUSE_ANALYSIS => 2,
+                self::STATUS_RECOVERY => 3,
+                self::STATUS_TESTING => 4,
+                self::STATUS_SYSTEM_NORMAL => 4,
+                self::STATUS_CLOSED => 5,
+            ];
+            return $this->buildStepperState($order, $rankMap, $status);
+        }
+
+        if ($mode === self::MODE_IT_DEVICE_REQUEST) {
+            $order = [
+                ['key' => self::STATUS_WAITING_MANAGER_APPROVAL, 'label' => 'Approval Manager'],
+                ['key' => self::STATUS_OPEN,                     'label' => 'Antrean IT (Open)'],
+                ['key' => self::STATUS_DEVICE_PREPARATION,       'label' => 'Persiapan Perangkat'],
+                ['key' => self::STATUS_ASSIGNED_TO_USER,         'label' => 'Assign to User'],
+                ['key' => self::STATUS_HANDOVER,                 'label' => 'Serah Terima'],
+                ['key' => self::STATUS_CLOSED,                   'label' => 'Selesai (Closed)'],
+            ];
+            $rankMap = [
+                self::STATUS_WAITING_MANAGER_APPROVAL => 0,
+                self::STATUS_OPEN => 1,
+                self::STATUS_DEVICE_PREPARATION => 2,
+                self::STATUS_ON_HOLD => 2,
+                self::STATUS_REOPENED => 2,
+                self::STATUS_ASSIGNED_TO_USER => 3,
+                self::STATUS_HANDOVER => 4,
+                self::STATUS_USER_CONFIRMED => 4,
+                self::STATUS_CLOSED => 5,
+            ];
+            return $this->buildStepperState($order, $rankMap, $status);
+        }
+
+        if ($mode === self::MODE_WORK_ORDER_VOUCHER) {
+            $order = [
+                ['key' => self::STATUS_WAITING_DEPT_HEAD,       'label' => 'Approval Dept Head'],
+                ['key' => self::STATUS_GA_VERIFICATION,         'label' => 'GA Verification'],
+                ['key' => self::STATUS_WAITING_BUDGET_APPROVAL, 'label' => 'Approval HCGA/FAT/BOD'],
+                ['key' => self::STATUS_READY_FOR_VOUCHER,       'label' => 'Siap Buat Voucher'],
+                ['key' => self::STATUS_VOUCHER_CREATED,         'label' => 'Voucher Pembayaran'],
+                ['key' => self::STATUS_PAID,                    'label' => 'Dibayar Finance'],
+            ];
+            $rankMap = [
+                self::STATUS_OPEN => 0,
+                self::STATUS_WAITING_DEPT_HEAD => 0,
+                self::STATUS_GA_VERIFICATION => 1,
+                self::STATUS_WAITING_BUDGET_APPROVAL => 2,
+                self::STATUS_READY_FOR_VOUCHER => 3,
+                self::STATUS_VOUCHER_CREATED => 4,
+                self::STATUS_PAID => 5,
+                self::STATUS_CLOSED => 5,
+            ];
+            return $this->buildStepperState($order, $rankMap, $status, !empty($ticket->Approval_Revision_Count) && $status === self::STATUS_GA_VERIFICATION);
+        }
+
+        $order = [
+            ['key' => self::STATUS_OPEN,        'label' => 'Open'],
+            ['key' => self::STATUS_TRIAGED,     'label' => 'Triaged'],
+            ['key' => self::STATUS_ASSIGNED,    'label' => 'Assigned'],
+            ['key' => self::STATUS_IN_PROGRESS, 'label' => 'In Progress'],
+            ['key' => self::STATUS_RESOLVED,    'label' => 'Resolved'],
+            ['key' => self::STATUS_CLOSED,      'label' => 'Closed'],
+        ];
+        $rankMap = [
+            self::STATUS_OPEN => 0,
+            self::STATUS_TRIAGED => 1,
+            self::STATUS_REOPENED => 1,
+            self::STATUS_ASSIGNED => 2,
+            self::STATUS_IN_PROGRESS => 3,
+            self::STATUS_ON_HOLD => 3,
+            self::STATUS_RESOLVED => 4,
+            self::STATUS_CLOSED => 5,
+        ];
+        return $this->buildStepperState($order, $rankMap, $status);
+    }
+
+    protected function buildStepperState(array $order, array $rankMap, string $status, bool $warnActive = false): array
+    {
+        $isRejected = ($status === self::STATUS_REJECTED);
+        $activeIdx = $rankMap[$status] ?? 0;
+        $isTerminalDone = in_array($status, [self::STATUS_CLOSED, self::STATUS_PAID], true);
+
+        $result = [];
+        foreach ($order as $idx => $step) {
+            $state = 'pending';
+            if ($isRejected) {
+                $state = $idx === 0 ? 'rejected' : 'pending';
+            } elseif ($isTerminalDone || $idx < $activeIdx) {
+                $state = 'done';
+            } elseif ($idx === $activeIdx) {
+                $state = $warnActive ? 'warning' : 'active';
+            }
+            $result[] = [
+                'key'   => $step['key'],
+                'label' => $step['label'],
+                'state' => $state,
+            ];
+        }
+
+        return $result;
     }
 
     protected function baseQuery()
@@ -740,6 +1131,8 @@ class TicketService
             ->leftJoin('ga_ticket_category as sc', 'sc.ID', '=', 'g.Subcategory_ID')
             ->leftJoin('ga_team as team', 'team.ID', '=', 'g.Assignee_Team_ID')
             ->leftJoin('users as assignee', 'assignee.id', '=', 'g.Assignee_User_Id')
+            ->leftJoin('supplier as pref_vendor', 'pref_vendor.ID', '=', 'g.Preferred_Vendor_ID')
+            ->leftJoin('ga_payment_voucher as pv', 'pv.ID', '=', 'g.Payment_Voucher_ID')
             ->where('t.Module', 'GA')
             ->select([
                 't.ID',
@@ -750,12 +1143,16 @@ class TicketService
                 't.Location',
                 'g.Asset_No',
                 'g.Damage_Severity',
+                'g.Domain_Type',
+                'g.Workflow_Mode',
+                'g.Action_Type',
                 't.Company_ID',
                 't.Created_Date',
                 't.Reporter',
                 't.Department',
                 'g.Category_ID',
                 'g.Subcategory_ID',
+                'g.Reporter_User_Id',
                 'g.Reporter_Name',
                 'g.Assignee_Type',
                 'g.Assignee_Team_ID',
@@ -766,11 +1163,25 @@ class TicketService
                 'g.First_Response_At',
                 'g.Resolved_At',
                 'g.Closed_At',
+                'g.Estimated_Amount',
+                'g.Verified_Amount',
+                'g.Approval_Revision_Count',
+                'g.Payment_Voucher_ID',
+                'g.Kb_Flag',
+                'g.Kb_Title',
+                'g.Kb_Solution',
+                'g.Root_Cause',
+                'g.Device_Asset_No',
+                'g.PR_No',
                 'g.Priority as Ga_Priority',
                 'c.Name as Category_Name',
                 'sc.Name as Subcategory_Name',
                 'team.Name as Team_Name',
                 'assignee.Name as Assignee_Name',
+                'pref_vendor.Company_Name as Preferred_Vendor_Name',
+                'pv.Voucher_No',
+                'pv.Status as Voucher_Status',
+                'pv.Amount as Voucher_Amount',
             ])
             ->orderBy('t.Created_Date', 'desc')
             ->orderBy('t.ID', 'desc');
@@ -936,7 +1347,7 @@ class TicketService
             ->first();
     }
 
-    protected function applyAssignment($ticketId, $type, $teamId, $userId, $supplierId, $assignedBy, $reason, Carbon $now)
+    protected function applyAssignment($ticketId, $type, $teamId, $userId, $supplierId, $assignedBy, $reason, Carbon $now, $keepStatus = false)
     {
         DB::table('ga_ticket_assignment')
             ->where('Ticket_ID', (int) $ticketId)
@@ -967,28 +1378,30 @@ class TicketService
 
         $ticket = DB::table('ticket')->where('ID', (int) $ticketId)->first();
         $from = $ticket ? strtoupper((string) $ticket->Ticket_Status) : null;
-        if ($ticket && $from !== self::STATUS_ASSIGNED && !in_array($from, [self::STATUS_CLOSED, self::STATUS_REJECTED], true)) {
+        if (!$keepStatus && $ticket && $from !== self::STATUS_ASSIGNED && !in_array($from, [self::STATUS_CLOSED, self::STATUS_REJECTED], true)) {
             DB::table('ticket')->where('ID', (int) $ticketId)->update(['Ticket_Status' => self::STATUS_ASSIGNED]);
             $this->insertHistory((int) $ticketId, $from, self::STATUS_ASSIGNED, (string) $reason, $assignedBy, $now);
         }
 
         $fresh = $this->find($ticketId);
         if ($fresh) {
+            $topic = strtoupper((string) ($fresh->Domain_Type ?? 'GA')) === self::DOMAIN_IT ? 'it_ticket' : 'ga_ticket';
+            $label = strtoupper((string) ($fresh->Domain_Type ?? 'GA')) === self::DOMAIN_IT ? 'IT' : 'GA';
             if ($userId) {
                 $this->notifications->notifyUser(
                     (int) $userId,
-                    'Tiket GA ditugaskan: ' . $fresh->Ticket_No,
+                    'Tiket ' . $label . ' ditugaskan: ' . $fresh->Ticket_No,
                     'Anda ditugaskan menangani tiket "' . $fresh->Ticket_Subject . '".',
-                    'ga_ticket',
+                    $topic,
                     ['Ticket_ID' => (int) $ticketId, 'Ticket_No' => $fresh->Ticket_No]
                 );
             }
             if ($teamId) {
                 $this->notifications->notifyTeam(
                     (int) $teamId,
-                    'Tiket GA ditugaskan: ' . $fresh->Ticket_No,
+                    'Tiket ' . $label . ' ditugaskan: ' . $fresh->Ticket_No,
                     'Tim Anda ditugaskan menangani tiket "' . $fresh->Ticket_Subject . '".',
-                    'ga_ticket',
+                    $topic,
                     ['Ticket_ID' => (int) $ticketId, 'Ticket_No' => $fresh->Ticket_No]
                 );
             }

@@ -79,6 +79,22 @@ class PayrollReportService
             ->orderBy('e.Name', 'ASC')
             ->get();
 
+        // Bulk preload salary_lists berdasarkan daftar Task_ID agar bebas dari N+1 query
+        $taskIds = $records->pluck('Task_ID')->filter()->unique()->values()->all();
+        $salaryListsByKey = [];
+        if (!empty($taskIds)) {
+            $allLists = DB::table('salary_lists')
+                ->whereIn('Task_ID', $taskIds)
+                ->get();
+            foreach ($allLists as $item) {
+                $k = $item->Task_ID . '|' . $item->Group_ID;
+                if (!isset($salaryListsByKey[$k])) {
+                    $salaryListsByKey[$k] = [];
+                }
+                $salaryListsByKey[$k][] = $item;
+            }
+        }
+
         $rows = [];
         $no = 1;
 
@@ -87,10 +103,8 @@ class PayrollReportService
             $tId = $r->Task_ID;
 
             // 1. Ambil Breakdown Komponen dari salary_lists (snapshot penggajian)
-            $salaryLists = DB::table('salary_lists')
-                ->where('Task_ID', $tId)
-                ->where('Group_ID', $nik)
-                ->get();
+            $listKey = $tId . '|' . $nik;
+            $salaryLists = collect($salaryListsByKey[$listKey] ?? []);
 
             // Rincian Komponen
             $gajiPokok = (float)$r->Pokok;
@@ -253,6 +267,74 @@ class PayrollReportService
         }
 
         return $rows;
+    }
+
+    /**
+     * Susun ringkasan rekapitulasi transfer per kategori Bank (BCA vs Non-BCA & Unmapped)
+     * untuk memudahkan verifikasi Finance sebelum menyetujui batch Payroll / THR.
+     *
+     * @param array $rows
+     * @param string $netKey 'nett' untuk PAYROLL atau 'nett_thr' untuk PAYROLL_THR
+     * @return array
+     */
+    public function buildBankTransferSummary(array $rows, string $netKey = 'nett'): array
+    {
+        $totalEmployees = count($rows);
+        $totalNett = 0.0;
+        $bcaCount = 0;
+        $bcaTotal = 0.0;
+        $nonBcaCount = 0;
+        $nonBcaTotal = 0.0;
+        $unmappedCount = 0;
+        $unmappedTotal = 0.0;
+        $byBank = [];
+
+        foreach ($rows as $row) {
+            $netVal = (float) ($row[$netKey] ?? ($row['nett'] ?? 0));
+            $totalNett += $netVal;
+
+            $bcaNorek = trim((string) ($row['bca_norek'] ?? '-'));
+            $nonBcaNorek = trim((string) ($row['selain_bca_norek'] ?? '-'));
+            $nonBcaBankRaw = strtoupper(trim((string) ($row['selain_bca_bank'] ?? '')));
+
+            $hasBca = ($bcaNorek !== '' && $bcaNorek !== '-');
+            $hasNonBca = (!$hasBca && $nonBcaNorek !== '' && $nonBcaNorek !== '-');
+
+            if ($hasBca) {
+                $bcaCount++;
+                $bcaTotal += $netVal;
+                $bankKey = 'BCA';
+                if (!isset($byBank[$bankKey])) {
+                    $byBank[$bankKey] = ['bank' => 'BCA', 'count' => 0, 'total' => 0.0, 'is_bca' => true];
+                }
+                $byBank[$bankKey]['count']++;
+                $byBank[$bankKey]['total'] += $netVal;
+            } elseif ($hasNonBca) {
+                $nonBcaCount++;
+                $nonBcaTotal += $netVal;
+                $bankKey = ($nonBcaBankRaw !== '' && $nonBcaBankRaw !== '-') ? $nonBcaBankRaw : 'NON-BCA LAINNYA';
+                if (!isset($byBank[$bankKey])) {
+                    $byBank[$bankKey] = ['bank' => $bankKey, 'count' => 0, 'total' => 0.0, 'is_bca' => false];
+                }
+                $byBank[$bankKey]['count']++;
+                $byBank[$bankKey]['total'] += $netVal;
+            } else {
+                $unmappedCount++;
+                $unmappedTotal += $netVal;
+            }
+        }
+
+        return [
+            'total_employees' => $totalEmployees,
+            'total_nett'      => $totalNett,
+            'bca_count'       => $bcaCount,
+            'bca_total'       => $bcaTotal,
+            'non_bca_count'   => $nonBcaCount,
+            'non_bca_total'   => $nonBcaTotal,
+            'unmapped_count'  => $unmappedCount,
+            'unmapped_total'  => $unmappedTotal,
+            'by_bank'         => array_values($byBank),
+        ];
     }
 }
 

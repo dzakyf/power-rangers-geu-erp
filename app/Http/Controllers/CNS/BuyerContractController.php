@@ -4,9 +4,11 @@ namespace App\Http\Controllers\CNS;
 
 use App\BuyerContract;
 use App\BuyerContractBooking;
+use App\CnsCustomerKyc;
 use App\Http\Controllers\Controller;
 use App\Services\CNS\ProcurementListService;
 use App\Services\GeneratorService;
+use App\Support\DhtmlxGridPagination;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -30,48 +32,48 @@ class BuyerContractController extends Controller
 
     public function indexBuyerContractXml(Request $request)
     {
-        if (!headers_sent()) {
-            header("Content-type: text/xml");
-        }
-
         $rows = $this->listService->rows([
             'contract' => $request->query('contract', 'all'),
             'group'    => $request->query('group', 'all'),
             'product'  => $request->query('product', 'all'),
         ]);
 
-        echo "<rows>";
-        $nomor = 1;
+        $paginated = DhtmlxGridPagination::paginateCollection($rows, $request, [
+            'default_page_size' => 25,
+        ]);
 
-        foreach ($rows as $row) {
+        $bodyXml = '';
+        $nomor = $paginated['posStart'] + 1;
+
+        foreach ($paginated['rows'] as $row) {
             $file = '';
 
             if (!empty($row['file']) && !empty($row['contract_id'])) {
                 $file = htmlspecialchars(route('cns-procurement-buyer-contract.file', ['ID' => $row['contract_id']], false)) . '^Lihat^_blank';
             }
 
-            echo '<row id="' . htmlspecialchars($row['id']) . '">';
-            echo '<cell>' . $nomor . '</cell>';
-            echo '<cell>' . htmlspecialchars((string) $row['name']) . '</cell>';
-            echo '<cell>' . htmlspecialchars((string) $row['address']) . '</cell>';
-            echo '<cell>' . htmlspecialchars((string) $row['phone']) . '</cell>';
-            echo '<cell>' . htmlspecialchars((string) $row['email']) . '</cell>';
-            echo '<cell>' . htmlspecialchars((string) $row['group']) . '</cell>';
-            echo '<cell>' . htmlspecialchars((string) $row['product']) . '</cell>';
-            echo '<cell>' . htmlspecialchars((string) $row['contract_label']) . '</cell>';
-            echo '<cell>' . htmlspecialchars((string) $row['contract_no']) . '</cell>';
-            echo '<cell>' . htmlspecialchars((string) $row['loading_period']) . '</cell>';
-            echo '<cell>' . htmlspecialchars((string) $row['contract_qty']) . '</cell>';
-            echo '<cell>' . htmlspecialchars((string) $row['delivered']) . '</cell>';
-            echo '<cell>' . htmlspecialchars((string) $row['outstanding']) . '</cell>';
-            echo '<cell>' . htmlspecialchars((string) $row['status']) . '</cell>';
-            echo '<cell>' . $file . '</cell>';
-            echo '</row>';
+            $bodyXml .= '<row id="' . htmlspecialchars($row['id']) . '">';
+            $bodyXml .= '<cell>' . $nomor . '</cell>';
+            $bodyXml .= '<cell>' . htmlspecialchars((string) $row['name']) . '</cell>';
+            $bodyXml .= '<cell>' . htmlspecialchars((string) $row['address']) . '</cell>';
+            $bodyXml .= '<cell>' . htmlspecialchars((string) $row['phone']) . '</cell>';
+            $bodyXml .= '<cell>' . htmlspecialchars((string) $row['email']) . '</cell>';
+            $bodyXml .= '<cell>' . htmlspecialchars((string) $row['group']) . '</cell>';
+            $bodyXml .= '<cell>' . htmlspecialchars((string) $row['product']) . '</cell>';
+            $bodyXml .= '<cell>' . htmlspecialchars((string) $row['contract_label']) . '</cell>';
+            $bodyXml .= '<cell>' . htmlspecialchars((string) $row['contract_no']) . '</cell>';
+            $bodyXml .= '<cell>' . htmlspecialchars((string) $row['loading_period']) . '</cell>';
+            $bodyXml .= '<cell>' . htmlspecialchars((string) $row['contract_qty']) . '</cell>';
+            $bodyXml .= '<cell>' . htmlspecialchars((string) $row['delivered']) . '</cell>';
+            $bodyXml .= '<cell>' . htmlspecialchars((string) $row['outstanding']) . '</cell>';
+            $bodyXml .= '<cell>' . htmlspecialchars((string) $row['status']) . '</cell>';
+            $bodyXml .= '<cell>' . $file . '</cell>';
+            $bodyXml .= "</row>\n";
 
             $nomor++;
         }
 
-        echo "</rows>";
+        return DhtmlxGridPagination::response($paginated['total'], $paginated['posStart'], $bodyXml);
     }
 
     public function newBuyerContract()
@@ -87,10 +89,13 @@ class BuyerContractController extends Controller
     {
         $data = $this->validateContract($request);
 
-        $buyer = $this->findBuyer($data['Supplier_ID']);
-
-        if (!$buyer) {
+        if (!empty($data['Supplier_ID']) && !$this->findBuyer($data['Supplier_ID'])) {
             return response()->json(['message' => 'Buyer tidak ditemukan pada Master Company.'], 422);
+        }
+
+        $kyc = CnsCustomerKyc::approved()->find($data['kyc_id']);
+        if (!$kyc) {
+            return response()->json(['message' => 'KYC yang dipilih tidak valid atau belum berstatus APPROVED.'], 422);
         }
 
         $emails = $this->cleanEmails($data['Buyer_Emails']);
@@ -104,8 +109,9 @@ class BuyerContractController extends Controller
 
         DB::table('cns_buyer_contracts')->insert([
             'Contract_No'        => $data['Contract_No'],
-            'Supplier_ID'        => $data['Supplier_ID'],
-            'Buyer_Name'         => $data['Buyer_Name'],
+            'Supplier_ID'        => $data['Supplier_ID'] ?? null,
+            'kyc_id'             => $data['kyc_id'],
+            'Buyer_Name'         => $kyc->company_name,
             'Buyer_Address'      => $data['Buyer_Address'] ?? '',
             'Buyer_Phone'        => $data['Buyer_Phone'],
             'Buyer_Emails'       => json_encode($emails),
@@ -158,7 +164,8 @@ class BuyerContractController extends Controller
         $data = $request->validate([
             'ID'              => 'required|integer|exists:cns_buyer_contracts,ID',
             'Contract_No'     => ['required', 'string', 'max:100', Rule::unique('cns_buyer_contracts', 'Contract_No')->ignore($id, 'ID')],
-            'Supplier_ID'     => 'required|integer|exists:supplier,ID',
+            'kyc_id'          => 'required|integer|exists:cns_customer_kyc,id',
+            'Supplier_ID'     => 'nullable|integer|exists:supplier,ID',
             'Buyer_Name'      => 'required|string|max:150',
             'Buyer_Address'   => 'nullable|string',
             'Buyer_Phone'     => 'required|string|max:60',
@@ -185,8 +192,13 @@ class BuyerContractController extends Controller
             return response()->json(['message' => 'Kontrak tidak ditemukan.'], 422);
         }
 
-        if (!$this->findBuyer($data['Supplier_ID'])) {
+        if (!empty($data['Supplier_ID']) && !$this->findBuyer($data['Supplier_ID'])) {
             return response()->json(['message' => 'Buyer tidak ditemukan pada Master Company.'], 422);
+        }
+
+        $kyc = CnsCustomerKyc::approved()->find($data['kyc_id']);
+        if (!$kyc) {
+            return response()->json(['message' => 'KYC yang dipilih tidak valid atau belum berstatus APPROVED.'], 422);
         }
 
         $emails = $this->cleanEmails($data['Buyer_Emails']);
@@ -197,8 +209,9 @@ class BuyerContractController extends Controller
 
         $update = [
             'Contract_No'     => $data['Contract_No'],
-            'Supplier_ID'     => $data['Supplier_ID'],
-            'Buyer_Name'      => $data['Buyer_Name'],
+            'Supplier_ID'     => $data['Supplier_ID'] ?? null,
+            'kyc_id'          => $data['kyc_id'],
+            'Buyer_Name'      => $kyc->company_name,
             'Buyer_Address'   => $data['Buyer_Address'] ?? '',
             'Buyer_Phone'     => $data['Buyer_Phone'],
             'Buyer_Emails'    => json_encode($emails),
@@ -395,9 +408,25 @@ class BuyerContractController extends Controller
             ];
         })->values();
 
+        $approvedKycs = CnsCustomerKyc::approved()
+            ->orderByDesc('id')
+            ->get(['id', 'kyc_no', 'company_name', 'registered_address', 'supplier_id']);
+
+        $kycsPayload = $approvedKycs->map(function ($kyc) {
+            return [
+                'id'                 => (int) $kyc->id,
+                'kyc_no'             => $kyc->kyc_no,
+                'company_name'       => $kyc->company_name,
+                'registered_address' => $kyc->registered_address,
+                'supplier_id'        => $kyc->supplier_id ? (int) $kyc->supplier_id : null,
+            ];
+        })->values();
+
         return [
             'buyers'         => $buyers,
             'buyersPayload'  => $buyersPayload,
+            'approvedKycs'   => $approvedKycs,
+            'kycsPayload'    => $kycsPayload,
             'statuses'       => BuyerContract::STATUSES,
             'currencies'     => ['IDR' => 'IDR', 'USD' => 'USD', 'EUR' => 'EUR'],
             'incoterms'      => ['FOB' => 'FOB - Free On Board', 'CIF' => 'CIF - Cost, Insurance and Freight'],
@@ -409,7 +438,8 @@ class BuyerContractController extends Controller
     {
         return $request->validate([
             'Contract_No'     => 'required|string|max:100|unique:cns_buyer_contracts,Contract_No',
-            'Supplier_ID'     => 'required|integer|exists:supplier,ID',
+            'kyc_id'          => 'required|integer|exists:cns_customer_kyc,id',
+            'Supplier_ID'     => 'nullable|integer|exists:supplier,ID',
             'Buyer_Name'      => 'required|string|max:150',
             'Buyer_Address'   => 'nullable|string',
             'Buyer_Phone'     => 'required|string|max:60',

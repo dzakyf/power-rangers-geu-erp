@@ -22,23 +22,29 @@ class CnsPermissionService
         'SM00062' => 'folder_procurement',
         'SM00063' => 'folder_inventory',
         'SM00064' => 'folder_master_data',
+        'SM00066' => 'folder_access_control',
         'SM00080' => 'folder_dashboard',
+        'SM00073' => 'folder_main_customer_compliance',
+        'SM00069' => 'folder_finance_accounting',
 
         // Level 3: Sub Folders
         'SS00090' => 'folder_sub_buyer_contract',
-        'SS00093' => 'folder_document_control',
         'SS00094' => 'folder_customer_compliance',
         'SS00080' => 'folder_sub_shipping_management',
         'SS00081' => 'folder_sub_stuffing',
         'SS00082' => 'folder_sub_export_management',
+        'SS00097' => 'folder_cost_control',
         'SS00083' => 'folder_sub_quality_control',
         'SS00084' => 'folder_sub_sales_commercial',
+        'SS00114' => 'folder_pricing_quotation',
         'SS00085' => 'folder_sub_sustainability',
         'SS00086' => 'folder_sub_procurement',
         'SS00087' => 'folder_inventory_uco',
         'SS00091' => 'folder_inventory_non_uco',
         'SS00088' => 'folder_sub_master_data',
+        'SS00095' => 'folder_sub_access_control',
         'SS00150' => 'folder_sub_dashboard',
+        'SS00099' => 'folder_sub_finance_accounting',
 
         // Level 4: Leaf Pages / Actions
         'SI00331' => 'buyer_contract',
@@ -55,6 +61,10 @@ class CnsPermissionService
         'SI00314' => 'sustainability_declaration',
         'SI00315' => 'delivery_note',
         'SI00325' => 'annex_vii',
+        'SI00350' => 'export_checklist',
+        'SI00351' => 'cost_allocation_shipment',
+        'SI00352' => 'product_allocation',
+        'SI00354' => 'sales_forecast',
         'SI00316' => 'quality_control',
         'SI00318' => 'sales_order',
         'SI00330' => 'traceability',
@@ -73,7 +83,10 @@ class CnsPermissionService
         'SI00329' => 'master_consignee',
         'SI01074' => 'master_tank',
         'SI00342' => 'master_kemasan',
+        'SI00347' => 'user_management',
+        'SI00348' => 'role_management',
         'SI01150' => 'export_volume',
+        'SI00353' => 'export_invoicing',
     ];
 
     public static function allMenuSlugs(): array

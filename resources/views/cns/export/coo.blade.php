@@ -14,36 +14,33 @@ $Saya =  Auth::user()->username;
 
 @section('content-wrapper')
 @csrf
-<!-- Main Content Header -->
-<div class="main-content-header">
-	<h1>Partner</h1>
-	<ol class="breadcrumb">
-		<li class="breadcrumb-item">
-			<a href="/">Certificate of Origin</a>
-		</li>
-		<li class="breadcrumb-item active">
-			<span class="active">Certificate of Origin List</span>
-		</li>
-	</ol>
-</div>
+@include('cns.partials.page-header', [
+	'title' => 'Certificate of Origin',
+	'breadcrumbs' => [
+		['label' => 'Export Management'],
+		['label' => 'Certificate of Origin'],
+	],
+])
 
-<div>
-	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">CERTIFICATE OF ORIGIN LIST</div>
-	<div class="card">
-		<div class="card-body">
-			<div id="CertificateOrigin" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
-			<div>
-				<input type="button" id="newSchedule" name="newSchedule" value="New COO" class="btn btn-primary mt-2 mr-2" onclick="CertificateOriginNewBtn()" />
-				<input type="button" id="DetailSchedule" name="DetailSchedule" value="Detail COO" class="btn btn-info mt-2 mr-2" onclick="CertificateOriginKlik()" />
-				<input type="button" id="printCOO" name="printCOO" value="Print COO" class="btn btn-secondary mt-2 mr-2" onclick="PrintCOO()" />
-				<input type="button" id="ekselCertificateOriginDet" name="ekselCertificateOriginDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="CertificateOrigin.toExcel('./export/generate.php');" />
-			</div>
+<div class="card cns-card">
+	<div class="card-header">
+		<h5 class="card-title mb-0">Certificate of Origin List</h5>
+		<div class="d-flex align-items-center flex-wrap" style="gap: 0.5rem;">
+			<input type="button" id="newSchedule" name="newSchedule" value="New COO" class="btn btn-sm btn-primary" onclick="CertificateOriginNewBtn()" />
+			<input type="button" id="DetailSchedule" name="DetailSchedule" value="Detail COO" class="btn btn-sm btn-info" onclick="CertificateOriginKlik()" />
+			<input type="button" id="printCOO" name="printCOO" value="Print COO" class="btn btn-sm btn-secondary" onclick="PrintCOO()" />
+			<input type="button" id="ekselCertificateOriginDet" name="ekselCertificateOriginDet" class="btn btn-sm btn-warning" value="Export Excel" onclick="CertificateOrigin.toExcel('./export/generate.php');" />
+			<button type="button" onclick="refreshdata()" class="btn btn-sm btn-outline-secondary">Refresh</button>
 		</div>
 	</div>
-	<div id="divlistOpportunity"></div>
-	<div id="DivProcess"></div>
-
+	<div class="card-body">
+		<div class="cns-grid-wrapper">
+			<div id="CertificateOrigin" class="cns-grid" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
+		</div>
+	</div>
 </div>
+<div id="divlistOpportunity"></div>
+<div id="DivProcess"></div>
 
 <script>
 	function PrintCOO()
@@ -52,7 +49,7 @@ $Saya =  Auth::user()->username;
 		if (CertificateOriginID != null) {
 			window.open('cns-export-certificate-origin-print?Task=' + CertificateOrigin.cells(CertificateOriginID, 2).getValue(), '_blank');
 		}else {
-			alert("Pilih baris data");
+			swal('Perhatian', 'Pilih baris data', 'warning');
 		}
 		return true;
 	 }
@@ -67,7 +64,7 @@ $Saya =  Auth::user()->username;
 		if (CertificateOriginID != null) {
 			LoadM('divlistOpportunity', 'cns-export-certificate-origin-detail?Task=' + CertificateOrigin.cells(CertificateOriginID, 2).getValue());
 		}else {
-			alert("Pilih baris data");
+			swal('Perhatian', 'Pilih baris data', 'warning');
 		}
 		return true;
 	}
@@ -80,16 +77,31 @@ $Saya =  Auth::user()->username;
 	CertificateOrigin.setColAlign("center,left,left,left,left,left,left,left,left,left,left,left,left,left");
 	CertificateOrigin.setColSorting("int,str,str,str,str,str,str,str,str,str,str,str,str,str,str,str");
 	CertificateOrigin.setColTypes("ron,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
-	CertificateOrigin.enableSmartRendering(true, 150);
 	// CertificateOrigin.setNumberFormat("0,000", 7, ".", ",");
 	CertificateOrigin.attachEvent("onRowDblClicked", CertificateOriginKlik);
 	CertificateOrigin.setSkin("dhx_skyblue");
 	CertificateOrigin.init();
+
+	var CertificateOriginPagination = initCnsGridPagination(CertificateOrigin, {
+		pageSize: 25,
+		pageSizeOptions: [10, 25, 50, 100],
+		serverFilter: false,
+		getUrl: function (params) {
+			var q = [
+				'posStart=' + params.posStart,
+				'count=' + params.count
+			];
+			if (params.sortCol !== null && params.sortCol !== undefined) {
+				q.push('sort_col=' + params.sortCol);
+				q.push('sort_dir=' + (params.sortDir || 'asc'));
+			}
+			return 'xml-cns-export-certificate-origin?' + q.join('&');
+		}
+	});
 	refreshdata();
 
 	function refreshdata() {
-		CertificateOrigin.clearAndLoad('xml-cns-export-certificate-origin');
-
+		CertificateOriginPagination.reload(1);
 	}
 </script>
 @endsection

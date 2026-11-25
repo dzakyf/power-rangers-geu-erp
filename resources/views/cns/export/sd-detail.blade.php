@@ -3,8 +3,8 @@ use Illuminate\Support\Facades\Auth;
 $Saya = Auth::user()->username;
 ?>
 <div class="mt-3">
-    <div class="JudulContent" style="color:#699;">DETAIL SUSTAINABILITY DECLARATION</div>
-    <div class="card">
+    <div class="cns-section-header">DETAIL SUSTAINABILITY DECLARATION</div>
+    <div class="card cns-card">
         <div class="card-body">
             <div id="ContentPagesSDDtl">
 
@@ -330,16 +330,16 @@ $Saya = Auth::user()->username;
             success: function (data) {
                 $.unblockUI();
                 if (data.indexOf("success") !== -1) {
-                    alert('Sustainability Declaration berhasil diupdate!');
+                    swal('Berhasil!', 'Sustainability Declaration berhasil diupdate!', 'success');
                     refreshdata();
                     $('#divlistOpportunity').html('');
                 } else {
-                    alert('Gagal mengupdate!');
+                    swal('Error', 'Gagal mengupdate!', 'error');
                 }
             },
             error: function () {
                 $.unblockUI();
-                alert("Error Internal! Silakan coba lagi.");
+                swal('Error', 'Error Internal! Silakan coba lagi.', 'error');
             }
         });
     });

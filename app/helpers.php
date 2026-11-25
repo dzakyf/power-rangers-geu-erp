@@ -45,6 +45,103 @@ if (!function_exists('can_menu')) {
     }
 }
 
+if (!function_exists('force_approve_allowed_usernames')) {
+    /**
+     * Daftar username yang diizinkan melakukan Force Approve pada Approval Engine.
+     * Ubah daftar ini untuk menambah atau mengurangi akun yang memiliki akses bypass.
+     */
+    function force_approve_allowed_usernames(): array
+    {
+        return [
+            'admin',
+            'manager.hcga',
+            'staff.hcga',
+            'admin.hris',
+        ];
+    }
+}
+
+if (!function_exists('can_force_approve')) {
+    /**
+     * Cek apakah user (default: user login aktif) berhak melakukan Force Approve.
+     */
+    function can_force_approve($user = null): bool
+    {
+        if ($user === null) {
+            if (!auth()->check()) {
+                return false;
+            }
+            $user = auth()->user();
+        }
+
+        $username = strtolower(trim((string) ($user->username ?? '')));
+        if ($username === '') {
+            return false;
+        }
+
+        $allowed = array_map(function ($item) {
+            return strtolower(trim((string) $item));
+        }, force_approve_allowed_usernames());
+
+        return in_array($username, $allowed, true);
+    }
+}
+
+if (!function_exists('manual_attendance_allowed_usernames')) {
+    /**
+     * Daftar username yang diizinkan melakukan Perbaikan Absen Manual.
+     * Mengutamakan konfigurasi dari tabel attendance_manual_correction_settings,
+     * dengan fallback ke force_approve_allowed_usernames().
+     */
+    function manual_attendance_allowed_usernames(): array
+    {
+        try {
+            if (\Illuminate\Support\Facades\Schema::hasTable('attendance_manual_correction_settings')) {
+                $row = \Illuminate\Support\Facades\DB::table('attendance_manual_correction_settings')
+                    ->orderBy('id', 'asc')
+                    ->first();
+
+                if ($row && !empty($row->allowed_usernames)) {
+                    $decoded = json_decode($row->allowed_usernames, true);
+                    if (is_array($decoded) && count($decoded) > 0) {
+                        return array_values(array_filter(array_map(function ($item) {
+                            return strtolower(trim((string) $item));
+                        }, $decoded)));
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            // Fallback ke daftar default saat DB belum siap / saat migrasi
+        }
+
+        return array_values(array_filter(array_map(function ($item) {
+            return strtolower(trim((string) $item));
+        }, force_approve_allowed_usernames())));
+    }
+}
+
+if (!function_exists('can_manual_correct_attendance')) {
+    /**
+     * Cek apakah user (default: user login aktif) berhak mengakses fitur Perbaikan Absen Manual.
+     */
+    function can_manual_correct_attendance($user = null): bool
+    {
+        if ($user === null) {
+            if (!auth()->check()) {
+                return false;
+            }
+            $user = auth()->user();
+        }
+
+        $username = strtolower(trim((string) ($user->username ?? '')));
+        if ($username === '') {
+            return false;
+        }
+
+        return in_array($username, manual_attendance_allowed_usernames(), true);
+    }
+}
+
 if (!function_exists('leads_interest_label')) {
     /**
      * Partnership package label for a lead ("Mobil Listrik" / "Booth").
@@ -225,6 +322,7 @@ if (!function_exists('employee_grid_columns')) {
             'Employee_Type' => ['Employee Type', 120, 'center', '#combo_filter', 'str'],
             'Age' => ['Age', 70, 'center', '#numeric_filter', 'int'],
             'Academic_Major' => ['Last Education Major', 160, 'left', '#text_filter', 'str'],
+            'User_Account' => ['Akun User', 190, 'center', '#text_filter', 'str'],
         ];
     }
 }
@@ -250,13 +348,20 @@ if (!function_exists('location_name_map')) {
 if (!function_exists('employee_grid_default_columns')) {
     function employee_grid_default_columns(): array
     {
-        return ['Name', 'Task_ID', 'Gender', 'Marital_Status', 'Age', 'Position', 'Department', 'Directorat', 'Employment_Status', 'thr_scheme', 'Location', 'Site_Location', 'Last_Education', 'Academic_Major'];
+        return ['Name', 'Task_ID', 'User_Account', 'Gender', 'Marital_Status', 'Age', 'Position', 'Department', 'Directorat', 'Employment_Status', 'thr_scheme', 'Location', 'Site_Location', 'Last_Education', 'Academic_Major'];
     }
 }
 
 if (!function_exists('employee_grid_cell')) {
-    function employee_grid_cell(string $key, $row, array $akademis = [], array $locationMap = []): string
+    function employee_grid_cell(string $key, $row, array $akademis = [], array $locationMap = [], array $userAccountMap = []): string
     {
+        if ($key === 'User_Account') {
+            $empIdKey = isset($row->ID) ? 'id:' . $row->ID : '';
+            if ($empIdKey !== '' && isset($userAccountMap[$empIdKey])) {
+                return (string) $userAccountMap[$empIdKey];
+            }
+            return 'Belum Ada Akun';
+        }
         if ($key === 'Age') {
             $b = isset($row->Birth_Date) ? $row->Birth_Date : '';
             if ($b !== '' && $b !== '0000-00-00') {
@@ -294,7 +399,7 @@ if (!function_exists('employee_grid_cell')) {
 if (!function_exists('employee_grid_column_admins')) {
     function employee_grid_column_admins(): array
     {
-        return ['admin', 'admin.hris', 'user.hcga'];
+        return ['admin', 'admin.hris', 'user.hcga', 'staff.hcga'];
     }
 }
 

@@ -1,97 +1,77 @@
-<?php
+@include('layout.plugins')
+@include('layout.adminor.tab-head')
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Database\Eloquent\Builder;
+@php
+    $resolvedTaskId = $taskId ?? ($_GET['ID'] ?? '');
+@endphp
 
-$LSP = Auth::user()->Location;
-$Saya =  Auth::user()->username;
-
-
-
-?>
-<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">UPLOAD FOTO</div>
-
-<div id="vault" class="with-header" style='height:330px;margin:0px;width:500px;'></div>
-<input type="hidden" id="Path_File">
-<div id="divtom">
-	<input type="button" id="SubmitCustDetail" NAME="SubmitCustDetail" value="Upload" class="btn btn-success mt-2 mr-2" />
+<div class="container-fluid py-3">
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-primary text-white py-2">
+            <h6 class="mb-0 fw-bold"><i class="fa fa-camera me-2"></i>Upload Foto Karyawan</h6>
+        </div>
+        <div class="card-body">
+            <form id="empPhotoUploadForm" enctype="multipart/form-data">
+                @csrf
+                <input type="hidden" name="Task_ID" value="{{ $resolvedTaskId }}">
+                <div class="mb-3">
+                    <label for="empPhotoFile" class="form-label fw-semibold">Pilih File Foto</label>
+                    <input type="file" class="form-control" id="empPhotoFile" name="photo"
+                        accept=".jpg,.jpeg,.png,.gif,.webp,image/*" required>
+                    <div class="form-text">Format: JPG, JPEG, PNG, GIF, WEBP. Maksimal 5 MB.</div>
+                </div>
+                <div id="empPhotoMsg" class="mb-2"></div>
+                <div class="d-flex justify-content-end gap-2">
+                    <button type="submit" id="btnUploadEmpPhoto" class="btn btn-success text-white">
+                        <i class="fa fa-upload me-1"></i> Upload Foto
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
+
 <script>
-	var vault = new dhx.Vault("vault", {
-		uploader: {
-			target: "upload-foto.php"
-		},
-		filesLimit: 1
+    $('#empPhotoUploadForm').on('submit', function(e) {
+        e.preventDefault();
+        var fileInput = document.getElementById('empPhotoFile');
+        if (!fileInput || !fileInput.files || !fileInput.files.length) {
+            $('#empPhotoMsg').html('<div class="alert alert-warning py-2 mb-0">Pilih file foto terlebih dahulu.</div>');
+            return;
+        }
 
-	});
+        var formData = new FormData(this);
+        var $btn = $('#btnUploadEmpPhoto');
+        $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Mengunggah...');
+        $('#empPhotoMsg').empty();
 
-	vault.events.on("uploadComplete", function(obj) {
-		$("#Path_File").val(obj[0].name);
-	});
-	vault.events.on("uploadBegin", function(obj) {
-		$("#Path_File").val("");
-
-	});
-	vault.events.on("beforeAdd", function(fileItem) {
-		if (vault.data.getLength() >= 1) {
-			alert('Only can upload 1 file photo!');
-			return false;
-		}
-	});
-
-	vault.events.on("beforeAdd", function(item) {
-		var extension = item.file.name.split(".").pop();
-
-		var predicate = extension === "jpg" || extension === "png" || extension === "wmf" || extension === "tiff" || extension === "gif";
-		if (!predicate) {
-			dhtmlx.alert("Hanya Boleh mengupload tipe file PDF atau Word atau Excel");
-		}
-		return predicate;
-	});
-
-
-	$('#SubmitCustDetail').click(function() {
-
-		gettingVars = getAllValues();
-
-		$.ajax({
-			headers: {
-				'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-			},
-			url: "update-foto?_token={{ csrf_token() }}",
-			type: "POST",
-			data: gettingVars,
-			success: function(data, textStatus, jqXHR) {
-				var dataPos = data.indexOf("success");
-				if (dataPos != '-1') {
-					alert('Photo Updated!');
-					$("#DivDocumentListsDetail").html('');
-
-				} else {
-					alert('Failed to Update');
-				}
-			},
-			error: function(jqXHR, textStatus, errorThrown) {
-				alert("Error Internal! Please Try again!");
-
-			}
-		});
-	})
-
-	function getAllValues() {
-		var inputValues = [];
-		$('#ContentPages input,select,textarea').each(function() {
-			var type = $(this).attr("type");
-			if ((type == "checkbox" || type == "radio") && this.checked) {
-				inputValues.push($(this).attr("id") + "=" + $(this).val());
-			} else if (type != "button" || type != "submit") {
-				inputValues.push($(this).attr("id") + "=" + $(this).val());
-			} else if ($this.is("textarea")) {
-				inputValues.push($(this).attr("id") + "=" + $(this).val());
-			}
-		})
-		return inputValues.join('&');
-	}
+        $.ajax({
+            url: '{{ url("employee-lists-detail-photo-upload") }}',
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },
+            success: function(res) {
+                if (res && res.status === 'success') {
+                    $('#empPhotoMsg').html('<div class="alert alert-success py-2 mb-0">' + (res.message || 'Foto berhasil diperbarui.') + '</div>');
+                    if (window.parent && typeof window.parent.onEmployeePhotoUploaded === 'function') {
+                        window.parent.onEmployeePhotoUploaded(res.url);
+                    } else if (typeof window.onEmployeePhotoUploaded === 'function') {
+                        window.onEmployeePhotoUploaded(res.url);
+                    }
+                } else {
+                    $('#empPhotoMsg').html('<div class="alert alert-danger py-2 mb-0">' + ((res && res.message) ? res.message : 'Gagal mengunggah foto.') + '</div>');
+                }
+                $btn.prop('disabled', false).html('<i class="fa fa-upload me-1"></i> Upload Foto');
+            },
+            error: function(xhr) {
+                var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : ('Gagal mengunggah foto (' + xhr.status + ').');
+                $('#empPhotoMsg').html('<div class="alert alert-danger py-2 mb-0">' + msg + '</div>');
+                $btn.prop('disabled', false).html('<i class="fa fa-upload me-1"></i> Upload Foto');
+            }
+        });
+    });
 </script>

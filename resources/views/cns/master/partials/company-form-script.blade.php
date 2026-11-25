@@ -9,7 +9,7 @@
 
     function addCompanyEmailRow(value) {
         if ($('#CompanyEmailRows .company-email-row').length >= 10) {
-            alert('Maksimal 10 alamat email.');
+            swal('Perhatian', 'Maksimal 10 alamat email.', 'warning');
             return;
         }
 
@@ -60,12 +60,12 @@
         });
 
         if (emailValues.length === 0) {
-            alert('Minimal satu email wajib diisi.');
+            swal('Perhatian', 'Minimal satu email wajib diisi.', 'warning');
             return;
         }
 
         if (emailValues.length > 10) {
-            alert('Maksimal 10 alamat email.');
+            swal('Perhatian', 'Maksimal 10 alamat email.', 'warning');
             return;
         }
 
@@ -81,27 +81,27 @@
 
         formData.append('LetterHead', $('#LetterHead')[0].files[0]);
         if ($('#LetterHead')[0].files[0] && !isValidImage($('#LetterHead')[0].files[0])) {
-            dhtmlx.alert('File Kop Surat harus jpg, jpeg, atau png');
+            swal('Perhatian', 'File Kop Surat harus jpg, jpeg, atau png', 'warning');
         }
 
         formData.append('Footer', $('#Footer')[0].files[0]);
         if ($('#Footer')[0].files[0] && !isValidImage($('#Footer')[0].files[0])) {
-            dhtmlx.alert('File Footer harus jpg, jpeg, atau png');
+            swal('Perhatian', 'File Footer harus jpg, jpeg, atau png', 'warning');
         }
 
         formData.append('Logo', $('#Logo')[0].files[0]);
         if ($('#Logo')[0].files[0] && !isValidImage($('#Logo')[0].files[0])) {
-            dhtmlx.alert('File Logo harus jpg, jpeg, atau png');
+            swal('Perhatian', 'File Logo harus jpg, jpeg, atau png', 'warning');
         }
 
         formData.append('Logo_Inverse', $('#Logo_Inverse')[0].files[0]);
         if ($('#Logo_Inverse')[0].files[0] && !isValidImage($('#Logo_Inverse')[0].files[0])) {
-            dhtmlx.alert('File Logo Inverse harus jpg, jpeg, atau png');
+            swal('Perhatian', 'File Logo Inverse harus jpg, jpeg, atau png', 'warning');
         }
 
         formData.append('Stamps', $('#Stamps')[0].files[0]);
         if ($('#Stamps')[0].files[0] && !isValidImage($('#Stamps')[0].files[0])) {
-            dhtmlx.alert('File Stamps harus jpg, jpeg, atau png');
+            swal('Perhatian', 'File Stamps harus jpg, jpeg, atau png', 'warning');
         }
 
         $.ajax({
@@ -116,14 +116,12 @@
             cache: false,
             success: function (data) {
                 if (data === 'success') {
-                    alert('{{ $successMessage }}');
-
-                    setTimeout(function () {
+                    swal('Berhasil!', '{{ $successMessage }}', 'success').then(function () {
                         if (typeof refreshdata === 'function') {
                             refreshdata();
                         }
                         $('#MasterCompanyDet').html('');
-                    }, 1000);
+                    });
                 }
             },
             error: function (xhr) {
@@ -136,7 +134,7 @@
                         message = xhr.responseJSON.message;
                     }
                 }
-                alert(message);
+                swal('Error', message, 'error');
             }
         });
     }
@@ -144,7 +142,7 @@
     $(function () {
         $('#AddCompanyEmailBtn').on('click', function () {
             if ($('#CompanyEmailRows .company-email-row').length >= 10) {
-                alert('Maksimal 10 alamat email.');
+                swal('Perhatian', 'Maksimal 10 alamat email.', 'warning');
                 return;
             }
             addCompanyEmailRow('');

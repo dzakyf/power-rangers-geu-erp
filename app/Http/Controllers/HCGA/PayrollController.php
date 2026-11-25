@@ -539,7 +539,8 @@ class PayrollController extends Controller
                     } elseif ($pId === 'PY000044' || $formula === 'KJK') {
                         $kjk += $val;
                     } elseif ($pId === 'PY000060' || $formula === 'THR') {
-                        $thr += $val;
+                        // THR dikelola secara terpisah oleh modul THR mandiri
+                        continue;
                     } else {
                         $tunjangan += $val;
                     }
@@ -548,7 +549,7 @@ class PayrollController extends Controller
                 }
             }
 
-            // Sinkronisasi langsung nilai Overtime, KJK, & THR untuk periode terpilih
+            // Sinkronisasi langsung nilai Overtime & KJK untuk periode terpilih
             try {
                 $attSummary = $this->attendanceSyncService->getEmployeeAttendanceForPeriod($nik, $period, [
                     'department' => $emp->Department,
@@ -563,15 +564,6 @@ class PayrollController extends Controller
                 // Fallback ke nilai payrol_group_lists
             }
 
-            try {
-                $thrInfo = $this->thrService->getApprovedThrForEmployeePeriod($nik, $period);
-                if ((float)$thrInfo['amount'] > 0) {
-                    $thr = (float)$thrInfo['amount'];
-                }
-            } catch (\Throwable $e) {
-                // Fallback ke nilai payrol_group_lists
-            }
-
             $advDedAmount = 0.0;
             try {
                 $advInfo = $this->advanceDeductionService->getActiveDeductionsForEmployee($nik, $period);
@@ -580,7 +572,7 @@ class PayrollController extends Controller
                 $advDedAmount = 0.0;
             }
 
-            $tunjanganDisplay = $tunjangan + $thr;
+            $tunjanganDisplay = $tunjangan;
             $thpBeforeAdv = max(0.0, ($pokok + $tunjanganDisplay + $overtime + $kjk + $tunjanganPph) - ($deduction + $pph));
             $advDedAmount = min($advDedAmount, $thpBeforeAdv);
 
@@ -589,9 +581,6 @@ class PayrollController extends Controller
             $catLabel = $emp->Group_Use_For ?: ($useFor ?: 'INTERNAL');
             $typeSalLabel = $category ?: 'SALARY';
             $ptkpNote = $emp->PTKP_Status ? "PTKP: {$emp->PTKP_Status}" : 'Active';
-            if ($thr > 0) {
-                $ptkpNote .= ' | +THR Rp ' . number_format($thr, 0, ',', '.');
-            }
             if ($advDedAmount > 0) {
                 $ptkpNote .= ' | -SPPD/Kasbon Rp ' . number_format($advDedAmount, 0, ',', '.');
             }
@@ -907,10 +896,9 @@ class PayrollController extends Controller
                         $empCalc['custom_note'] = (string)$ov['note'];
                     }
                     $kjkVal = isset($empCalc['kjk']) ? (float)$empCalc['kjk'] : 0.0;
-                    $thrVal = isset($empCalc['thr']) ? (float)$empCalc['thr'] : 0.0;
                     $empCalc['thp'] = max(
                         0.0,
-                        ($empCalc['pokok'] + $empCalc['tunjangan'] + $empCalc['overtime'] + $kjkVal + $thrVal + $empCalc['tunjangan_pph'])
+                        ($empCalc['pokok'] + $empCalc['tunjangan'] + $empCalc['overtime'] + $kjkVal + $empCalc['tunjangan_pph'])
                         - ($empCalc['deduction'] + $empCalc['pph'])
                     );
                 }
@@ -959,7 +947,7 @@ class PayrollController extends Controller
                     'Tunjangan'            => $empCalc['tunjangan'],
                     'Overtime'             => $empCalc['overtime'],
                     'KJK'                  => isset($empCalc['kjk']) ? $empCalc['kjk'] : 0,
-                    'THR'                  => isset($empCalc['thr']) ? $empCalc['thr'] : 0,
+                    'THR'                  => 0,
                     'Tunjangan_PPH'        => $empCalc['tunjangan_pph'],
                     'Deduction'            => $empCalc['deduction'],
                     'PPH'                  => $empCalc['pph'],
@@ -982,6 +970,9 @@ class PayrollController extends Controller
                     ->get();
 
                 foreach ($components as $c) {
+                    if (strtoupper(trim((string)$c->Payroll_ID)) === 'PY000060') {
+                        continue;
+                    }
                     DB::table('salary_lists')->insert([
                         'Task_ID'       => $taskId,
                         'Main_ID'       => $mainId,
@@ -1033,11 +1024,6 @@ class PayrollController extends Controller
                             'Salary_ID'     => $taskId,
                             'Salary_Period' => $period,
                         ]);
-                }
-
-                // Tandai item THR karyawan sudah masuk ke batch penggajian (idempotency guard)
-                if (!empty($empCalc['thr_item_ids'])) {
-                    $this->thrService->markThrAsProcessed($nik, $period, $taskId);
                 }
 
                 // Tandai item potongan SPPD/Kasbon/Reimburse sudah masuk ke batch penggajian (dibatasi maksimal THP)

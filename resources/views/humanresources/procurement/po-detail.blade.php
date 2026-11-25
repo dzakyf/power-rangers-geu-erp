@@ -1,14 +1,15 @@
 @php
-    $statusPoUpper = strtoupper($poHeader->Status ?? 'OPEN');
+    $statusPoUpper  = strtoupper($poHeader->Status ?? 'OPEN');
     $statusRecUpper = strtoupper($poHeader->Status_Receive ?? 'OPEN');
 
-    // Badge warna tegas (inline style agar tidak tertimpa CSS tema)
     $poBadgeBg = '#1565c0';
-    if ($statusPoUpper === 'APPROVED') $poBadgeBg = '#2e7d32';
-    elseif ($statusPoUpper === 'DELIVERY') $poBadgeBg = '#ef6c00';
+    if ($statusPoUpper === 'DELIVERY') $poBadgeBg = '#ef6c00';
     elseif ($statusPoUpper === 'PARTIAL') $poBadgeBg = '#00838f';
     elseif ($statusPoUpper === 'RECEIVED') $poBadgeBg = '#1b5e20';
     elseif ($statusPoUpper === 'CANCELLED') $poBadgeBg = '#c62828';
+
+    $isDeliveryReached = in_array($statusPoUpper, ['DELIVERY', 'PARTIAL', 'RECEIVED']);
+    $canReceive        = in_array($statusPoUpper, ['DELIVERY', 'PARTIAL']);
 @endphp
 
 <div class="card shadow-sm border-success mt-3 mb-4" style="border-radius: 10px; border-left: 5px solid #28a745;">
@@ -17,12 +18,7 @@
             <i class="fas fa-file-invoice mr-2"></i>Detail Purchase Order (PO) &mdash; {{ $poHeader->PO_No }}
         </h6>
         <div class="d-flex align-items-center mt-1 mt-md-0">
-            {{-- TOMBOL AKSI WORKFLOW SESUAI STATUS PO --}}
             @if($statusPoUpper === 'OPEN')
-                <button type="button" class="btn btn-sm btn-primary font-weight-bold py-0 px-2 mr-1 shadow-sm" onclick="prosesApprovePO('{{ $poHeader->PO_No }}')">
-                    &#10004; Approve PO
-                </button>
-            @elseif($statusPoUpper === 'APPROVED')
                 <button type="button" class="btn btn-sm font-weight-bold py-0 px-2 mr-1 shadow-sm" style="background-color:#ef6c00; color:#fff;" onclick="prosesDeliveryPO('{{ $poHeader->PO_No }}')">
                     &#128666; Proses Delivery
                 </button>
@@ -38,25 +34,21 @@
     </div>
 
     <div class="card-body bg-white" style="font-size: 12px;">
-        <!-- VISUAL STEPPER WORKFLOW PO -->
+        <!-- VISUAL STEPPER WORKFLOW PO: OPEN -> DELIVERY -> PARTIAL -> RECEIVED -->
         <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 p-2 rounded" style="background-color: #f1f8e9; border: 1px solid #c5e1a5;">
             <div class="d-flex align-items-center flex-wrap" style="font-size: 11.5px;">
                 <span class="font-weight-bold mr-2 text-dark">Alur Status PO:</span>
-                <span style="padding:3px 10px; border-radius:12px; font-weight:bold; background:{{ in_array($statusPoUpper, ['OPEN','APPROVED','DELIVERY','PARTIAL','RECEIVED']) ? '#2e7d32' : '#ccc' }}; color:#fff;">1. OPEN</span>
+                <span style="padding:3px 10px; border-radius:12px; font-weight:bold; background:#2e7d32; color:#fff;">1. OPEN</span>
                 <span class="mx-1 font-weight-bold">&rarr;</span>
-                <span style="padding:3px 10px; border-radius:12px; font-weight:bold; background:{{ in_array($statusPoUpper, ['APPROVED','DELIVERY','PARTIAL','RECEIVED']) ? '#2e7d32' : '#e0e0e0' }}; color:{{ in_array($statusPoUpper, ['APPROVED','DELIVERY','PARTIAL','RECEIVED']) ? '#fff' : '#555' }};">2. APPROVED</span>
+                <span style="padding:3px 10px; border-radius:12px; font-weight:bold; background:{{ $isDeliveryReached ? '#ef6c00' : '#e0e0e0' }}; color:{{ $isDeliveryReached ? '#fff' : '#555' }};">2. DELIVERY</span>
                 <span class="mx-1 font-weight-bold">&rarr;</span>
-                <span style="padding:3px 10px; border-radius:12px; font-weight:bold; background:{{ in_array($statusPoUpper, ['DELIVERY','PARTIAL','RECEIVED']) ? '#ef6c00' : '#e0e0e0' }}; color:{{ in_array($statusPoUpper, ['DELIVERY','PARTIAL','RECEIVED']) ? '#fff' : '#555' }};">3. DELIVERY</span>
+                <span style="padding:3px 10px; border-radius:12px; font-weight:bold; background:{{ $statusPoUpper === 'PARTIAL' ? '#00838f' : '#e0e0e0' }}; color:{{ $statusPoUpper === 'PARTIAL' ? '#fff' : '#555' }};">3. PARTIAL</span>
                 <span class="mx-1 font-weight-bold">&rarr;</span>
-                <span style="padding:3px 10px; border-radius:12px; font-weight:bold; background:{{ $statusPoUpper === 'RECEIVED' ? '#1b5e20' : ($statusPoUpper === 'PARTIAL' ? '#00838f' : '#e0e0e0') }}; color:{{ in_array($statusPoUpper, ['PARTIAL','RECEIVED']) ? '#fff' : '#555' }};">4. {{ $statusPoUpper === 'PARTIAL' ? 'PARTIAL RECEIVED' : 'RECEIVED' }}</span>
+                <span style="padding:3px 10px; border-radius:12px; font-weight:bold; background:{{ $statusPoUpper === 'RECEIVED' ? '#1b5e20' : '#e0e0e0' }}; color:{{ $statusPoUpper === 'RECEIVED' ? '#fff' : '#555' }};">4. RECEIVED</span>
             </div>
 
             <div class="mt-1 mt-md-0">
                 @if($statusPoUpper === 'OPEN')
-                    <button type="button" class="btn btn-sm btn-primary font-weight-bold shadow-sm" onclick="prosesApprovePO('{{ $poHeader->PO_No }}')">
-                        &#10004; Klik untuk Approve PO Ini
-                    </button>
-                @elseif($statusPoUpper === 'APPROVED')
                     <button type="button" class="btn btn-sm font-weight-bold shadow-sm" style="background-color:#ef6c00; color:#fff;" onclick="prosesDeliveryPO('{{ $poHeader->PO_No }}')">
                         &#128666; Klik untuk Set Delivery (Kirim Vendor)
                     </button>
@@ -97,11 +89,7 @@
             </div>
         </div>
 
-        @php
-            $canReceive = in_array($statusPoUpper, ['APPROVED', 'DELIVERY', 'PARTIAL']);
-        @endphp
-
-        <!-- FORM PENERIMAAN BARANG (RECEIVED) -->
+        <!-- FORM PENERIMAAN BARANG (MUNCUL SETELAH DELIVERY / PARTIAL) -->
         <form id="formReceivePO">
             @csrf
             <input type="hidden" name="po_no" value="{{ $poHeader->PO_No }}">
@@ -117,7 +105,7 @@
                         &#9889; Isi Semua Sisa Qty
                     </button>
                     <button type="button" class="btn btn-sm btn-success font-weight-bold shadow-sm" onclick="simpanReceivePO('{{ $poHeader->PO_No }}')">
-                        &#10004; Simpan Penerimaan Barang (RECEIVED)
+                        &#10004; Simpan Penerimaan Barang
                     </button>
                 </div>
             </div>
@@ -216,26 +204,6 @@ function reloadDetailAndGridPO(poNo) {
         POGrid.load("{{ url('xml-outstanding-po-list') }}");
     }
     $('#PODetailDiv').load("{{ url('po-detail') }}?PO_No=" + encodeURIComponent(poNo));
-}
-
-function prosesApprovePO(poNo) {
-    var note = prompt('Setujui Purchase Order ' + poNo + '?\n(Opsional: masukkan catatan approval)');
-    if (note === null) return;
-
-    $.post("{{ url('po-approve') }}", {
-        _token: "{{ csrf_token() }}",
-        po_no: poNo,
-        note: note
-    }, function(res) {
-        if (res.status === 'success') {
-            alert(res.message);
-            reloadDetailAndGridPO(poNo);
-        } else {
-            alert(res.message || 'Gagal approve PO.');
-        }
-    }).fail(function(err) {
-        alert((err.responseJSON && err.responseJSON.message) ? err.responseJSON.message : 'Terjadi kesalahan saat approve PO.');
-    });
 }
 
 function prosesDeliveryPO(poNo) {

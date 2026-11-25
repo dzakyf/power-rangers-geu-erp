@@ -33,7 +33,7 @@
 
     @media print {
         .container {
-            width: 93%;
+            width: 100%;
             margin-top: 0;
             margin-left: 0;
             margin-right: 0;
@@ -42,6 +42,85 @@
         .sheet {
           background: #ffffff;
         }
+    }
+
+    .wbt-sheet {
+        display: flex;
+        flex-direction: column;
+        box-sizing: border-box;
+        padding: 0;
+    }
+
+    .wbt-header,
+    .wbt-top,
+    .wbt-footer {
+        flex-shrink: 0;
+        margin: 0;
+        padding: 0;
+    }
+
+    .wbt-body {
+        flex: 1 1 auto;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        padding: 6px 10mm;
+    }
+
+    .wbt-grid {
+        flex: 1 1 auto;
+        min-height: 0;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: 1fr;
+        border-top: 1px solid #000;
+        border-left: 1px solid #000;
+        margin-top: 8px;
+    }
+
+    .wbt-slot {
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        min-width: 0;
+        border-right: 1px solid #000;
+        border-bottom: 1px solid #000;
+    }
+
+    .wbt-slot-head {
+        flex-shrink: 0;
+        text-align: center;
+        padding: 6px 8px;
+        border-bottom: 1px solid #000;
+        font-size: 13px;
+    }
+
+    .wbt-slot-nopol {
+        flex-shrink: 0;
+        text-align: center;
+        padding: 4px 8px;
+        border-bottom: 1px solid #000;
+        font-size: 12px;
+        color: #555;
+    }
+
+    .wbt-slot-photo {
+        flex: 1 1 auto;
+        min-height: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 6px;
+        overflow: hidden;
+    }
+
+    .wbt-slot-photo img {
+        max-width: 100%;
+        max-height: 100%;
+        width: auto;
+        height: auto;
+        object-fit: contain;
+        display: block;
     }
 
     .header {
@@ -153,105 +232,90 @@
     $totalDetails = count($details);
     $totalPages = max(1, (int) ceil($totalDetails / 2));
     $shipper = $companies[$wbt->Shipper] ?? null;
+    $letterheadPath = $shipper->Letterhead ?? $shipper->LetterHead ?? '';
+    $footerPath = $shipper->Footer ?? '';
 @endphp
 
 @for($i = 0; $i < $totalPages; $i++)
-    <div class="sheet padding-10mm" style="padding-top:0;">
+    <div class="sheet wbt-sheet">
         <!-- Header -->
-        <div style="margin:-1cm;margin-bottom:.1cm;margin-top:0">
-            @if(!empty($shipper->Letterhead))
-                <img src="{{ asset($shipper->Letterhead) }}" alt="Header" width="100%">
+        <div class="wbt-header">
+            @if(!empty($letterheadPath))
+                <img src="{{ asset($letterheadPath) }}" alt="Header" style="width: 100%; display: block; margin: 0; padding: 0;">
             @endif
         </div>
 
-        <div class="header">
-            <div class="title">WEIGHT BRIDGE TICKET</div>
-            <div style="font-size: 14px; font-weight: normal; margin-top: 4px;">{{ $wbt->WBT_No }}</div>
-        </div>
-        
-        <table style="width:50%">
-          <tr>
-            <td style="width: 150px;">Contract No</td>
-            <td>: {{ $wbt->Contract_No ?: '-' }}</td>
-          </tr>
-          <tr>
-            <td>Vessel / Voyage</td>
-            <td>: {{ $wbt->Voyage ?: '-' }}</td>
-          </tr>
-          <tr>
-            <td>Date of Departure</td>
-            <td>: {{ !empty($wbt->Departure_Date) ? date('d F Y', strtotime($wbt->Departure_Date)) : '-' }}</td>
-          </tr>
-          <tr>
-            <td>B/L No</td>
-            <td>: {{ $wbt->BL_No ?: '-' }}</td>
-          </tr>
-        </table>
-
-        @if($totalDetails > 0)
-            <table style="width:100%">
-              <tr>
-                <td style="text-align:center; width: 50%;">
-                    <strong>Container ({{ $details[$i * 2]->Container ?? '-' }})</strong>
-                    @if(!empty($details[$i * 2]->Seal))
-                        <br><span style="font-size: 12px; color: #555;">Seal: {{ $details[$i * 2]->Seal }}</span>
-                    @endif
-                </td>
-                @if (isset($details[($i * 2) + 1]))
-                  <td style="text-align:center; width: 50%;">
-                    <strong>Container ({{ $details[($i * 2) + 1]->Container ?? '-' }})</strong>
-                    @if(!empty($details[($i * 2) + 1]->Seal))
-                        <br><span style="font-size: 12px; color: #555;">Seal: {{ $details[($i * 2) + 1]->Seal }}</span>
-                    @endif
-                  </td>
-                @else
-                  <td style="text-align:center; width: 50%;">&nbsp;</td>
-                @endif
-              </tr>
-              <tr>
-                <td style="text-align:center; vertical-align: middle;">
-                    @if(!empty($details[$i * 2]->Path_Loc))
-                        <img src="{{ asset($details[$i * 2]->Path_Loc) }}" alt="" style="max-height: 220px; max-width: 95%;">
-                    @else
-                        <div style="height: 180px; display: flex; align-items: center; justify-content: center; border: 1px dashed #ccc; color: #888;">
-                            No photo attached
-                        </div>
-                    @endif
-                </td>
-                @if (isset($details[($i * 2) + 1]))
-                  <td style="text-align:center; vertical-align: middle;">
-                    @if(!empty($details[($i * 2) + 1]->Path_Loc))
-                        <img src="{{ asset($details[($i * 2) + 1]->Path_Loc) }}" alt="" style="max-height: 220px; max-width: 95%;">
-                    @else
-                        <div style="height: 180px; display: flex; align-items: center; justify-content: center; border: 1px dashed #ccc; color: #888;">
-                            No photo attached
-                        </div>
-                    @endif
-                  </td>
-                @else
-                  <td style="text-align:center">&nbsp;</td>
-                @endif
-              </tr>
-            </table>
-        @else
-            <div style="padding: 40px; text-align: center; border: 1px dashed #ccc; color: #888; margin-top: 20px;">
-                Tidak ada foto timbangan kontainer yang terlampir.
-            </div>
-        @endif
-
-        <div>
-          <table style="width:100%;">
-            <tr>
-              <td>
-                <!-- Footer -->
-                <div class="footer-fixed" style="margin-left:-1.3cm;margin-bottom:0;">
-                    @if (!empty($shipper->Footer))
-                        <img src="{{ asset($shipper->Footer) }}" alt="Footer" style="width: 100%">
-                    @endif
+        <div class="wbt-body">
+            <div class="wbt-top">
+                <div class="header">
+                    <div class="title" style="margin-top: 0;">WEIGHT BRIDGE TICKET</div>
+                    <div style="font-size: 14px; font-weight: normal;">{{ $wbt->WBT_No }}</div>
                 </div>
-              </td>
-            </tr>
-          </table>
+
+                <table style="width:50%; margin-bottom: 4px;">
+                  <tr>
+                    <td style="width: 150px; padding: 3px 8px;">Contract No</td>
+                    <td style="padding: 3px 8px;">: {{ $wbt->Contract_No ?: '-' }}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 3px 8px;">Vessel / Voyage</td>
+                    <td style="padding: 3px 8px;">: {{ $wbt->Voyage ?: '-' }}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 3px 8px;">Date of Departure</td>
+                    <td style="padding: 3px 8px;">: {{ !empty($wbt->Departure_Date) ? date('d F Y', strtotime($wbt->Departure_Date)) : '-' }}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 3px 8px;">B/L No</td>
+                    <td style="padding: 3px 8px;">: {{ $wbt->BL_No ?: '-' }}</td>
+                  </tr>
+                </table>
+            </div>
+
+            @if($totalDetails > 0)
+                <div class="wbt-grid">
+                    @for($col = 0; $col < 2; $col++)
+                        @php $item = $details[($i * 2) + $col] ?? null; @endphp
+                        <div class="wbt-slot">
+                            @if($item)
+                                <div class="wbt-slot-head">
+                                    <strong>Container ({{ $item->Container ?? '-' }})</strong>
+                                    @if(!empty($item->Seal))
+                                        <br><span style="font-size: 12px; color: #555;">Seal: {{ $item->Seal }}</span>
+                                    @endif
+                                </div>
+                                <div class="wbt-slot-nopol">
+                                    Nopol: {{ !empty($item->Police_No) ? $item->Police_No : '-' }}
+                                </div>
+                                <div class="wbt-slot-photo">
+                                    @if(!empty($item->Path_Loc))
+                                        <img src="{{ asset($item->Path_Loc) }}" alt="">
+                                    @else
+                                        <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; border: 1px dashed #ccc; color: #888;">
+                                            No photo attached
+                                        </div>
+                                    @endif
+                                </div>
+                            @else
+                                <div class="wbt-slot-head">&nbsp;</div>
+                                <div class="wbt-slot-nopol">&nbsp;</div>
+                                <div class="wbt-slot-photo">&nbsp;</div>
+                            @endif
+                        </div>
+                    @endfor
+                </div>
+            @else
+                <div style="flex: 1 1 auto; display: flex; align-items: center; justify-content: center; border: 1px dashed #ccc; color: #888; margin-top: 8px;">
+                    Tidak ada foto timbangan kontainer yang terlampir.
+                </div>
+            @endif
+        </div>
+
+        <div class="wbt-footer">
+            <!-- Footer -->
+            @if (!empty($footerPath))
+                <img src="{{ asset($footerPath) }}" alt="Footer" style="width: 100%; display: block; margin: 0; padding: 0;">
+            @endif
         </div>
     </div>
 @endfor

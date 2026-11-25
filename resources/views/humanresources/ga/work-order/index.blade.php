@@ -40,7 +40,7 @@
 
             <div class="d-flex flex-wrap align-items-center gap-2 mt-3">
                 <button type="button" class="btn btn-info btn-sm text-white" onclick="GAWORefresh()">Refresh Data</button>
-                @if (can_menu('SI01010', 'create'))
+                @if (can_menu('SI01014', 'create'))
                     <button type="button" class="btn btn-primary btn-sm" onclick="GAWONew()">Work Order Baru</button>
                 @endif
                 <button type="button" class="btn btn-success btn-sm" onclick="GAWODetail()">Detail / Tindak Lanjut</button>

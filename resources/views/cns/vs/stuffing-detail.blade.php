@@ -1,6 +1,6 @@
 <div class="mt-3">
-	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">VESSEL SCHEDULE</div>
-	<div class="card">
+	<div class="cns-section-header">VESSEL SCHEDULE</div>
+	<div class="card cns-card">
 		<div class="card-body">
 			<div class="row">
 				<div class="col-md-3 col-12">
@@ -57,8 +57,8 @@
 </div>
 
 <div class="mt-3">
-	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">BOOKING CONFIRMATION</div>
-	<div class="card">
+	<div class="cns-section-header">BOOKING CONFIRMATION</div>
+	<div class="card cns-card">
 		<div class="card-body">
 			<div class="row">
 				<div class="col-md-3 col-12">
@@ -91,7 +91,7 @@
 					<div class="col-md-4 col-12">
 						<div class="form-group">
 							<label for="BC_No">Nomor BC</label>
-							<input type="text" name="BC_No" id="BC_No" value="{{ $vs->BC_No }}" class="form-control shadow-sm" />
+							<input type="text" name="BC_No" id="BC_No" value="{{ $vs->BC_No ?: ($vs->Booking_No ?: $vs->Order_No) }}" class="form-control shadow-sm" />
 						</div>
 					</div>
 					<div class="col-md-4 col-12">
@@ -134,8 +134,8 @@
 </div>
 
 <div class="mt-3">
-	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">CHECKLIST STATUS PENGIRIMAN</div>
-	<div class="card">
+	<div class="cns-section-header">CHECKLIST STATUS PENGIRIMAN</div>
+	<div class="card cns-card">
 		<div class="card-body">
 			<div class="row">
 				<div class="col-md-4 col-12">
@@ -152,7 +152,7 @@
 				</div>
 				<div class="col-md-4 col-12">
 					<div class="form-check">
-						<input type="checkbox" class="form-check-input" id="Checklist_Rilis_NPE" {{ $vs->Checklist_Rilis_NPE ? 'checked' : '' }} {{ $vs->Checklist_Done_Kapal_Berangkat ? 'disabled' : '' }} />
+						<input type="checkbox" class="form-check-input" id="Checklist_Rilis_NPE" {{ $vs->Checklist_Rilis_NPE ? 'checked' : '' }} {{ ($vs->Checklist_Done_Kapal_Berangkat && $vs->Checklist_Rilis_NPE) ? 'disabled' : '' }} />
 						<label class="form-check-label" for="Checklist_Rilis_NPE">Rilis NPE</label>
 					</div>
 				</div>
@@ -170,7 +170,7 @@
 				</div>
 			</div>
 			<div class="mt-3">
-				<button type="button" class="btn btn-success" id="SaveStuffingChecklist" {{ $vs->Checklist_Done_Kapal_Berangkat ? 'disabled' : '' }}>Simpan Checklist</button>
+				<button type="button" class="btn btn-success" id="SaveStuffingChecklist" {{ ($vs->Checklist_Done_Kapal_Berangkat && $vs->Checklist_Rilis_NPE) ? 'disabled' : '' }}>Simpan Checklist</button>
 				<small class="text-muted ml-2">
 					Terakhir diubah:
 					{{ $vs->Checklist_Updated_By ?: '-' }}
@@ -185,10 +185,12 @@
 </div>
 
 <div class="mt-3">
-	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">STUFFING CONTAINER</div>
-	<div class="card">
+	<div class="cns-section-header">STUFFING CONTAINER</div>
+	<div class="card cns-card">
 		<div class="card-body">
-			<div id="StuffingDetail" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
+			<div class="cns-grid-wrapper">
+				<div id="StuffingDetail" class="cns-grid" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
+			</div>
 			<div class="mt-3">
 				<button type="button" class="btn btn-primary mr-3" onclick="addStuffingContainer()">Add Container</button>
 				<button type="button" class="btn btn-info mr-3" onclick="editStuffingContainer()">Edit Container</button>
@@ -198,9 +200,9 @@
 	</div>
 </div>
 
-<div class="card mt-3" id="StuffingContainerFormCard" style="display:none;">
+<div class="card cns-card mt-3" id="StuffingContainerFormCard" style="display:none;">
 	<div class="card-body">
-		<div class="JudulContent" id="StuffingContainerFormTitle" style="color:#699;background-image:url(hdr_back.gif);">BUAT FORM STUFFING CONTAINER</div>
+		<div class="cns-section-header" id="StuffingContainerFormTitle">BUAT FORM STUFFING CONTAINER</div>
 		<form id="StuffingContainerForm" enctype="multipart/form-data">
 			<input type="hidden" name="id" id="Stuffing_ID" value="" />
 			<div class="row">
@@ -236,16 +238,27 @@
 				</div>
 			</div>
 			<div class="row">
-				<div class="col-md-4 col-12">
+				<div class="col-md-3 col-12">
 					<div class="form-group">
 						<label for="Container">Kontainer</label>
 						<input type="text" name="Container" id="Container" class="form-control shadow-sm" required />
 					</div>
 				</div>
-				<div class="col-md-4 col-12">
+				<div class="col-md-3 col-12">
 					<div class="form-group">
 						<label for="Seal">Seal</label>
 						<input type="text" name="Seal" id="Seal" class="form-control shadow-sm" />
+					</div>
+				</div>
+				<div class="col-md-2 col-12">
+					<div class="form-group">
+						<label for="Serial_Number">Serial Number Flexibag</label>
+						<select name="serial_number" id="Serial_Number" class="form-control shadow-sm">
+							<option value="">-- Pilih SN (Opsional) --</option>
+							@foreach(($availableSerialNumbers ?? []) as $sn)
+								<option value="{{ $sn }}">{{ $sn }}</option>
+							@endforeach
+						</select>
 					</div>
 				</div>
 				<div class="col-md-2 col-12">
@@ -378,10 +391,12 @@
 </div>
 
 <div class="mt-3">
-	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">VESSEL SCHEDULE LOG</div>
-	<div class="card">
+	<div class="cns-section-header">VESSEL SCHEDULE LOG</div>
+	<div class="card cns-card">
 		<div class="card-body">
-			<div id="StuffingDetailLog" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
+			<div class="cns-grid-wrapper">
+				<div id="StuffingDetailLog" class="cns-grid" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
+			</div>
 		</div>
 	</div>
 </div>
@@ -391,12 +406,12 @@
 
 	StuffingDetail = new dhtmlXGridObject('StuffingDetail');
 	StuffingDetail.setImagePath("./dhtmlx/imgs/");
-	StuffingDetail.setHeader("Pilih,No,Order No,Jam Awal (Jam:Menit),Jam Akhir (Jam:Menit),Tanggal,Nopol,Kontainer,Seal,Tare,Netto (Kg),Netto (MT),Gross (Kg),Gross (MT),Note,Nota Timbang");
-	StuffingDetail.attachHeader("#rspan,#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
-	StuffingDetail.setInitWidths("45,60,120,90,90,100,160,140,140,90,100,100,100,100,180,100");
-	StuffingDetail.setColAlign("center,center,left,center,center,center,left,left,left,right,right,right,right,right,left,left");
-	StuffingDetail.setColSorting("str,int,str,str,str,str,str,str,str,int,int,int,int,int,str,str");
-	StuffingDetail.setColTypes("ch,ron,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
+	StuffingDetail.setHeader("Pilih,No,No Stuffing,Order No,Jam Awal (Jam:Menit),Jam Akhir (Jam:Menit),Tanggal,Nopol,Kontainer,Seal,Serial Number,Tare,Netto (Kg),Netto (MT),Gross (Kg),Gross (MT),Note,Nota Timbang");
+	StuffingDetail.attachHeader("#rspan,#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
+	StuffingDetail.setInitWidths("45,60,160,120,90,90,100,160,140,140,140,90,100,100,100,100,180,100");
+	StuffingDetail.setColAlign("center,center,left,left,center,center,center,left,left,left,left,right,right,right,right,right,left,left");
+	StuffingDetail.setColSorting("str,int,str,str,str,str,str,str,str,str,str,int,int,int,int,int,str,str");
+	StuffingDetail.setColTypes("ch,ron,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
 	StuffingDetail.enableSmartRendering(true, 150);
 	StuffingDetail.attachEvent("onRowDblClicked", function(rowId, cellIndex) {
 		if (cellIndex === 0) {
@@ -478,9 +493,21 @@
 		});
 	}
 
+	var availableSerialNumbers = @json($availableSerialNumbers ?? []);
+
+	function renderSerialNumberOptions(options, selectedValue) {
+		let select = $('#Serial_Number').empty();
+		select.append($('<option>', {value: '', text: '-- Pilih SN (Opsional) --'}));
+		(options || []).forEach(function(sn) {
+			select.append($('<option>', {value: sn, text: sn}));
+		});
+		select.val(selectedValue || '');
+	}
+
 	function resetStuffingForm() {
 		$('#StuffingContainerForm')[0].reset();
 		$('#Stuffing_ID').val('');
+		renderSerialNumberOptions(availableSerialNumbers, '');
 		$('#Date').val('{{ $vs->ETD ?: date('Y-m-d') }}');
 		$('#Tare, #Netto_KG').val('0.00');
 		calculateStuffingFormValues();
@@ -521,7 +548,7 @@
 			: StuffingDetail.getSelectedId();
 
 		if (!id) {
-			alert('Pilih baris data yang ingin diedit.');
+			swal('Perhatian', 'Pilih baris data yang ingin diedit.', 'warning');
 			return;
 		}
 
@@ -539,6 +566,7 @@
 				$('#Police_No').val(response.Police_No);
 				$('#Container').val(response.Container);
 				$('#Seal').val(response.Seal);
+				renderSerialNumberOptions(response.available_serial_numbers || availableSerialNumbers, response.serial_number || '');
 				$('#Tare').val(cnsFormatNumber(response.Tare, 2));
 				$('#Netto_KG').val(cnsFormatNumber(response.Netto_KG, 2));
 				$('#Note').val(response.Note);
@@ -548,7 +576,7 @@
 				openStuffingForm('EDIT FORM STUFFING CONTAINER');
 			},
 			error: function() {
-				alert('Gagal mengambil data container.');
+				swal('Error', 'Gagal mengambil data container.', 'error');
 			}
 		});
 	}
@@ -558,32 +586,44 @@
 		let ids = checked ? checked.split(',').filter(function(id) { return id !== ''; }) : [];
 
 		if (ids.length === 0) {
-			alert('Pilih container yang ingin dihapus.');
+			swal('Perhatian', 'Pilih container yang ingin dihapus.', 'warning');
 			return;
 		}
 
-		if (!confirm('Hapus ' + ids.length + ' container terpilih?')) {
-			return;
-		}
-
-		$.ajax({
-			url: 'cns-stuffing-detail-delete?task={{ $vs->id }}',
-			type: 'POST',
-			data: {_token: '{{ csrf_token() }}', ids: ids},
-			headers: {'Accept': 'application/json'},
-			success: function(response) {
-				alert(response.message || 'Container berhasil dihapus.');
-				$('#StuffingContainerFormCard').hide();
-				refreshdataDetail();
-				refreshdataDataLog();
-			},
-			error: function(xhr) {
-				if (xhr.responseJSON && xhr.responseJSON.message) {
-					alert(xhr.responseJSON.message);
-				} else {
-					alert('Gagal menghapus container.');
-				}
+		swal({
+			title: 'Konfirmasi',
+			text: 'Hapus ' + ids.length + ' container terpilih?',
+			icon: 'warning',
+			buttons: ['Batal', 'Ya'],
+			dangerMode: true
+		}).then(function(confirmed) {
+			if (!confirmed) {
+				return;
 			}
+
+			$.ajax({
+				url: 'cns-stuffing-detail-delete?task={{ $vs->id }}',
+				type: 'POST',
+				data: {_token: '{{ csrf_token() }}', ids: ids},
+				headers: {'Accept': 'application/json'},
+				success: function(response) {
+					if (response.available_serial_numbers) {
+						availableSerialNumbers = response.available_serial_numbers;
+					}
+					swal('Berhasil!', response.message || 'Container berhasil dihapus.', 'success').then(function() {
+						$('#StuffingContainerFormCard').hide();
+						refreshdataDetail();
+						refreshdataDataLog();
+					});
+				},
+				error: function(xhr) {
+					if (xhr.responseJSON && xhr.responseJSON.message) {
+						swal('Error', xhr.responseJSON.message, 'error');
+					} else {
+						swal('Error', 'Gagal menghapus container.', 'error');
+					}
+				}
+			});
 		});
 	}
 
@@ -613,11 +653,15 @@
 			contentType: false,
 			headers: {'Accept': 'application/json'},
 			success: function(response) {
-				alert(response.message || 'Data berhasil disimpan.');
-				$('#StuffingContainerFormCard').hide();
-				resetStuffingForm();
-				refreshdataDetail();
-				refreshdataDataLog();
+				if (response.available_serial_numbers) {
+					availableSerialNumbers = response.available_serial_numbers;
+				}
+				swal('Berhasil!', response.message || 'Data berhasil disimpan.', 'success').then(function() {
+					$('#StuffingContainerFormCard').hide();
+					resetStuffingForm();
+					refreshdataDetail();
+					refreshdataDataLog();
+				});
 			},
 			error: function(xhr) {
 				if (xhr.responseJSON && xhr.responseJSON.errors) {
@@ -625,11 +669,11 @@
 					Object.keys(xhr.responseJSON.errors).forEach(function(key) {
 						messages.push(xhr.responseJSON.errors[key].join('\n'));
 					});
-					alert(messages.join('\n'));
+					swal('Error', messages.join('\n'), 'error');
 				} else if (xhr.responseJSON && xhr.responseJSON.message) {
-					alert(xhr.responseJSON.message);
+					swal('Error', xhr.responseJSON.message, 'error');
 				} else {
-					alert('Gagal menyimpan data.');
+					swal('Error', 'Gagal menyimpan data.', 'error');
 				}
 			},
 			complete: function() {
@@ -645,34 +689,43 @@
 			return;
 		}
 
-		if (!confirm('Hapus foto ini?')) {
-			return;
-		}
-
 		let photoId = $(this).data('photo-id');
 
-		$.ajax({
-			url: 'cns-stuffing-detail-photo-delete?task={{ $vs->id }}',
-			type: 'POST',
-			data: {
-				_token: '{{ csrf_token() }}',
-				container_id: containerId,
-				photo_id: photoId
-			},
-			headers: {'Accept': 'application/json'},
-			success: function() {
-				alert('Foto berhasil dihapus.');
-				let row = $('.delete-container-photo[data-photo-id="' + photoId + '"]').closest('div');
-				let target = row.parent();
-				row.remove();
-
-				if (target.children().length === 0) {
-					target.text('Belum ada foto.');
-				}
-			},
-			error: function(xhr) {
-				alert((xhr.responseJSON && xhr.responseJSON.message) || 'Gagal menghapus foto.');
+		swal({
+			title: 'Konfirmasi',
+			text: 'Hapus foto ini?',
+			icon: 'warning',
+			buttons: ['Batal', 'Ya'],
+			dangerMode: true
+		}).then(function(confirmed) {
+			if (!confirmed) {
+				return;
 			}
+
+			$.ajax({
+				url: 'cns-stuffing-detail-photo-delete?task={{ $vs->id }}',
+				type: 'POST',
+				data: {
+					_token: '{{ csrf_token() }}',
+					container_id: containerId,
+					photo_id: photoId
+				},
+				headers: {'Accept': 'application/json'},
+				success: function() {
+					swal('Berhasil!', 'Foto berhasil dihapus.', 'success').then(function() {
+						let row = $('.delete-container-photo[data-photo-id="' + photoId + '"]').closest('div');
+						let target = row.parent();
+						row.remove();
+
+						if (target.children().length === 0) {
+							target.text('Belum ada foto.');
+						}
+					});
+				},
+				error: function(xhr) {
+					swal('Error', (xhr.responseJSON && xhr.responseJSON.message) || 'Gagal menghapus foto.', 'error');
+				}
+			});
 		});
 	});
 
@@ -693,7 +746,7 @@
 			contentType: false,
 			headers: {'Accept': 'application/json'},
 			success: function(response) {
-				alert(response.message || 'Booking Confirmation berhasil disimpan.');
+				swal('Berhasil!', response.message || 'Booking Confirmation berhasil disimpan.', 'success');
 
 				if (response.url) {
 					$('#currentBookingConfirmation').html(
@@ -713,11 +766,11 @@
 					Object.keys(xhr.responseJSON.errors).forEach(function(key) {
 						messages.push(xhr.responseJSON.errors[key].join('\n'));
 					});
-					alert(messages.join('\n'));
+					swal('Error', messages.join('\n'), 'error');
 				} else if (xhr.responseJSON && xhr.responseJSON.message) {
-					alert(xhr.responseJSON.message);
+					swal('Error', xhr.responseJSON.message, 'error');
 				} else {
-					alert('Gagal menyimpan Booking Confirmation.');
+					swal('Error', 'Gagal menyimpan Booking Confirmation.', 'error');
 				}
 			},
 			complete: function() {
@@ -740,18 +793,19 @@
 			},
 			headers: {'Accept': 'application/json'},
 			success: function(response) {
-				alert(response.message || 'Checklist berhasil disimpan.');
-				if ($('#Checklist_Done_Kapal_Berangkat').is(':checked')) {
-					location.reload();
-					return;
-				}
-				refreshdataDataLog();
-				if (typeof refreshdata === 'function') {
-					refreshdata();
-				}
+				swal('Berhasil!', response.message || 'Checklist berhasil disimpan.', 'success').then(function() {
+					if ($('#Checklist_Done_Kapal_Berangkat').is(':checked')) {
+						location.reload();
+						return;
+					}
+					refreshdataDataLog();
+					if (typeof refreshdata === 'function') {
+						refreshdata();
+					}
+				});
 			},
 			error: function(xhr) {
-				alert((xhr.responseJSON && xhr.responseJSON.message) || 'Gagal menyimpan checklist.');
+				swal('Error', (xhr.responseJSON && xhr.responseJSON.message) || 'Gagal menyimpan checklist.', 'error');
 			}
 		});
 	});

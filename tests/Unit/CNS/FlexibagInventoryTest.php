@@ -11,7 +11,7 @@ class FlexibagInventoryTest extends TestCase
     {
         $content = file_get_contents(resource_path('views/cns/inventory-flexibag/index.blade.php'));
 
-        $this->assertStringContainsString('INVENTORY FLEXI BAG (MUTASI STOK)', $content);
+        $this->assertStringContainsString('Inventory Flexi Bag (Mutasi Stok)', $content);
         $this->assertStringContainsString('xml-cns-inventory-flexibag', $content);
         $this->assertStringContainsString('cns-inventory-flexibag-balance', $content);
         $this->assertStringContainsString('FlexibagGrid', $content);

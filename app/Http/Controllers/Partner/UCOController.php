@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Safe\Exceptions\SimplexmlException;
 use SimpleXMLElement;
+use App\Support\DhtmlxGridPagination;
 use App\UCOStoragePelindo;
 
 class UCOController extends Controller
@@ -722,33 +723,67 @@ class UCOController extends Controller
             $openingLabel = 'OPENING STOCK ' . $firstDate->day . ' ' . ($monthNamesUpper[$firstDate->month] ?? strtoupper($firstDate->format('F'))) . ' ' . $firstDate->year;
         }
 
-        $xml = new SimpleXMLElement('<rows/>');
-
-        // Opening Stock row
-        $r = $xml->addChild('row');
-        $r->addAttribute('id', 'row_opening');
-        $r->addAttribute('style', 'background-color:#FFF2CC;font-weight:bold;');
-        $cell0 = $r->addChild('cell', $openingLabel);
-        $cell0->addAttribute('colspan', '12');
-        for ($i = 0; $i < 11; $i++) {
-            $r->addChild('cell', '');
-        }
-        $r->addChild('cell', number_format((float) $opening, 2, '.', ','));
-        for ($i = 0; $i < 15; $i++) {
-            $r->addChild('cell', '');
-        }
-
-        // Data rows — running balance starts from $opening
-        $counter = 1;
+        $totalQtySj = 0;
+        $totalIn = 0;
+        $totalOut = 0;
         $running = $opening;
+        $counter = 1;
 
         foreach ($rows as $row) {
             $inbound  = strtolower($row->Type) === 'inbound'  ? (float) $row->Quantity : 0;
             $outbound = strtolower($row->Type) === 'outbound' ? (float) $row->Quantity : 0;
             $approvalStatus = $row->Approval_Status !== null ? strtoupper((string) $row->Approval_Status) : 'APPROVED';
+
+            $totalQtySj += (float) ($row->Quantity_PTU ?: 0);
+            $totalIn    += $inbound;
+            $totalOut   += $outbound;
             if ($approvalStatus === 'APPROVED') {
                 $running = $running + $inbound - $outbound;
             }
+
+            $row->_calc_counter  = $counter++;
+            $row->_calc_running  = $running;
+            $row->_calc_inbound  = $inbound;
+            $row->_calc_outbound = $outbound;
+        }
+
+        $totalRecords = $rows->count();
+        $pageSize = DhtmlxGridPagination::getPageSize($r, 25);
+        $posStart = DhtmlxGridPagination::getPosStart($r, $pageSize);
+        $pagedRows = $rows->slice($posStart, $pageSize);
+
+        $xml = new SimpleXMLElement("<rows total_count=\"{$totalRecords}\" pos=\"{$posStart}\"/>");
+
+        // Attach userdata for total footer
+        $ud1 = $xml->addChild('userdata', number_format($totalQtySj, 2, '.', ','));
+        $ud1->addAttribute('name', 'total_qty_sj');
+        $ud2 = $xml->addChild('userdata', number_format($totalIn, 2, '.', ','));
+        $ud2->addAttribute('name', 'total_in');
+        $ud3 = $xml->addChild('userdata', number_format($totalOut, 2, '.', ','));
+        $ud3->addAttribute('name', 'total_out');
+        $ud4 = $xml->addChild('userdata', number_format($running, 2, '.', ','));
+        $ud4->addAttribute('name', 'total_stock');
+
+        // Opening Stock row (only on page 1)
+        if ($posStart === 0) {
+            $rRow = $xml->addChild('row');
+            $rRow->addAttribute('id', 'row_opening');
+            $rRow->addAttribute('style', 'background-color:#FFF2CC;font-weight:bold;');
+            $cell0 = $rRow->addChild('cell', $openingLabel);
+            $cell0->addAttribute('colspan', '12');
+            for ($i = 0; $i < 11; $i++) {
+                $rRow->addChild('cell', '');
+            }
+            $rRow->addChild('cell', number_format((float) $opening, 2, '.', ','));
+            for ($i = 0; $i < 15; $i++) {
+                $rRow->addChild('cell', '');
+            }
+        }
+
+        foreach ($pagedRows as $row) {
+            $inbound  = $row->_calc_inbound;
+            $outbound = $row->_calc_outbound;
+            $approvalStatus = $row->Approval_Status !== null ? strtoupper((string) $row->Approval_Status) : 'APPROVED';
 
             $date = Carbon::parse($row->Transaction_Date);
             $bulan = $monthNames[$date->month] ?? $date->format('F');
@@ -763,12 +798,12 @@ class UCOController extends Controller
             $qtySj = ($row->Quantity_PTU && (float) $row->Quantity_PTU > 0) ? number_format((float) $row->Quantity_PTU, 2, '.', ',') : '';
             $inKg = $inbound > 0 ? number_format((float) $inbound, 2, '.', ',') : '';
             $outKg = $outbound > 0 ? number_format((float) $outbound, 2, '.', ',') : '';
-            $stokPelindo = number_format((float) $running, 2, '.', ',');
+            $stokPelindo = number_format((float) $row->_calc_running, 2, '.', ',');
             $remarks = $row->Notes ?? '';
 
             if ($row->Notim_Path) {
                 $fileUrl = asset("filevendor/{$row->Notim_Path}");
-                $notimBadge = "<span class='badge badge-light border text-danger' style='background:#f8f9fa;border:1px solid #dee2e6!important;padding:2px 5px;border-radius:3px;'><i class='fa fa-file-pdf text-danger'></i> " . $counter . ". NOTI...</span>^" . $fileUrl . "^_blank";
+                $notimBadge = "<span class='badge badge-light border text-danger' style='background:#f8f9fa;border:1px solid #dee2e6!important;padding:2px 5px;border-radius:3px;'><i class='fa fa-file-pdf text-danger'></i> " . $row->_calc_counter . ". NOTI...</span>^" . $fileUrl . "^_blank";
             } else {
                 $notimBadge = '-';
             }
@@ -778,7 +813,7 @@ class UCOController extends Controller
             } elseif ($approvalStatus === 'PENDING') {
                 $approvalBadge = "<span class='badge badge-warning text-dark' style='color:#000 !important;'>PENDING</span>";
             } else {
-                $approvalBadge = "<span class='badge badge-success text-dark' style='color:#000 !important;'>APPROVED</span>";
+                $approvalBadge = "<span class='badgerounded-pill bg-success text-dark' style='color:#000 !important;'>APPROVED</span>";
             }
 
             $qc = $qcMap[$row->Storage_Pelindo_Id] ?? [
@@ -799,7 +834,7 @@ class UCOController extends Controller
             $r = $xml->addChild('row');
             $r->addAttribute('id', (string) $row->Storage_Pelindo_Id);
             $r->addAttribute('ID', (string) $row->Storage_Pelindo_Id);
-            $r->addChild('cell', $counter++);
+            $r->addChild('cell', $row->_calc_counter);
             $r->addChild('cell', $bulan);
             $r->addChild('cell', $tanggal);
             $r->addChild('cell', $asalWarehouse);

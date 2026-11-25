@@ -67,10 +67,13 @@ class PayrollCalculationService
             'unpaid_leave_divisor'        => 26.0,
             'late_penalty_per_occurrence' => 22000.0,
             'bpjs_tk_jht_employee_rate'   => 2.0,
-            'bpjs_kes_employee_rate'      => 1.0,
-            'bpjs_kes_max_salary_cap'     => 12000000.0,
-            'bpjs_kes_max_deduction_cap'  => 120000.0,
-            'ho_umk_nominal'              => 5067381.0,
+            'bpjs_kes_employee_rate'            => 1.0,
+            'bpjs_kes_max_salary_cap'           => 12000000.0,
+            'bpjs_kes_max_deduction_cap'        => 120000.0,
+            'bpjs_kes_max_core_family'          => 5.0,
+            'bpjs_kes_extra_family_rate'        => 1.0,
+            'bpjs_kes_extra_family_display_mode' => 'SEPARATE',
+            'ho_umk_nominal'                    => 5067381.0,
             'biaya_jabatan_rate'          => 5.0,
             'biaya_jabatan_max_monthly'   => 500000.0,
         ];
@@ -168,7 +171,7 @@ class PayrollCalculationService
                 }
             } elseif ($type === 'DEDUCTION') {
                 // Abaikan komponen deduction standar yang akan dihitung formula baru
-                if (!in_array($pId, ['PY000000', 'PY000037', 'PY000032', 'DED_UNPAID', 'DED_LATE', 'DED_BPJS_TK', 'DED_BPJS_KES', 'DED_SPPD_KASBON'], true)) {
+                if (!in_array($pId, ['PY000000', 'PY000037', 'PY000032', 'DED_BPJS_KES_EXTRA', 'DED_UNPAID', 'DED_LATE', 'DED_BPJS_TK', 'DED_BPJS_KES', 'DED_SPPD_KASBON'], true)) {
                     $customDeductions += abs($val);
                 }
             }
@@ -193,9 +196,8 @@ class PayrollCalculationService
         $overtimeAmount = (float)$attendance['approved_overtime_amount'];
         $kjkAmount = (float)($attendance['approved_kjk_amount'] ?? 0.0);
 
-        // 3b. Tarik Komponen THR (Tunjangan Hari Raya) yang sudah di-lock untuk periode berjalan
-        $thrData = $this->thrService->getApprovedThrForEmployeePeriod($nik, $periodeYm);
-        $thrAmount = (float)($thrData['amount'] ?? 0.0);
+        // 3b. THR kini dikelola terpisah pada modul THR mandiri (tidak digabung ke gaji bulanan)
+        $thrAmount = 0.0;
 
         // 4. Kalkulasi Komponen Deductions Dinamis Sesuai Aturan Klien
         $baseTotalSalary = $gajiPokok + $totalTunjangan;
@@ -264,14 +266,31 @@ class PayrollCalculationService
         // Jika Total Salary < UMK HO -> UMK * 1%
         // Jika Total Salary >= UMK HO -> Total Salary * 1%
         // Jika Total Salary > 12 juta -> Cap maksimal 120.000 fix
+        // Tambahan anggota keluarga (> 5 jiwa inti: anak ke-4 dst, orang tua, mertua) -> +1% per orang
         $umkHO = (float)$this->getConfig('ho_umk_nominal', 5067381.0);
         $bpjsKesRate = (float)$this->getConfig('bpjs_kes_employee_rate', 1.0) / 100.0;
         $maxSalaryCap = (float)$this->getConfig('bpjs_kes_max_salary_cap', 12000000.0);
         $maxDeductionCap = (float)$this->getConfig('bpjs_kes_max_deduction_cap', 120000.0);
+        $maxCoreFamily = max(1, (int)$this->getConfig('bpjs_kes_max_core_family', 5));
+        $extraFamilyRate = (float)$this->getConfig('bpjs_kes_extra_family_rate', 1.0) / 100.0;
+        $bpjsKesDisplayMode = strtoupper(trim((string)$this->getConfig('bpjs_kes_extra_family_display_mode', 'SEPARATE')));
+        if (!in_array($bpjsKesDisplayMode, ['SEPARATE', 'COMBINED'], true)) {
+            $bpjsKesDisplayMode = 'SEPARATE';
+        }
+
+        if (isset($employee->bpjs_kes_total_family) && $employee->bpjs_kes_total_family !== null) {
+            $totalFamilyCount = max(0, (int)$employee->bpjs_kes_total_family);
+            $extraFamilyCount = max(0, $totalFamilyCount - $maxCoreFamily);
+        } else {
+            $extraFamilyCount = max(0, (int)($employee->bpjs_kes_extra_family ?? 0));
+            $totalFamilyCount = $extraFamilyCount > 0 ? ($maxCoreFamily + $extraFamilyCount) : 1;
+        }
 
         $kesDeductionSetting = isset($employee->bpjs_kes_deduction) ? (int)$employee->bpjs_kes_deduction : 1;
         $isKesConfigDeducted = ($kesDeductionSetting === 1);
 
+        $bpjsKesBaseAmount = 0.0;
+        $bpjsKesExtraAmount = 0.0;
         $bpjsKesExemptReason = null;
         if ($kesDeductionSetting === 2) {
             // Subsidi Pemerintah berupa Kartu Indonesia Sehat (KIS / PBI)
@@ -285,12 +304,21 @@ class PayrollCalculationService
             $bpjsKesExemptReason = 'Bebas Potongan Selama Masa Probation (' . $probationReason . ')';
         } else {
             if ($baseTotalSalary > $maxSalaryCap) {
-                $bpjsKesAmount = $maxDeductionCap;
+                $bpjsKesBaseAmount = $maxDeductionCap;
+                $bpjsKesBasis = $maxSalaryCap;
             } elseif ($baseTotalSalary < $umkHO) {
-                $bpjsKesAmount = ceil($umkHO * $bpjsKesRate);
+                $bpjsKesBaseAmount = ceil($umkHO * $bpjsKesRate);
+                $bpjsKesBasis = $umkHO;
             } else {
-                $bpjsKesAmount = ceil($baseTotalSalary * $bpjsKesRate);
+                $bpjsKesBaseAmount = ceil($baseTotalSalary * $bpjsKesRate);
+                $bpjsKesBasis = $baseTotalSalary;
             }
+
+            if ($extraFamilyCount > 0 && $extraFamilyRate > 0) {
+                $bpjsKesExtraAmount = ceil($bpjsKesBasis * $extraFamilyRate) * $extraFamilyCount;
+            }
+
+            $bpjsKesAmount = $bpjsKesBaseAmount + $bpjsKesExtraAmount;
         }
 
         // 4e. Tarik Potongan SPPD Belum Settlement, Kasbon, & Reimburse (Non-Tax Deduction)
@@ -396,13 +424,22 @@ class PayrollCalculationService
                     'exempt_reason' => $bpjsTkExemptReason,
                 ],
                 'bpjs_kes'        => [
-                    'rate'          => $bpjsKesRate * 100,
-                    'umk_ho'        => $umkHO,
-                    'max_cap'       => $maxDeductionCap,
-                    'amount'        => $bpjsKesAmount,
-                    'formula'       => $bpjsKesAmount > 0 ? "Kalkulasi BPJS Kes HO" : '0 (Bebas / Dikecualikan)',
-                    'is_exempt'     => ($bpjsKesAmount == 0.0),
-                    'exempt_reason' => $bpjsKesExemptReason,
+                    'rate'                => $bpjsKesRate * 100,
+                    'umk_ho'              => $umkHO,
+                    'max_cap'             => $maxDeductionCap,
+                    'max_core_family'     => $maxCoreFamily,
+                    'total_family_count'  => $totalFamilyCount,
+                    'base_amount'         => $bpjsKesBaseAmount,
+                    'extra_family_count'  => $extraFamilyCount,
+                    'extra_family_rate'   => $extraFamilyRate * 100,
+                    'extra_family_amount' => $bpjsKesExtraAmount,
+                    'display_mode'        => $bpjsKesDisplayMode,
+                    'amount'              => $bpjsKesAmount,
+                    'formula'             => $bpjsKesAmount > 0
+                        ? ($extraFamilyCount > 0 ? "Kalkulasi BPJS Kes HO + {$extraFamilyCount} Kel. Tambahan" : "Kalkulasi BPJS Kes HO")
+                        : '0 (Bebas / Dikecualikan)',
+                    'is_exempt'           => ($bpjsKesAmount == 0.0),
+                    'exempt_reason'       => $bpjsKesExemptReason,
                 ],
                 'custom_ded'        => $customDeductions,
                 'advance_deduction' => [
@@ -455,8 +492,8 @@ class PayrollCalculationService
             'bpjs_kes_amount'       => $bpjsKesAmount,
             'overtime_task_ids'     => $attendance['overtime_task_ids'] ?? [],
             'kjk_task_ids'          => $attendance['kjk_task_ids'] ?? [],
-            'thr_item_ids'          => $thrData['item_ids'] ?? [],
-            'thr_batch_nos'         => $thrData['batch_nos'] ?? [],
+            'thr_item_ids'          => [],
+            'thr_batch_nos'         => [],
             'metadata'              => $calculationMetadata,
             'active_components'     => $activeComponents,
         ];
@@ -609,10 +646,9 @@ class PayrollCalculationService
             ]);
         }
 
-        // 3. Sinkronkan Komponen Dinamis OVERTIME (PY000045), KJK (PY000044), & THR (PY000060)
+        // 3. Sinkronkan Komponen Dinamis OVERTIME (PY000045) & KJK (PY000044)
         $otTasks = isset($calc['overtime_task_ids']) ? $calc['overtime_task_ids'] : [];
         $kjkTasks = isset($calc['kjk_task_ids']) ? $calc['kjk_task_ids'] : [];
-        $thrBatches = isset($calc['thr_batch_nos']) ? $calc['thr_batch_nos'] : [];
 
         $dynamicAllowances = [
             'PY000045' => [
@@ -624,11 +660,6 @@ class PayrollCalculationService
                 'name'   => 'KJK',
                 'amount' => (float)($calc['kjk'] ?? 0.0),
                 'note'   => 'Number of KJK: ' . count($kjkTasks) . '; Task LIST = ' . implode(',', $kjkTasks),
-            ],
-            'PY000060' => [
-                'name'   => 'THR (TUNJANGAN HARI RAYA)',
-                'amount' => (float)($calc['thr'] ?? 0.0),
-                'note'   => !empty($thrBatches) ? ('Batch THR: ' . implode(', ', $thrBatches)) : 'Tidak ada THR pada periode ini',
             ],
         ];
 
@@ -671,7 +702,16 @@ class PayrollCalculationService
             }
         }
 
-        // 4. Sinkronkan Deductions Dinamis (BPJS TK, BPJS KES, Late Penalty, Unpaid Leave)
+        // 4. Sinkronkan Deductions Dinamis (BPJS TK, BPJS KES, Keluarga Tambahan, Late Penalty, Unpaid Leave)
+        $bpjsMeta = $calc['metadata']['deduction_breakdown']['bpjs_kes'] ?? [];
+        $bpjsDisplayMode = strtoupper(trim((string)($bpjsMeta['display_mode'] ?? 'SEPARATE')));
+        $bpjsBaseAmt = isset($bpjsMeta['base_amount']) ? (float)$bpjsMeta['base_amount'] : (float)$calc['bpjs_kes_amount'];
+        $bpjsExtraAmt = isset($bpjsMeta['extra_family_amount']) ? (float)$bpjsMeta['extra_family_amount'] : 0.0;
+
+        $isSeparateBpjs = ($bpjsDisplayMode === 'SEPARATE' && $bpjsExtraAmt > 0);
+        $py32Amount = $isSeparateBpjs ? -$bpjsBaseAmt : -(float)$calc['bpjs_kes_amount'];
+        $extraKesAmount = $isSeparateBpjs ? -$bpjsExtraAmt : 0.0;
+
         $dynamicDeductions = [
             'PY000037' => [
                 'name'    => 'IURAN JHT (BPJS TK)',
@@ -680,8 +720,14 @@ class PayrollCalculationService
             ],
             'PY000032' => [
                 'name'    => 'IURAN BPJS KESEHATAN',
-                'amount'  => -$calc['bpjs_kes_amount'],
+                'amount'  => $py32Amount,
                 'aliases' => ['BPJS KESEHATAN', 'BPJS KES', 'KESEHATAN'],
+            ],
+            'DED_BPJS_KES_EXTRA' => [
+                'name'              => 'IURAN BPJS KESEHATAN KELUARGA TAMBAHAN',
+                'amount'            => $extraKesAmount,
+                'aliases'           => ['KELUARGA TAMBAHAN'],
+                'delete_when_zero'  => true,
             ],
             'DED_LATE' => [
                 'name'    => 'POTONGAN KETERLAMBATAN',
@@ -700,19 +746,33 @@ class PayrollCalculationService
             ],
         ];
 
+        $managedDedCodes = array_keys($dynamicDeductions);
+
         foreach ($dynamicDeductions as $dedCode => $dedInfo) {
+            $otherManagedCodes = array_values(array_diff($managedDedCodes, [$dedCode]));
             $dedRow = DB::table('payrol_group_lists')
                 ->where('Main_ID', $mainId)
                 ->where('Group_ID', $nik)
-                ->where(function ($q) use ($dedCode, $dedInfo) {
+                ->where(function ($q) use ($dedCode, $dedInfo, $otherManagedCodes) {
                     $q->where('Payroll_ID', $dedCode);
-                    foreach ($dedInfo['aliases'] as $alias) {
-                        $q->orWhere('Name', 'LIKE', "%{$alias}%");
+                    if (!empty($dedInfo['aliases'])) {
+                        $q->orWhere(function ($aq) use ($dedInfo, $otherManagedCodes) {
+                            $aq->whereNotIn('Payroll_ID', $otherManagedCodes);
+                            $aq->where(function ($nq) use ($dedInfo) {
+                                foreach ($dedInfo['aliases'] as $alias) {
+                                    $nq->orWhere('Name', 'LIKE', "%{$alias}%");
+                                }
+                            });
+                        });
                     }
                 })
                 ->first();
 
             if ($dedRow) {
+                if (!empty($dedInfo['delete_when_zero']) && abs($dedInfo['amount']) <= 0) {
+                    DB::table('payrol_group_lists')->where('ID', $dedRow->ID)->delete();
+                    continue;
+                }
                 $upData = ['Amounts' => $dedInfo['amount']];
                 if (Schema::hasColumn('payrol_group_lists', 'Modified_By')) {
                     $upData['Modified_By'] = $operatorUsername;

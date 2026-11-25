@@ -5,8 +5,14 @@ namespace App\Services\Finance;
 use App\Services\Approval\ApprovalAuthorizationService;
 use App\Services\Approval\ApprovalWorkflowService;
 use App\Support\Modules;
+use App\Services\GA\GaPaymentVoucherService;
+use App\Services\HCGA\AssetMaintenanceScheduleService;
+use App\Services\HCGA\VehicleFleetService;
+use App\Services\Payroll\PayrollReportService;
+use App\Services\Payroll\PayrollThrService;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Service terpusat untuk kebutuhan Approval & Verifikasi Voucher di modul Finance
@@ -26,16 +32,21 @@ class FinanceApprovalService
     /** @var VehicleFleetService */
     protected $vehicleFleetService;
 
+    /** @var GaPaymentVoucherService */
+    protected $gaVoucherService;
+
     public function __construct(
         ApprovalWorkflowService $workflow,
         ApprovalAuthorizationService $authorization,
         $maintenanceScheduleService = null,
-        $vehicleFleetService = null
+        $vehicleFleetService = null,
+        $gaVoucherService = null
     ) {
         $this->workflow = $workflow;
         $this->authorization = $authorization;
         $this->maintenanceScheduleService = $maintenanceScheduleService;
         $this->vehicleFleetService = $vehicleFleetService;
+        $this->gaVoucherService = $gaVoucherService;
     }
 
     /**
@@ -57,9 +68,10 @@ class FinanceApprovalService
             ->whereColumn('t.Stage_Order', 'r.Current_Stage')
             ->whereIn('t.Status', ['PENDING', 'CLAIMED'])
             ->where(function ($fin) {
-                $fin->whereIn(DB::raw("UPPER(COALESCE(t.Department, ''))"), ['FIN', 'FINANCE', 'FA'])
-                    ->orWhereIn(DB::raw("UPPER(COALESCE(t.Position_Code, ''))"), ['MFA', 'FIN', 'FINANCE', 'SFA'])
-                    ->orWhere('t.Position_Name', 'LIKE', '%Finance%');
+                $fin->whereIn(DB::raw("UPPER(COALESCE(t.Department, ''))"), ['FIN', 'FINANCE', 'FA', 'FAT'])
+                    ->orWhereIn(DB::raw("UPPER(COALESCE(t.Position_Code, ''))"), ['MFA', 'VPFAT', 'FIN', 'FINANCE', 'SFA'])
+                    ->orWhere('t.Position_Name', 'LIKE', '%Finance%')
+                    ->orWhere('t.Position_Name', 'LIKE', '%FAT%');
             });
 
         if (!$isWildcard) {
@@ -174,11 +186,48 @@ class FinanceApprovalService
             ->get()
             ->all();
 
+        $gaVouchers = Modules::isEnabled('hcga') ? $this->gaVoucherService()->pendingForFinance()->all() : [];
+        $historyGaVouchers = Modules::isEnabled('hcga') ? $this->gaVoucherService()->historyForFinance()->all() : [];
+
+        $historyWorkflows = DB::table('approval_request_task as t')
+            ->join('approval_request as r', 'r.ID', '=', 't.Request_ID')
+            ->leftJoin('users as req_user', 'req_user.id', '=', 'r.Requester_Id')
+            ->whereIn('t.Status', ['APPROVED', 'REJECTED'])
+            ->where(function ($fin) {
+                $fin->whereIn(DB::raw("UPPER(COALESCE(t.Department, ''))"), ['FIN', 'FINANCE', 'FA', 'FAT'])
+                    ->orWhereIn(DB::raw("UPPER(COALESCE(t.Position_Code, ''))"), ['MFA', 'VPFAT', 'FIN', 'FINANCE', 'SFA'])
+                    ->orWhere('t.Position_Name', 'LIKE', '%Finance%')
+                    ->orWhere('t.Position_Name', 'LIKE', '%FAT%');
+            })
+            ->select(
+                't.ID as Task_ID',
+                't.Request_ID',
+                't.Stage_Order',
+                't.Status as Task_Status',
+                't.Acted_At',
+                'r.Request_No',
+                'r.Request_Type',
+                'r.Description',
+                'r.Department',
+                'r.Amount',
+                'r.Status as Request_Status',
+                'r.Submitted_At',
+                'req_user.Name as Requester_Name',
+                'req_user.username as Requester_Username'
+            )
+            ->orderBy('t.ID', 'DESC')
+            ->limit(100)
+            ->get()
+            ->all();
+
         return [
             'maintenance'         => $maintenance,
             'vehicle_tax'         => $vehicleTax,
+            'ga_vouchers'         => $gaVouchers,
             'history_maintenance' => $historyMaintenance,
             'history_tax'         => $historyTax,
+            'history_ga_vouchers' => $historyGaVouchers,
+            'history_workflows'   => $historyWorkflows,
         ];
     }
 
@@ -214,10 +263,119 @@ class FinanceApprovalService
             ->all();
 
         return [
-            'task'    => $task,
-            'logs'    => $logs,
-            'context' => json_decode((string) ($task->Context ?? '{}'), true) ?: [],
-            'policy'  => json_decode((string) ($task->Policy_Snapshot ?? '{}'), true) ?: [],
+            'task'              => $task,
+            'logs'              => $logs,
+            'context'           => json_decode((string) ($task->Context ?? '{}'), true) ?: [],
+            'policy'            => json_decode((string) ($task->Policy_Snapshot ?? '{}'), true) ?: [],
+            'payroll_breakdown' => $this->resolvePayrollBreakdownForRequest($task),
+        ];
+    }
+
+    /**
+     * Ambil paket data rincian penggajian dan rekening bank untuk request bertipe PAYROLL / SALARY / PAYROLL_THR.
+     *
+     * @param object $requestRow Baris approval_request atau join approval_request_task + approval_request
+     * @return array|null
+     */
+    public function resolvePayrollBreakdownForRequest(object $requestRow): ?array
+    {
+        if (!Modules::isEnabled('hcga')) {
+            return null;
+        }
+
+        $reqType = strtoupper(trim((string) ($requestRow->Request_Type ?? '')));
+        if (!in_array($reqType, ['PAYROLL', 'SALARY', 'PAYROLL_THR'], true)) {
+            return null;
+        }
+
+        $requestId = (int) ($requestRow->Request_ID ?? ($requestRow->ID ?? 0));
+        $requestNo = trim((string) ($requestRow->Request_No ?? ''));
+        $mapTo = isset($requestRow->Map_To) ? (int) $requestRow->Map_To : 0;
+
+        if ($mapTo <= 0 && $requestId > 0) {
+            $mapTo = (int) DB::table('approval_request')->where('ID', $requestId)->value('Map_To');
+        }
+
+        $reportService = app(PayrollReportService::class);
+
+        if ($reqType === 'PAYROLL_THR') {
+            if (!Schema::hasTable('payroll_thr_batches')) {
+                return null;
+            }
+
+            $batch = null;
+            if ($requestId > 0 && Schema::hasColumn('payroll_thr_batches', 'approval_request_id')) {
+                $batch = DB::table('payroll_thr_batches')->where('approval_request_id', $requestId)->first();
+            }
+            if (!$batch && $mapTo > 0) {
+                $batch = DB::table('payroll_thr_batches')->where('id', $mapTo)->first();
+            }
+            if (!$batch && $requestNo !== '') {
+                $batch = DB::table('payroll_thr_batches')->where('batch_no', $requestNo)->first();
+            }
+            if (!$batch) {
+                return null;
+            }
+
+            try {
+                $thrService = app(PayrollThrService::class);
+                $exportData = $thrService->getExportRowsForBatch((int) $batch->id);
+                $rows = $exportData['rows'] ?? [];
+            } catch (\Throwable $e) {
+                $rows = [];
+            }
+
+            return [
+                'mode'         => 'PAYROLL_THR',
+                'batch_id'     => (int) $batch->id,
+                'task_id'      => (string) $batch->batch_no,
+                'period'       => (string) ($batch->salary_period ?? '-'),
+                'event_name'   => (string) ($batch->thr_event_name ?? '-'),
+                'tax_mode'     => (string) ($batch->tax_mode ?? 'NONE'),
+                'status'       => (string) ($batch->status ?? '-'),
+                'header'       => $batch,
+                'rows'         => $rows,
+                'bank_summary' => $reportService->buildBankTransferSummary($rows, 'nett_thr'),
+            ];
+        }
+
+        // PAYROLL / SALARY reguler
+        if (!Schema::hasTable('salary_main')) {
+            return null;
+        }
+
+        $salaryMain = null;
+        if ($requestId > 0 && Schema::hasColumn('salary_main', 'approval_request_id')) {
+            $salaryMain = DB::table('salary_main')->where('approval_request_id', $requestId)->first();
+        }
+        if (!$salaryMain && $mapTo > 0) {
+            $salaryMain = DB::table('salary_main')->where('ID', $mapTo)->first();
+        }
+        if (!$salaryMain && $requestNo !== '') {
+            $salaryMain = DB::table('salary_main')->where('Task_ID', $requestNo)->first();
+        }
+
+        $batchTaskId = $salaryMain ? (string) $salaryMain->Task_ID : $requestNo;
+        if ($batchTaskId === '') {
+            return null;
+        }
+
+        try {
+            $rows = $reportService->getReportData(['task_id' => $batchTaskId]);
+        } catch (\Throwable $e) {
+            $rows = [];
+        }
+
+        return [
+            'mode'         => 'PAYROLL',
+            'task_id'      => $batchTaskId,
+            'period'       => $salaryMain ? (string) $salaryMain->Salary_Period : ($rows[0]['period'] ?? '-'),
+            'salary_group' => $salaryMain ? (string) ($salaryMain->Salary_Group ?? '-') : '-',
+            'category'     => $salaryMain ? (string) ($salaryMain->Category ?? 'SALARY') : 'SALARY',
+            'status'       => $salaryMain ? (string) ($salaryMain->Status ?? '-') : '-',
+            'header'       => $salaryMain,
+            'rows'         => $rows,
+            'bank_summary' => $reportService->buildBankTransferSummary($rows, 'nett'),
         ];
     }
 
@@ -289,5 +447,32 @@ class FinanceApprovalService
         }
 
         return $this->vehicleFleetService = $this->hcgaService('VehicleFleetService');
+    }
+
+    private function gaVoucherService(): GaPaymentVoucherService
+    {
+        if ($this->gaVoucherService) {
+            return $this->gaVoucherService;
+        }
+
+        if (!Modules::isEnabled('hcga') || !class_exists(GaPaymentVoucherService::class)) {
+            throw new \RuntimeException('HCGA module is not enabled for this deployment.');
+        }
+
+        return $this->gaVoucherService = app(GaPaymentVoucherService::class);
+    }
+
+    public function getGaVoucherDetail(int $id): ?object
+    {
+        return $this->gaVoucherService()->findById($id) ?: null;
+    }
+
+    public function payGaVoucher(
+        int $voucherId,
+        array $data,
+        string $username,
+        ?UploadedFile $proofFile = null
+    ): object {
+        return $this->gaVoucherService()->markPaid($voucherId, $data, $username, $proofFile);
     }
 }

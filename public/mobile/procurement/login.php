@@ -1,6 +1,13 @@
 <?php
 session_start();
 require_once 'db.php'; // Panggil koneksi database
+// require_once 'app_guard.php';
+// appGuard();
+
+// Jika true, saat login berhasil juga dibuat baris di tabel `notification`
+// (akan muncul lewat polling Clock1 sekitar 15 detik kemudian).
+// Biarkan false jika sudah memakai ShowAlert langsung dari LOGIN_SUCCESS, supaya tidak dobel.
+const SIMPAN_NOTIF_LOGIN_DB = false;
 
 // Jika user sudah login, langsung redirect ke index.php
 if (isset($_SESSION['user_logged_in']) && $_SESSION['user_logged_in'] === true) {
@@ -12,8 +19,8 @@ $error_message = '';
 $login_success = false;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $username = trim($_POST['username']);
-    $password = trim($_POST['password']);
+    $username = trim($_POST['username'] ?? '');
+    $password = trim($_POST['password'] ?? '');
 
     try {
         // Query ambil data user berdasarkan username
@@ -26,12 +33,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (password_verify($password, $user['password']) || $password === $user['password']) {
                 // Set Session Berhasil Login
                 $_SESSION['user_logged_in'] = true;
-                $_SESSION['user_id'] = $user['id'];
-                $_SESSION['username'] = $user['username'];
-                $_SESSION['name'] = $user['Name'];
-                $_SESSION['position'] = $user['Position'];
-                $_SESSION['location'] = $user['Location'];
-                $_SESSION['role'] = $user['Position'] ?? 'ICT / Procurement';
+                $_SESSION['user_id']   = $user['id'];
+                $_SESSION['username']  = $user['username'];
+                $_SESSION['name']      = $user['Name'];
+                $_SESSION['position']  = $user['Position'];
+                $_SESSION['location']  = $user['Location'];
+                $_SESSION['role']      = $user['Position'] ?? 'ICT / Procurement';
+
+                // (Opsional) Simpan notifikasi login ke tabel notification.
+                // Dibungkus try/catch sendiri supaya kegagalan insert tidak menggagalkan login.
+                if (SIMPAN_NOTIF_LOGIN_DB) {
+                    try {
+                        $n = $pdo->prepare("
+                            INSERT INTO notification
+                                (Title, Content, Topic, Sender_Id, Recipient_Id, Status, Created_At, Expires_At)
+                            VALUES
+                                (:title, :content, :topic, :sender, :recipient, :status, NOW(), DATE_ADD(NOW(), INTERVAL 1 DAY))
+                        ");
+                        $n->execute([
+                            'title'     => 'Login Berhasil',
+                            'content'   => 'Selamat datang, ' . $user['Name'],
+                            'topic'     => 'login',
+                            'sender'    => null,       // sesuaikan dengan aturan tabelmu
+                            'recipient' => $user['id'],
+                            'status'    => 'unread',   // sesuaikan dengan nilai Status yang kamu pakai
+                        ]);
+                    } catch (PDOException $e) {
+                        error_log('Insert notifikasi login gagal: ' . $e->getMessage());
+                    }
+                }
 
                 $login_success = true;
             } else {
@@ -41,8 +71,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error_message = 'Username tidak ditemukan di database!';
         }
     } catch (PDOException $e) {
-        $error_message = 'Terjadi kesalahan sistem: ' . $e->getMessage();
+        error_log('Login error: ' . $e->getMessage());
+        $error_message = 'Terjadi kesalahan sistem. Silakan coba lagi.';
     }
+}
+
+// Data untuk sinyal ke aplikasi Kodular (format: LOGIN_SUCCESS|nama|user_id)
+$app_signal = '';
+if ($login_success) {
+    $nama_aman  = str_replace('|', ' ', (string)($_SESSION['name'] ?? $_SESSION['username']));
+    $app_signal = 'LOGIN_SUCCESS|' . $nama_aman . '|' . (int)$_SESSION['user_id'];
 }
 ?>
 <!DOCTYPE html>
@@ -216,7 +254,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         Swal.fire({
             icon: 'error',
             title: 'Login Gagal!',
-            text: '<?= addslashes($error_message); ?>',
+            text: <?= json_encode($error_message, JSON_UNESCAPED_UNICODE); ?>,
             confirmButtonColor: '#4b286d'
         });
     <?php endif; ?>
@@ -226,11 +264,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         Swal.fire({
             icon: 'success',
             title: 'Login Berhasil!',
-            text: 'Selamat datang kembali, <?= addslashes($_SESSION['name'] ?? $_SESSION['username']); ?>',
+            text: <?= json_encode('Selamat datang kembali, ' . ($_SESSION['name'] ?? $_SESSION['username']), JSON_UNESCAPED_UNICODE); ?>,
             timer: 1500,
             showConfirmButton: false,
             didOpen: () => {
                 Swal.showLoading();
+                // Kirim sinyal ke aplikasi Kodular: LOGIN_SUCCESS|nama|user_id
+                // Di browser biasa window.AppInventor tidak ada, jadi aman.
+                if (window.AppInventor) {
+                    window.AppInventor.setWebViewString(<?= json_encode($app_signal, JSON_UNESCAPED_UNICODE); ?>);
+                }
             }
         }).then(() => {
             window.location.href = 'index.php';

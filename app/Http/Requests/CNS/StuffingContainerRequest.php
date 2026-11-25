@@ -22,6 +22,7 @@ class StuffingContainerRequest extends FormRequest
             'Police_No' => 'nullable|string|max:150',
             'Container' => 'required|string|max:150',
             'Seal' => 'nullable|string|max:150',
+            'serial_number' => 'nullable|string|max:100',
             'Tare' => 'nullable|numeric|min:0',
             'Netto_KG' => 'nullable|numeric|min:0',
             'Note' => 'nullable|string|max:255',

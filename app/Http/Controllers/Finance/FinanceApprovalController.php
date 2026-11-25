@@ -38,20 +38,25 @@ class FinanceApprovalController extends Controller
         $vouchers = $this->financeApprovalService->getPendingVouchers();
 
         $totalVoucherAmount = collect($vouchers['maintenance'])->sum('Estimasi_Biaya')
-            + collect($vouchers['vehicle_tax'])->sum('Estimasi_Biaya');
+            + collect($vouchers['vehicle_tax'])->sum('Estimasi_Biaya')
+            + collect($vouchers['ga_vouchers'])->sum('Amount');
 
         return response()->json([
             'status'              => 'success',
             'tasks'               => $tasks,
             'maintenance'         => $vouchers['maintenance'],
             'vehicle_tax'         => $vouchers['vehicle_tax'],
+            'ga_vouchers'         => $vouchers['ga_vouchers'],
             'history_maintenance' => $vouchers['history_maintenance'],
             'history_tax'         => $vouchers['history_tax'],
+            'history_ga_vouchers' => $vouchers['history_ga_vouchers'],
+            'history_workflows'   => $vouchers['history_workflows'] ?? [],
             'summary'             => [
                 'inbox_count'          => count($tasks),
                 'maintenance_count'    => count($vouchers['maintenance']),
                 'vehicle_tax_count'    => count($vouchers['vehicle_tax']),
-                'total_pending'        => count($tasks) + count($vouchers['maintenance']) + count($vouchers['vehicle_tax']),
+                'ga_voucher_count'     => count($vouchers['ga_vouchers']),
+                'total_pending'        => count($tasks) + count($vouchers['maintenance']) + count($vouchers['vehicle_tax']) + count($vouchers['ga_vouchers']),
                 'total_voucher_amount' => (float) $totalVoucherAmount,
             ],
         ]);
@@ -90,13 +95,19 @@ class FinanceApprovalController extends Controller
             return view('finance.humanresources.detail', ['type' => 'tax', 'item' => $item]);
         }
 
+        if ($type === 'ga_voucher') {
+            $item = $this->financeApprovalService->getGaVoucherDetail($id);
+            return view('finance.humanresources.detail', ['type' => 'ga_voucher', 'item' => $item]);
+        }
+
         $detail = $this->financeApprovalService->getWorkflowTaskDetail($id);
         return view('finance.humanresources.detail', [
-            'type'    => 'workflow',
-            'item'    => $detail ? $detail['task'] : null,
-            'logs'    => $detail ? $detail['logs'] : [],
-            'context' => $detail ? $detail['context'] : [],
-            'policy'  => $detail ? $detail['policy'] : [],
+            'type'             => 'workflow',
+            'item'             => $detail ? $detail['task'] : null,
+            'logs'             => $detail ? $detail['logs'] : [],
+            'context'          => $detail ? $detail['context'] : [],
+            'policy'           => $detail ? $detail['policy'] : [],
+            'payrollBreakdown' => $detail ? ($detail['payroll_breakdown'] ?? null) : null,
         ]);
     }
 
@@ -165,6 +176,34 @@ class FinanceApprovalController extends Controller
         }
     }
 
+    public function payGaVoucher(Request $request)
+    {
+        if (!$this->canAccess('approve')) {
+            return response()->json(['status' => 'error', 'message' => 'Anda tidak memiliki izin pembayaran voucher GA.'], 403);
+        }
+
+        try {
+            $username = Auth::user()->username ?? 'system';
+            $row = $this->financeApprovalService->payGaVoucher(
+                (int) $request->input('id'),
+                [
+                    'Paid_Date'   => (string) $request->input('paid_date', date('Y-m-d')),
+                    'Payment_Ref' => $request->input('payment_ref'),
+                ],
+                $username,
+                $request->file('proof_file')
+            );
+
+            return response()->json([
+                'status'  => 'success',
+                'message' => 'Pembayaran voucher GA ' . ($row->Voucher_No ?? '') . ' berhasil dicatat.',
+                'data'    => $row,
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 422);
+        }
+    }
+
     protected function canAccess(string $action): bool
     {
         $user = Auth::user();
@@ -174,10 +213,10 @@ class FinanceApprovalController extends Controller
         if (strtoupper((string) ($user->Priv_ID ?? '')) === 'ADMIN' || strtolower((string) ($user->username ?? '')) === 'admin') {
             return true;
         }
-        if (function_exists('can_menu') && can_menu('SI01101', $action)) {
+        if (function_exists('can_menu') && can_menu('SI01160', $action)) {
             return true;
         }
 
-        return strtoupper((string) ($user->Department ?? '')) === 'FINANCE';
+        return in_array(strtoupper((string) ($user->Department ?? '')), ['FIN', 'FINANCE', 'FAT', 'FA'], true);
     }
 }

@@ -10,18 +10,25 @@
 
 @section('content-wrapper')
 @csrf
-<div class="main-content-header">
-	<h1>ISCC Sustainability</h1>
-	<ol class="breadcrumb">
-		<li class="breadcrumb-item"><a href="/">ISCC Sustainability</a></li>
-		<li class="breadcrumb-item active"><span class="active">Traceability</span></li>
-	</ol>
-</div>
+@include('cns.partials.page-header', [
+    'title' => 'ISCC Traceability',
+    'breadcrumbs' => [
+        ['label' => 'ISCC Sustainability'],
+        ['label' => 'Traceability'],
+    ],
+])
 
-<div>
-	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">TRACEABILITY</div>
-	<div class="card">
-		<div class="card-body">
+<div class="card cns-card">
+	<div class="card-header">
+		<h5 class="card-title">Traceability</h5>
+		<div class="d-flex flex-wrap" style="gap: 8px;">
+			<button type="button" id="detailBtn" class="btn btn-primary btn-sm" onclick="detailSelected()" disabled>
+				<i class="fa fa-eye"></i> Detail
+			</button>
+		</div>
+	</div>
+	<div class="card-body">
+		<div class="table-responsive">
 			<table id="deliveryTable" class="table table-striped table-bordered" style="width:100%">
 				<thead>
 					<tr>
@@ -37,13 +44,10 @@
 					</tr>
 				</thead>
 			</table>
-			<div class="mt-2">
-				<button type="button" id="detailBtn" class="btn btn-primary" onclick="detailSelected()" disabled>Detail</button>
-			</div>
 		</div>
 	</div>
-	<div id="divTraceDetail"></div>
 </div>
+<div id="divTraceDetail"></div>
 @endsection
 
 @push('scripts')
@@ -67,7 +71,7 @@
 				{ data: 'province' },
 				{ data: 'delivery_date' },
 				{ data: 'total_quantity_kg', className: 'text-right' },
-				{ data: 'status' },
+				{ data: 'status', render: function (d) { return window.cnsStatusBadge(d); } },
 				{ data: 'reference' }
 			],
 			order: [[5, 'desc']],

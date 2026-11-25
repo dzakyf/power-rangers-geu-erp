@@ -10,8 +10,8 @@ $Saya =  Auth::user()->username;
 
 ?>
 <div class="mt-3">
-	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">VESSEL SCHEDULE</div>
-	<div class="card">
+	<div class="cns-section-header">VESSEL SCHEDULE</div>
+	<div class="card cns-card">
 		<div class="card-body">
 			<div id="ContentPages">
 				<div class="FormInput_Form_Content">
@@ -63,17 +63,17 @@ $Saya =  Auth::user()->username;
 		// 		var dataPos = data.indexOf("success");
 		// 		if (dataPos != '-1') {
 		// 			var cariAWB = data.split(":");
-		// 			alert('Data Announcement Submitted!');
+		// 			swal('Berhasil!', 'Data Announcement Submitted!', 'success');
 
 		// 			// location.href = "partner-announcement";
         //             refreshdata();
         //             $('#divlistOpportunity').html('')
 		// 		} else {
-		// 			alert('Announcement Failed to Submit!');
+		// 			swal('Error', 'Announcement Failed to Submit!', 'error');
 		// 		}
 		// 	},
 		// 	error: function(jqXHR, textStatus, errorThrown) {
-		// 		alert("Error Internal! Please Try again!");
+		// 		swal('Error', 'Error Internal! Please Try again!', 'error');
 
 		// 	}
 		// });
@@ -130,7 +130,7 @@ $Saya =  Auth::user()->username;
         return true; // Return true to continue processing
     });
     PStuffingDetail.attachEvent("onAfterUpdateFinish", function (id,state, data) {
-        alert("Data Successfully Submitted!");
+        swal('Berhasil!', 'Data Successfully Submitted!', 'success');
         setTimeout(function() {
             refreshdata();
         }, 500);
@@ -139,7 +139,7 @@ $Saya =  Auth::user()->username;
 		if (stage == 2) {
 			if (cInd == 1 || cInd == 2) {
 				if (!/^\d{2}:\d{2}$/.test(nValue)) {
-					alert("Format waktu harus HH:MM");
+					swal('Perhatian', 'Format waktu harus HH:MM', 'warning');
 					return false; // Cancel the edit
 				}
 			}
@@ -178,7 +178,7 @@ $Saya =  Auth::user()->username;
 		if (selectedId) {
 			StuffingDetail.deleteRow(selectedId);
 		} else {
-			alert("Pilih baris yang ingin dihapus!");
+			swal('Perhatian', 'Pilih baris yang ingin dihapus!', 'warning');
 		}
 	}
 </script>

@@ -3,8 +3,8 @@ use Illuminate\Support\Facades\Auth;
 $Saya = Auth::user()->username;
 ?>
 <div class="mt-3">
-    <div class="JudulContent" style="color:#699;">NEW CERTIFICATE OF ORIGIN</div>
-    <div class="card">
+    <div class="cns-section-header">NEW CERTIFICATE OF ORIGIN</div>
+    <div class="card cns-card">
         <div class="card-body">
             <div id="ContentPagesCOO">
                 <div class="row">
@@ -224,7 +224,7 @@ $Saya = Auth::user()->username;
                 $.unblockUI();
             },
             error:function() {
-                alert('Error fetching order details. Please try again.');
+                swal('Error', 'Error fetching order details. Please try again.', 'error');
                 $.unblockUI();
             }
         });
@@ -252,16 +252,16 @@ $Saya = Auth::user()->username;
             success: function (data) {
                 $.unblockUI();
                 if (data.indexOf("success") !== -1) {
-                    alert('Certificate of Origin berhasil disimpan!');
+                    swal('Berhasil!', 'Certificate of Origin berhasil disimpan!', 'success');
                     refreshdata();
                     $('#divlistOpportunity').html('');
                 } else {
-                    alert('Gagal menyimpan!');
+                    swal('Error', 'Gagal menyimpan!', 'error');
                 }
             },
             error: function () {
                 $.unblockUI();
-                alert("Error Internal! Silakan coba lagi.");
+                swal('Error', 'Error Internal! Silakan coba lagi.', 'error');
             }
         });
     });

@@ -42,18 +42,17 @@ class GoodsReceiptTest extends TestCase
     {
         // 1. Index View
         $indexContent = file_get_contents(resource_path('views/cns/goods-receipt/index.blade.php'));
-        $this->assertStringContainsString('GOODS RECEIPT (PENERIMAAN BARANG NON-UCO)', $indexContent);
+        $this->assertStringContainsString('Goods Receipt (Penerimaan Barang Non-UCO)', $indexContent);
         $this->assertStringContainsString('GRGrid', $indexContent);
         $this->assertStringContainsString('filterStatus', $indexContent);
         $this->assertStringContainsString('cns-procurement-goods-receipt.create', $indexContent);
         $this->assertStringContainsString('approveSelectedGR', $indexContent);
         $this->assertStringContainsString('btnApproveGR', $indexContent);
-        $this->assertStringContainsString('dhtmlx.confirm', $indexContent);
-        $this->assertStringContainsString('dhtmlx.alert', $indexContent);
+        $this->assertTrue(strpos($indexContent, 'swal') !== false || strpos($indexContent, 'dhtmlx.confirm') !== false);
 
         // 2. Create View
         $createContent = file_get_contents(resource_path('views/cns/goods-receipt/create.blade.php'));
-        $this->assertStringContainsString('FORM PENERIMAAN BARANG (GOODS RECEIPT)', $createContent);
+        $this->assertStringContainsString('Form Penerimaan Barang (Goods Receipt)', $createContent);
         $this->assertStringContainsString('po_no', $createContent);
         $this->assertStringContainsString('delivery_note_no', $createContent);
         $this->assertStringContainsString('itemsTable', $createContent);
@@ -61,7 +60,7 @@ class GoodsReceiptTest extends TestCase
 
         // 3. Detail View
         $detailContent = file_get_contents(resource_path('views/cns/goods-receipt/detail.blade.php'));
-        $this->assertStringContainsString('DETAIL GOODS RECEIPT', $detailContent);
+        $this->assertStringContainsString('Detail Goods Receipt', $detailContent);
         $this->assertStringContainsString('modalVoid', $detailContent);
         $this->assertStringContainsString('cns-procurement-goods-receipt.print', $detailContent);
 
@@ -73,7 +72,7 @@ class GoodsReceiptTest extends TestCase
 
         // 5. Non-UCO Inventory View
         $nonUcoView = file_get_contents(resource_path('views/cns/inventory-non-uco/index.blade.php'));
-        $this->assertStringContainsString('INVENTORY NON-UCO (MUTASI STOK MASUK & KELUAR)', $nonUcoView);
+        $this->assertStringContainsString('Inventory Non-UCO', $nonUcoView);
         $this->assertStringContainsString('NonUcoGrid', $nonUcoView);
         $this->assertStringContainsString('modalManualMutation', $nonUcoView);
     }
@@ -109,5 +108,41 @@ class GoodsReceiptTest extends TestCase
 
         $grService = new GoodsReceiptService($invService);
         $this->assertInstanceOf(GoodsReceiptService::class, $grService);
+    }
+
+    /** @test */
+    public function flexibag_serial_number_is_supported_across_gr_layers()
+    {
+        $detailModel = new \App\CnsGoodsReceiptDetail();
+        $this->assertContains('serial_number', $detailModel->getFillable());
+
+        $migration = file_get_contents(database_path('migrations/cns/2026_11_19_203500_add_serial_number_to_cns_goods_receipt_details_table.php'));
+        $this->assertStringContainsString("Schema::table('cns_goods_receipt_details'", $migration);
+        $this->assertStringContainsString("'serial_number'", $migration);
+
+        $controller = file_get_contents(app_path('Http/Controllers/CNS/GoodsReceiptController.php'));
+        $this->assertStringContainsString('items.*.serial_number', $controller);
+        $this->assertStringContainsString("stripos(\$itemName, 'flexibag')", $controller);
+
+        $service = file_get_contents(app_path('Services/CNS/GoodsReceiptService.php'));
+        $this->assertStringContainsString("'serial_number'", $service);
+        $this->assertStringContainsString('SN: ', $service);
+
+        $createView = file_get_contents(resource_path('views/cns/goods-receipt/create.blade.php'));
+        $this->assertStringContainsString('serial-number-input', $createView);
+        $this->assertStringContainsString('sn-box-input', $createView);
+        $this->assertStringContainsString('renderSerialBoxes', $createView);
+        $this->assertStringContainsString('/flexibag/i', $createView);
+
+        $this->assertStringContainsString('count($parsed) !== $expectedQty', $controller);
+        $this->assertStringContainsString('CnsKemasanSerialNumber::whereIn', $controller);
+
+        $detailView = file_get_contents(resource_path('views/cns/goods-receipt/detail.blade.php'));
+        $this->assertStringContainsString('Serial Number', $detailView);
+        $this->assertStringContainsString('$item->serial_number', $detailView);
+
+        $printView = file_get_contents(resource_path('views/cns/goods-receipt/print.blade.php'));
+        $this->assertStringContainsString('Serial Number', $printView);
+        $this->assertStringContainsString('$item->serial_number', $printView);
     }
 }

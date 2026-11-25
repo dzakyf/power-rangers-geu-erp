@@ -29,8 +29,8 @@ if(trim($row_cek->V1_ID)==$Supnya) {
 
 ?>
 <div class="mt-3">
-    <div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">DETAIL PURCHASE ORDER</div>
-    <div class="card">
+    <div class="cns-section-header">DETAIL PURCHASE ORDER</div>
+    <div class="card cns-card">
         <div class="card-body">
             <div id="ContentPages">
                 <div class="FormInput_Form_Content">

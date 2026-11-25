@@ -1,59 +1,46 @@
 @extends('layout.mainlayout-cns')
 
 @section('content-wrapper')
-<div class="main-content-header">
-    <h1>CNS</h1>
-    <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="#">Master Data</a></li>
-        <li class="breadcrumb-item active"><span class="active">Master Kemasan</span></li>
-    </ol>
-</div>
+@include('cns.partials.page-header', [
+    'title' => 'Master Kemasan',
+    'breadcrumbs' => [
+        ['label' => 'Master Data'],
+        ['label' => 'Master Kemasan'],
+    ],
+])
 
-<div class="row m-1">
-    <div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">MASTER KEMASAN</div>
+@if(isset($errors) && $errors->any())
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        {{ $errors->first() }}
+        <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+    </div>
+@endif
 
-    @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show w-100" role="alert">
-            {{ session('success') }}
-            <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+<div class="card cns-card">
+    <div class="card-header">
+        <h5 class="card-title mb-0">Data Master Kemasan</h5>
+        <div class="d-flex align-items-center flex-wrap" style="gap: 0.5rem;">
+            <button type="button" class="btn btn-sm btn-primary" onclick="openCreateModal()">Tambah Kemasan</button>
+            <button type="button" class="btn btn-sm btn-info" onclick="openEditModal()">Edit Kemasan</button>
+            <button type="button" class="btn btn-sm btn-danger" onclick="submitDelete()">Hapus Kemasan</button>
+            <button type="button" class="btn btn-sm btn-success" onclick="MasterKemasanGrid.toExcel('./export/generate.php');">Excel</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="refreshdata()">Refresh</button>
         </div>
-    @endif
-    @if(session('error'))
-        <div class="alert alert-danger alert-dismissible fade show w-100" role="alert">
-            {{ session('error') }}
-            <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+    </div>
+    <div class="card-body">
+        <div class="cns-filter-bar">
+            <div>
+                <label for="filterKemasanName" class="d-block mb-1"><small>Nama Kemasan</small></label>
+                <input type="text" id="filterKemasanName" class="form-control form-control-sm" style="width:200px;" placeholder="Semua Kemasan" onkeyup="if(event.key==='Enter') refreshdata()" />
+            </div>
+            <div>
+                <button type="button" class="btn btn-sm btn-primary" onclick="refreshdata()">Filter</button>
+                <button type="button" class="btn btn-sm btn-danger ml-1" onclick="resetFilters()">Reset</button>
+            </div>
         </div>
-    @endif
-    @if(isset($errors) && $errors->any())
-        <div class="alert alert-danger alert-dismissible fade show w-100" role="alert">
-            {{ $errors->first() }}
-            <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-        </div>
-    @endif
 
-    <div class="card w-100">
-        <div class="card-body">
-            <div class="d-flex align-items-end flex-wrap gap-2 mb-3">
-                <div class="m-1">
-                    <label class="d-block mb-1"><small>Nama Kemasan</small></label>
-                    <input type="text" id="filterKemasanName" class="form-control form-control-sm" style="width:200px;" placeholder="Semua Kemasan" onkeyup="if(event.key==='Enter') refreshdata()" />
-                </div>
-                <div class="m-1">
-                    <button class="btn btn-sm btn-primary" onclick="refreshdata()">Filter</button>
-                    <button class="btn btn-sm btn-danger ml-1" onclick="resetFilters()">Reset</button>
-                </div>
-            </div>
-
-            <div class="m-2">
-                <div id="MasterKemasanGrid" style="width:auto; height:400px;"></div>
-            </div>
-
-            <div class="mt-2">
-                <button class="btn btn-primary" onclick="openCreateModal()">Tambah Kemasan</button>
-                <button class="btn btn-info" onclick="openEditModal()">Edit Kemasan</button>
-                <button class="btn btn-danger" onclick="submitDelete()">Hapus Kemasan</button>
-                <button class="btn btn-success" onclick="MasterKemasanGrid.toExcel('./export/generate.php');">Excel</button>
-            </div>
+        <div class="cns-grid-wrapper">
+            <div id="MasterKemasanGrid" class="cns-grid" style="width:auto; height:400px;"></div>
         </div>
     </div>
 </div>
@@ -100,6 +87,10 @@
                         <label class="font-weight-bold">Price (IDR)</label>
                         <input type="text" inputmode="decimal" name="Price" id="inputKemasanPrice" class="form-control form-control-sm text-right cns-decimal" placeholder="Contoh: 50,000.00" value="0.00" />
                     </div>
+                    <div class="form-group">
+                        <label class="font-weight-bold">Serial Number Tersedia</label>
+                        <textarea name="serial_numbers" id="inputKemasanSerialNumbers" class="form-control form-control-sm" rows="2" placeholder="Pisahkan dengan koma atau baris baru (opsional)"></textarea>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal" data-bs-dismiss="modal" onclick="$('#modalKemasan').modal('hide');">Batal</button>
@@ -117,16 +108,37 @@
 <script>
     var MasterKemasanGrid = new dhtmlXGridObject('MasterKemasanGrid');
     MasterKemasanGrid.setImagePath("./dhtmlx/imgs/");
-    MasterKemasanGrid.setHeader("No.,Kemasan_ID,Name,Product Type,Volume (L),Jenis,Max Stock,Unit,Price,Created At,Updated At");
-    MasterKemasanGrid.setInitWidths("50,90,*,140,100,90,100,80,110,135,135");
-    MasterKemasanGrid.attachHeader("&nbsp;,#text_filter,#text_filter,#select_filter,#text_filter,#select_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
-    MasterKemasanGrid.setColAlign("center,center,left,center,right,center,right,center,right,center,center");
-    MasterKemasanGrid.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
-    MasterKemasanGrid.setColSorting("int,int,str,str,int,str,int,str,int,str,str");
+    MasterKemasanGrid.setHeader("No.,Kemasan_ID,Name,Product Type,Volume (L),Jenis,Max Stock,Unit,Price,Serial Number,Created At,Updated At");
+    MasterKemasanGrid.setInitWidths("50,90,*,140,100,90,100,80,110,180,135,135");
+    MasterKemasanGrid.attachHeader("&nbsp;,#text_filter,#text_filter,#select_filter,#text_filter,#select_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
+    MasterKemasanGrid.setColAlign("center,center,left,center,right,center,right,center,right,left,center,center");
+    MasterKemasanGrid.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
+    MasterKemasanGrid.setColSorting("int,int,str,str,int,str,int,str,int,str,str,str");
     MasterKemasanGrid.attachEvent("onRowDblClicked", openEditModal);
-    MasterKemasanGrid.enableSmartRendering(true, 50);
     MasterKemasanGrid.setSkin("dhx_skyblue");
     MasterKemasanGrid.init();
+
+    var MasterKemasanPagination = initCnsGridPagination(MasterKemasanGrid, {
+        pageSize: 25,
+        pageSizeOptions: [10, 25, 50, 100],
+        getUrl: function (params) {
+            var q = new URLSearchParams();
+            q.append('posStart', params.posStart);
+            q.append('count', params.count);
+            if (params.sortCol !== null && params.sortCol !== undefined) {
+                q.append('sort_col', params.sortCol);
+                q.append('sort_dir', params.sortDir || 'asc');
+            }
+            if (params.filters) {
+                Object.keys(params.filters).forEach(function (colIdx) {
+                    q.append('filter[' + colIdx + ']', params.filters[colIdx]);
+                });
+            }
+            var name = $('#filterKemasanName').val();
+            if (name) q.append('name', name);
+            return "{{ route('cns-master-kemasan.xml') }}" + '?' + q.toString();
+        }
+    });
 
     function toggleMaxStockField() {
         var isAmpas = $('#inputKemasanIsAmpas').is(':checked');
@@ -141,9 +153,7 @@
     }
 
     function refreshdata() {
-        var name = $('#filterKemasanName').val();
-        var url = "{{ route('cns-master-kemasan.xml') }}" + (name ? '?name=' + encodeURIComponent(name) : '');
-        MasterKemasanGrid.clearAndLoad(url);
+        MasterKemasanPagination.reload(true);
     }
 
     function resetFilters() {
@@ -161,6 +171,7 @@
         $('#inputKemasanMaxStock').val('');
         $('#inputKemasanUnit').val('');
         $('#inputKemasanPrice').val('0.00');
+        $('#inputKemasanSerialNumbers').val('');
         toggleMaxStockField();
         $('#modalKemasan').modal('show');
     }
@@ -168,7 +179,7 @@
     function openEditModal() {
         var id = MasterKemasanGrid.getSelectedId();
         if (!id) {
-            alert('Pilih data kemasan terlebih dahulu.');
+            swal('Perhatian', 'Pilih data kemasan terlebih dahulu.', 'warning');
             return;
         }
         var productType = MasterKemasanGrid.cells(id, 3).getValue() || 'Kemasan';
@@ -177,6 +188,7 @@
         var maxStock = MasterKemasanGrid.cells(id, 6).getValue();
         var unit = MasterKemasanGrid.cells(id, 7).getValue();
         var price = MasterKemasanGrid.cells(id, 8).getValue();
+        var serialNumbers = MasterKemasanGrid.cells(id, 9).getValue();
 
         $('#modalKemasanTitle').text('Edit Master Kemasan');
         $('#formKemasan').attr('action', "{{ url('cns-master-kemasan-update') }}/" + id);
@@ -187,6 +199,7 @@
         $('#inputKemasanMaxStock').val(maxStock === '-' ? '' : cnsFormatNumber(cnsParseNumber(maxStock, 0), 2));
         $('#inputKemasanUnit').val(unit === '-' ? '' : unit);
         $('#inputKemasanPrice').val(price === '-' || price === '' ? '0.00' : cnsFormatNumber(cnsParseNumber(price, 0), 2));
+        $('#inputKemasanSerialNumbers').val(serialNumbers === '-' ? '' : serialNumbers);
         toggleMaxStockField();
         $('#modalKemasan').modal('show');
     }
@@ -194,16 +207,24 @@
     function submitDelete() {
         var id = MasterKemasanGrid.getSelectedId();
         if (!id) {
-            alert('Pilih data kemasan terlebih dahulu.');
+            swal('Perhatian', 'Pilih data kemasan terlebih dahulu.', 'warning');
             return;
         }
         var name = MasterKemasanGrid.cells(id, 2).getValue();
-        if (!confirm('Hapus master kemasan "' + name + '"?')) {
-            return;
-        }
-        var form = $('#formDeleteKemasan');
-        form.attr('action', "{{ url('cns-master-kemasan-delete') }}/" + id);
-        form.submit();
+        swal({
+            title: 'Konfirmasi',
+            text: 'Hapus master kemasan "' + name + '"?',
+            icon: 'warning',
+            buttons: ['Batal', 'Ya'],
+            dangerMode: true
+        }).then(function(confirmed) {
+            if (!confirmed) {
+                return;
+            }
+            var form = $('#formDeleteKemasan');
+            form.attr('action', "{{ url('cns-master-kemasan-delete') }}/" + id);
+            form.submit();
+        });
     }
 
     refreshdata();

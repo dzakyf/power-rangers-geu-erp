@@ -5,8 +5,8 @@
         'APPROVED' => 'success', 'REJECTED' => 'danger', 'ASSIGNED' => 'primary',
         'IN_PROGRESS' => 'warning', 'COMPLETED' => 'success', 'CANCELLED' => 'dark',
     ][$status] ?? 'secondary';
-    $canEdit = can_menu('SI01010', 'edit');
-    $canApprove = can_menu('SI01010', 'approve');
+    $canEdit = can_menu('SI01014', 'edit');
+    $canApprove = can_menu('SI01014', 'approve');
 @endphp
 
 <div class="mt-3" id="GAWODetailContainer">

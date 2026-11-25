@@ -1,7 +1,7 @@
 <div class="mt-3">
-    <div class="JudulContent" style="color:#699;">DETAIL TANGKI: {{ $tank->name }}</div>
-    <div class="card">
-        <div class="card-body pt-2">
+    <div class="cns-section-header">DETAIL TANGKI: {{ $tank->name }}</div>
+    <div class="card cns-card">
+        <div class="card-body pt-3">
             <!-- Nav Tabs -->
             <ul class="nav nav-tabs mb-3" id="tankDetailTabs" role="tablist">
                 <li class="nav-item">
@@ -87,7 +87,7 @@
                                         <td><small>{{ $log->created_at ? $log->created_at->format('d/m/Y H:i:s') : '-' }}</small></td>
                                         <td>
                                             @if($log->action === 'CREATE')
-                                                <span class="badge badge-success">CREATE</span>
+                                                <span class="badge rounded-pill cns-status-badge bg-success">CREATE</span>
                                             @elseif($log->action === 'UPDATE')
                                                 <span class="badge badge-primary">UPDATE</span>
                                             @elseif($log->action === 'DELETE')
@@ -138,11 +138,12 @@
             success: function(res) {
                 $btn.prop('disabled', false).text('Update');
                 if (res.success) {
-                    alert('Detail Tank Updated!');
-                    $('#MasterTankDet').empty();
-                    refreshdata();
+                    swal('Berhasil!', 'Detail Tank Updated!', 'success').then(function() {
+                        $('#MasterTankDet').empty();
+                        refreshdata();
+                    });
                 } else {
-                    alert(res.message || 'Gagal memperbarui data.');
+                    swal('Error', res.message || 'Gagal memperbarui data.', 'error');
                 }
             },
             error: function(xhr) {
@@ -151,41 +152,50 @@
                 if (xhr.responseJSON && xhr.responseJSON.message) {
                     msg = xhr.responseJSON.message;
                 }
-                alert(msg);
+                swal('Error', msg, 'error');
             }
         });
     }
 
     function deleteDetailTank(id) {
         var tankName = $('#edit_tank_name').val();
-        if (!confirm('Apakah Anda yakin ingin menghapus tangki "' + tankName + '"? Data histori mutasi tetap tersimpan.')) {
-            return;
-        }
-
-        var token = $('meta[name="csrf-token"]').attr('content') || $('input[name="_token"]').val();
-
-        $.ajax({
-            url: 'cns-master-tank-delete/' + id,
-            type: 'POST',
-            data: {
-                _token: token
-            },
-            success: function(res) {
-                if (res.success) {
-                    alert('Tank Deleted!');
-                    $('#MasterTankDet').empty();
-                    refreshdata();
-                } else {
-                    alert(res.message || 'Gagal menghapus tangki.');
-                }
-            },
-            error: function(xhr) {
-                var msg = 'Gagal menghapus tangki.';
-                if (xhr.responseJSON && xhr.responseJSON.message) {
-                    msg = xhr.responseJSON.message;
-                }
-                alert(msg);
+        swal({
+            title: 'Konfirmasi',
+            text: 'Apakah Anda yakin ingin menghapus tangki "' + tankName + '"? Data histori mutasi tetap tersimpan.',
+            icon: 'warning',
+            buttons: ['Batal', 'Ya'],
+            dangerMode: true
+        }).then(function(confirmed) {
+            if (!confirmed) {
+                return;
             }
+
+            var token = $('meta[name="csrf-token"]').attr('content') || $('input[name="_token"]').val();
+
+            $.ajax({
+                url: 'cns-master-tank-delete/' + id,
+                type: 'POST',
+                data: {
+                    _token: token
+                },
+                success: function(res) {
+                    if (res.success) {
+                        swal('Berhasil!', 'Tank Deleted!', 'success').then(function() {
+                            $('#MasterTankDet').empty();
+                            refreshdata();
+                        });
+                    } else {
+                        swal('Error', res.message || 'Gagal menghapus tangki.', 'error');
+                    }
+                },
+                error: function(xhr) {
+                    var msg = 'Gagal menghapus tangki.';
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        msg = xhr.responseJSON.message;
+                    }
+                    swal('Error', msg, 'error');
+                }
+            });
         });
     }
 

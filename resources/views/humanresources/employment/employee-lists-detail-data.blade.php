@@ -36,22 +36,21 @@ $LSP = Auth::user()->Location ?? '';
 $Saya =  Auth::user()->username ?? '';
 $priv =  Auth::user()->Priv_ID ?? '';
 $datahasil = DB::table("employment")->where("Task_ID", $_GET['ID'] ?? '')->first();
-$result = DB::select("SELECT column_name FROM information_schema.columns where table_name = 'employment' AND table_schema='erp_geu'");
-$jumlah = count($result);
-if ($jumlah > 0) {
-	echo "<script>";
-	foreach ($result as $row) {
-		$kolom = $row->column_name;
-		if ($datahasil->$kolom == '0000-00-00') {
-			echo "$('#$kolom').val('');\n";
-		} else {
-			if ($datahasil->$kolom != 'ID') {
-				$dataForm = $datahasil->$kolom;
-				echo "$('#$kolom').val('$dataForm');\n";
+if ($datahasil) {
+	$result = DB::select("SELECT column_name FROM information_schema.columns where table_name = 'employment' AND table_schema = ?", [DB::getDatabaseName()]);
+	if (count($result) > 0) {
+		echo "<script>";
+		foreach ($result as $row) {
+			$kolom = $row->column_name;
+			$val = $datahasil->$kolom ?? '';
+			if ($val == '0000-00-00') {
+				echo "$('#{$kolom}').val('');\n";
+			} elseif ($kolom !== 'ID') {
+				echo "$('#{$kolom}').val(" . json_encode((string) $val) . ");\n";
 			}
 		}
+		echo "</script>";
 	}
-	echo "</script>";
 }
 
 $datapo = DB::table("opportunity_detail")->where("Task_ID", $datahasil->Registration_Status ?? '')->first();
@@ -72,8 +71,14 @@ foreach ($Query1 as $Fetch1) {
         <div class="card-body p-4">
             <div class="d-flex flex-column flex-md-row align-items-center gap-4">
                 <div class="position-relative text-center">
+                    @php
+                        $fotoFile = trim((string) ($datahasil->Foto ?? ''));
+                        $fotoSrc = ($fotoFile !== '' && $fotoFile !== '-')
+                            ? asset('doc_recruitment/photo/' . $fotoFile)
+                            : asset('assets/images/user/big/1.png');
+                    @endphp
                     <div class="rounded-3 overflow-hidden border shadow-sm" style="width: 120px; height: 140px; background-color: #f8f9fa;">
-                        <img src="./doc_recruitment/photo/<?php echo $datahasil->Foto ?? ''; ?>" id="gambar" onclick="if(typeof cekFoto === 'function') cekFoto('<?php echo $datahasil->Foto ?? ''; ?>')" class="w-100 h-100 object-fit-cover" style="cursor:pointer;" alt="Employee Photo" onerror="this.src='{{ asset('assets/images/user/big/1.png') }}'">
+                        <img src="{{ $fotoSrc }}" id="gambar" onclick="if(typeof cekFoto === 'function') cekFoto('<?php echo $fotoFile; ?>')" class="w-100 h-100 object-fit-cover" style="cursor:pointer;" alt="Employee Photo" onerror="this.onerror=null;this.src='{{ asset('assets/images/user/big/1.png') }}';">
                     </div>
                     <button type="button" class="btn btn-sm btn-outline-primary mt-2 w-100" onclick="if(typeof uploadGambar === 'function') uploadGambar('Foto');">
                         <i class="fa fa-camera me-1"></i> Change
@@ -477,6 +482,35 @@ foreach ($Query1 as $Fetch1) {
                     </select>
                 </div>
 
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted" for="bpjs_kes_total_family">Total Anggota Keluarga BPJS Kes</label>
+                    <?php
+                        $maxCoreFamily = max(1, (int) app(\App\Services\Payroll\PayrollCalculationService::class)->getConfig('bpjs_kes_max_core_family', 5));
+                        $kesExtraFamily = isset($datahasil->bpjs_kes_extra_family) ? max(0, (int)$datahasil->bpjs_kes_extra_family) : 0;
+                        $kesTotalFamily = isset($datahasil->bpjs_kes_total_family) && $datahasil->bpjs_kes_total_family !== null
+                            ? max(0, (int)$datahasil->bpjs_kes_total_family)
+                            : ($kesExtraFamily > 0 ? ($maxCoreFamily + $kesExtraFamily) : 1);
+                    ?>
+                    <div class="input-group input-group-sm">
+                        <input type="number" id="bpjs_kes_total_family" class="form-control form-control-sm" min="0" max="25" value="<?php echo $kesTotalFamily; ?>">
+                        <span class="input-group-text">Jiwa</span>
+                    </div>
+                    <div class="form-text small text-muted" style="font-size: 0.75rem;">
+                        Total jiwa terdaftar (inti maks <?php echo $maxCoreFamily; ?> jiwa). Otomatis sinkron ke kolom Tambahan.
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted" for="bpjs_kes_extra_family">Keluarga Tambahan (&gt; <?php echo $maxCoreFamily; ?> Jiwa)</label>
+                    <div class="input-group input-group-sm">
+                        <input type="number" id="bpjs_kes_extra_family" class="form-control form-control-sm" min="0" max="20" value="<?php echo $kesExtraFamily; ?>">
+                        <span class="input-group-text">Orang</span>
+                    </div>
+                    <div class="form-text small text-muted" style="font-size: 0.75rem;">
+                        Di luar <?php echo $maxCoreFamily; ?> tanggungan inti (anak ke-4 dst, ortu, mertua). +1%/orang.
+                    </div>
+                </div>
+
                 <div class="col-md-6">
                     <label class="form-label small fw-bold text-muted" for="bpjs_probation_exempt">Pengecualian Masa Probation (Tunda BPJS)</label>
                     <?php $probExempt = isset($datahasil->bpjs_probation_exempt) ? (int)$datahasil->bpjs_probation_exempt : 0; ?>
@@ -626,6 +660,32 @@ $(document).ready(function() {
 
     initSearchableSelects();
     setTimeout(initSearchableSelects, 300);
+
+    var maxCoreFamily = <?php echo max(1, (int) app(\App\Services\Payroll\PayrollCalculationService::class)->getConfig('bpjs_kes_max_core_family', 5)); ?>;
+    $('#bpjs_kes_total_family').on('input change', function() {
+        var total = parseInt($(this).val(), 10);
+        if (isNaN(total) || total < 0) {
+            total = 0;
+        }
+        var extra = Math.max(0, total - maxCoreFamily);
+        $('#bpjs_kes_extra_family').val(extra);
+    });
+
+    $('#bpjs_kes_extra_family').on('input change', function() {
+        var extra = parseInt($(this).val(), 10);
+        if (isNaN(extra) || extra < 0) {
+            extra = 0;
+        }
+        var currentTotal = parseInt($('#bpjs_kes_total_family').val(), 10);
+        if (isNaN(currentTotal) || currentTotal < 0) {
+            currentTotal = maxCoreFamily;
+        }
+        if (extra > 0) {
+            $('#bpjs_kes_total_family').val(maxCoreFamily + extra);
+        } else if (currentTotal > maxCoreFamily) {
+            $('#bpjs_kes_total_family').val(maxCoreFamily);
+        }
+    });
 });
 
 $('#buttonSimpan').click(function() {
@@ -670,12 +730,20 @@ var winCOA, WCOA;
 function uploadGambar(isi) {
     winCOA = new dhtmlXWindows();
     winCOA.attachViewportTo('ContentPages');
-    WCOA = winCOA.createWindow("WCOA", 200, 100, 550, 350);
+    WCOA = winCOA.createWindow("WCOA", 200, 100, 520, 320);
     WCOA.keepInViewport(false);
     WCOA.setText(isi);
-    WCOA.attachURL('upload-foto?ID=<?php echo $_GET['ID'] ?? '' ?>', true);
+    WCOA.attachURL("{{ url('upload-foto') }}?ID=" + encodeURIComponent({!! json_encode((string) ($_GET['ID'] ?? '')) !!}), true);
     WCOA.button("minmax1").hide();
     WCOA.button("park").hide();
     WCOA.allowMove();
 }
+window.onEmployeePhotoUploaded = function(photoUrl) {
+    if (photoUrl) {
+        $('#gambar').attr('src', photoUrl + '?t=' + Date.now());
+    }
+    if (typeof WCOA !== 'undefined' && WCOA) {
+        WCOA.close();
+    }
+};
 </script>

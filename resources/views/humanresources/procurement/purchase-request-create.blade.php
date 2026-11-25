@@ -8,7 +8,16 @@
             <li class="breadcrumb-item"><a href="{{ url('purchase-request-list') }}">Purchase Request (PR)</a></li>
             <li class="breadcrumb-item active"><span>Create Purchase Request</span></li>
         </ol>
-    </div> 
+    </div>
+
+    @if(session('error'))
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert" style="font-size: 12px;">
+            <i class="fas fa-exclamation-triangle mr-1"></i> <strong>Gagal:</strong> {{ session('error') }}
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+    @endif
 
     <div class="card shadow-sm border-0 mb-4" style="border-radius: 12px;">
         <div class="card-header bg-success text-white py-2">
@@ -19,7 +28,7 @@
         <div class="card-body bg-light">
             <form action="{{ url('purchase-request-store') }}" method="POST" enctype="multipart/form-data">
                 @csrf
-                
+
                 <!-- HEADER INFORMASI PR -->
                 <div class="row mb-3" style="font-size: 12px;">
                     <div class="col-md-4">
@@ -28,7 +37,7 @@
                     </div>
                     <div class="col-md-4">
                         <label class="font-weight-bold">Tanggal PR:</label>
-                        <input type="date" class="form-control form-control-sm" name="pr_date" value="{{ date('Y-m-d') }}" required>
+                        <input type="date" class="form-control form-control-sm" name="pr_date" value="{{ old('pr_date', date('Y-m-d')) }}" required>
                     </div>
                     <div class="col-md-4">
                         <label class="font-weight-bold">Department (Pembebanan Budget):</label>
@@ -37,17 +46,72 @@
                             @if(isset($departments) && count($departments) > 0)
                                 @foreach($departments as $dept)
                                     @php
-                                        $isSelected = ($dept->Department_ID == $userDepartment || strtoupper($dept->Department) == strtoupper($userDepartment) || strtoupper($dept->Department_ID) == strtoupper($userDepartment)) ? 'selected' : '';
+                                        $selectedDept = old('department', $userDepartment);
+                                        $isSelected = ($dept->Department_ID == $selectedDept || strtoupper($dept->Department) == strtoupper($selectedDept) || strtoupper($dept->Department_ID) == strtoupper($selectedDept)) ? 'selected' : '';
                                     @endphp
                                     <option value="{{ $dept->Department_ID }}" {{ $isSelected }}>
                                         {{ $dept->Department }} ({{ $dept->Department_ID }})
                                     </option>
                                 @endforeach
                             @else
-                                <option value="ICT" {{ $userDepartment == 'ICT' ? 'selected' : '' }}>IT (ICT)</option>
-                                <option value="FIN" {{ $userDepartment == 'FIN' ? 'selected' : '' }}>Financial (FIN)</option>
+                                <option value="ICT" {{ old('department', $userDepartment) == 'ICT' ? 'selected' : '' }}>IT (ICT)</option>
+                                <option value="FIN" {{ old('department', $userDepartment) == 'FIN' ? 'selected' : '' }}>Financial (FIN)</option>
                             @endif
                         </select>
+                    </div>
+                </div>
+
+                <!-- KATEGORI SK APPROVAL & PENGADAAN -->
+                <div class="row mb-3" style="font-size: 12px;">
+                    <div class="col-md-3">
+                        <label class="font-weight-bold text-danger">Jenis Pengadaan (SK Approval): *</label>
+                        <select class="form-control form-control-sm border-danger font-weight-bold" name="supplies_type" required>
+                            <option value="OPS" {{ old('supplies_type') == 'OPS' ? 'selected' : '' }}>A. GA - Procurement OPS</option>
+                            <option value="NON-OPS" {{ old('supplies_type', 'NON-OPS') == 'NON-OPS' ? 'selected' : '' }}>B. Procurement Non-OPS</option>
+                            <option value="NON-OPS-CNS" {{ old('supplies_type') == 'NON-OPS-CNS' ? 'selected' : '' }}>C. Procurement Non-OPS - CNS</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="font-weight-bold">Kategori Anggaran (Main Category):</label>
+                        <select class="form-control form-control-sm" name="main_category" required>
+                            <option value="NON ASSET" {{ old('main_category') == 'NON ASSET' ? 'selected' : '' }}>NON ASSET</option>
+                            <option value="ASSET" {{ old('main_category') == 'ASSET' ? 'selected' : '' }}>ASSET (Pengadaan Aset Baru)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="font-weight-bold">Kategori Pengadaan:</label>
+                        <select class="form-control form-control-sm" name="procurement_category" required>
+                            @foreach(['Rutin', 'Pengadaan Aset Baru', 'Pemeliharaan Insidentil', 'Project', 'ETC'] as $pCat)
+                                <option value="{{ $pCat }}" {{ old('procurement_category', 'Rutin') == $pCat ? 'selected' : '' }}>{{ $pCat }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="font-weight-bold">Sub Kategori (Category):</label>
+                        <select class="form-control form-control-sm" name="category" required>
+                            <option value="BARANG" {{ old('category') == 'BARANG' ? 'selected' : '' }}>BARANG</option>
+                            <option value="JASA" {{ old('category') == 'JASA' ? 'selected' : '' }}>JASA</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- URGENSI, HOPE DATE, & COST CENTER -->
+                <div class="row mb-3" style="font-size: 12px;">
+                    <div class="col-md-4">
+                        <label class="font-weight-bold">Tingkat Urgensi PR:</label>
+                        <select class="form-control form-control-sm" name="urgency" required>
+                            @foreach(['Normal', 'Emergency', 'Urgent', 'Planned', 'Project'] as $urg)
+                                <option value="{{ $urg }}" {{ old('urgency', 'Normal') == $urg ? 'selected' : '' }}>{{ $urg }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="font-weight-bold">Hope Date (Target Kedatangan):</label>
+                        <input type="date" class="form-control form-control-sm" name="hope_date" value="{{ old('hope_date', date('Y-m-d', strtotime('+7 days'))) }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="font-weight-bold">Cost Center:</label>
+                        <input type="text" class="form-control form-control-sm" name="cost_center" value="{{ old('cost_center') }}" placeholder="Contoh: CC-HO-01 / Project Site...">
                     </div>
                 </div>
 
@@ -55,19 +119,19 @@
                 <div class="row mb-3" style="font-size: 12px;">
                     <div class="col-md-2">
                         <label class="font-weight-bold">PIC (Penanggung Jawab):</label>
-                        <input type="text" class="form-control form-control-sm" name="pic_name" value="{{ Auth::user()->Name ?? '' }}" placeholder="Nama PIC..." required>
+                        <input type="text" class="form-control form-control-sm" name="pic_name" value="{{ old('pic_name', Auth::user()->Name ?? '') }}" placeholder="Nama PIC..." required>
                     </div>
                     <div class="col-md-2">
                         <label class="font-weight-bold">Phone PIC:</label>
-                        <input type="text" class="form-control form-control-sm" name="PIC_Phone" placeholder="No. Telepon...">
+                        <input type="text" class="form-control form-control-sm" name="PIC_Phone" value="{{ old('PIC_Phone') }}" placeholder="No. Telepon...">
                     </div>
                     <div class="col-md-3">
                         <label class="font-weight-bold">Email PIC:</label>
-                        <input type="email" class="form-control form-control-sm" name="pic_email" placeholder="email@domain.com...">
+                        <input type="email" class="form-control form-control-sm" name="pic_email" value="{{ old('pic_email') }}" placeholder="email@domain.com...">
                     </div>
                     <div class="col-md-3">
                         <label class="font-weight-bold">Site Tujuan:</label>
-                        <input type="text" class="form-control form-control-sm" name="site_destination" placeholder="Contoh: Site Bekasi..." required>
+                        <input type="text" class="form-control form-control-sm" name="site_destination" value="{{ old('site_destination') }}" placeholder="Contoh: Site Bekasi..." required>
                     </div>
                     <div class="col-md-2">
                         <label class="font-weight-bold text-primary">Estimated Budget (Rp):</label>
@@ -76,28 +140,11 @@
                     </div>
                 </div>
 
-                <div class="row mb-3" style="font-size: 12px;">
-                    <div class="col-md-6">
-                        <label class="font-weight-bold">Kategori Anggaran (Main Category):</label>
-                        <select class="form-control form-control-sm" name="main_category" required>
-                            <option value="ASSET">ASSET</option>
-                            <option value="NON ASSET">NON ASSET</option>
-                        </select>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="font-weight-bold">Sub Kategori (Category):</label>
-                        <select class="form-control form-control-sm" name="category" required>
-                            <option value="BARANG">BARANG</option>
-                            <option value="JASA">JASA</option>
-                        </select>
-                    </div>
-                </div>
-
                 <!-- BAGIAN NOTE -->
                 <div class="row mb-3" style="font-size: 12px;">
                     <div class="col-md-12">
                         <label class="font-weight-bold">Catatan / Note Baru:</label>
-                        <textarea class="form-control form-control-sm" name="note" rows="3" placeholder="Tulis catatan atau instruksi tambahan untuk PR ini..."></textarea>
+                        <textarea class="form-control form-control-sm" name="note" rows="3" placeholder="Tulis catatan atau instruksi tambahan untuk PR ini...">{{ old('note') }}</textarea>
                     </div>
                 </div>
 
@@ -258,7 +305,7 @@
                     inputDesc.val(res.nama);
                     inputSpec.val(res.spec);
                     inputUnit.val(res.uom);
-                    
+
                     if (res.image) {
                         boxFoto.html('<a href="' + res.image + '" target="_blank" class="btn btn-info text-white font-weight-bold shadow-sm" style="padding: 1px 6px; font-size: 10px; line-height: 1.4; border-radius: 3px;" title="Lihat Foto Produk"><i class="fas fa-eye"></i></a>');
                     } else {

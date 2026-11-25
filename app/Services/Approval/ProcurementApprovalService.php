@@ -3,15 +3,11 @@
 namespace App\Services\Approval;
 
 use App\Exceptions\ApprovalWorkflowException;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 
 /**
  * Adapter antara modul Procurement (Purchase Request) dan engine Approval Policy.
- *
- * Mengelola lifecycle approval untuk PR, auto-generation Purchase Order (PO)
- * saat final approval, dan integrasi nomor dokumen ke inventory incoming.
+ * Terhubung ke Approval Inbox terpusat & SyncModuleApprovalStatus.
  */
 class ProcurementApprovalService
 {
@@ -41,21 +37,19 @@ class ProcurementApprovalService
     }
 
     /**
-     * Submit PR ke Approval Workflow.
-     *
-     * @param object|array $pr
-     * @param object $user
-     * @return object approval_request
+     * Submit PR ke Approval Workflow (Approval Inbox & Mobile Apps).
      */
     public function submit($pr, $user)
     {
         $prObj = is_array($pr) ? (object) $pr : $pr;
         $context = $this->buildContext($prObj, $user);
 
-        $description = 'Pengadaan barang ' . ($prObj->Category ?? 'PR') . ' No: ' . $prObj->PR_No . ' (' . ($prObj->Remark ?? '') . ')';
+        $suppliesLabel = strtoupper($prObj->Supplies_Type ?? 'NON-OPS');
+        $catLabel      = strtoupper($prObj->Category ?? 'NON ASSET');
+        $description   = "PR [{$suppliesLabel} - {$catLabel}] No: {$prObj->PR_No}" . (!empty($prObj->Note) ? " ({$prObj->Note})" : '');
 
         $approvalReq = $this->workflow->submit([
-            'Request_No' => $prObj->PR_No,
+            'Request_No'  => $prObj->PR_No,
             'Description' => $description,
         ], $context, (int) $user->id);
 
@@ -63,14 +57,38 @@ class ProcurementApprovalService
             'Map_To' => (int) $prObj->ID,
         ]);
 
-        $initialStatus = $this->mapApprovalStatusToPrStatus($approvalReq->Status);
+        $initialStatus = $this->mapApprovalStatusToPrStatus((string) $approvalReq->Status);
 
         DB::table('purchase_request')->where('ID', (int) $prObj->ID)->update([
             'Approval_Request_ID' => (int) $approvalReq->ID,
-            'Status' => $initialStatus,
+            'Status'              => $initialStatus,
         ]);
 
         return $this->workflow->getRequest((int) $approvalReq->ID);
+    }
+
+    /**
+     * Resubmit PR yang dikembalikan (RETURNED) setelah direvisi.
+     */
+    public function resubmit($pr, $user)
+    {
+        $prObj   = is_array($pr) ? (object) $pr : $pr;
+        $context = $this->buildContext($prObj, $user);
+
+        $newReq = $this->workflow->resubmit((int) $prObj->Approval_Request_ID, $context, (int) $user->id);
+
+        DB::table('approval_request')->where('ID', (int) $newReq->ID)->update([
+            'Map_To' => (int) $prObj->ID,
+        ]);
+
+        $newStatus = $this->mapApprovalStatusToPrStatus((string) $newReq->Status);
+
+        DB::table('purchase_request')->where('ID', (int) $prObj->ID)->update([
+            'Approval_Request_ID' => (int) $newReq->ID,
+            'Status'              => $newStatus,
+        ]);
+
+        return $newReq;
     }
 
     /**
@@ -137,7 +155,7 @@ class ProcurementApprovalService
     }
 
     /**
-     * Eksekusi aksi approval/rejection ke workflow engine.
+     * Eksekusi aksi approval/rejection ke workflow engine dari halaman PR.
      */
     public function actOnPr(int $prId, int $userId, string $action, string $notes, $user): array
     {
@@ -179,133 +197,83 @@ class ProcurementApprovalService
                 }
             }
 
-            $request = $this->workflow->getRequest((int) $pr->Approval_Request_ID);
-            $newPrStatus = $this->mapApprovalStatusToPrStatus($request->Status);
-
-            DB::table('purchase_request')->where('ID', $prId)->update([
-                'Status' => $newPrStatus,
-            ]);
-
-            // Catat log
-            DB::table('purchase_request_log')->insert([
-                'PR_No' => $pr->PR_No,
-                'Action_By' => $user->username ?? 'SYSTEM',
-                'Action_Date' => now(),
-                'Action_Status' => $newPrStatus,
-                'Last_ID' => $pr->ID,
-                'Category' => $pr->Category ?? '',
-                'Sub_Category' => $pr->Sub_Category ?? '',
-                'Supplies_Type' => $pr->Supplies_Type ?? '',
-                'Note' => $notes ?: ($action === 'APPROVE' ? 'Approved step' : 'Rejected'),
-                'Reference' => $pr->Reference ?? '',
-            ]);
-
-            // Jika status request selesai disetujui (APPROVED), otomatis buat Purchase Order (PO)
-            if ($request->Status === 'APPROVED') {
-                $this->onFinalApproved($pr, $user);
-            }
+            // Sinkronkan status purchase_request & riwayat catatan
+            $this->syncApprovalStatus($prId);
 
             return $acted;
         });
     }
 
     /**
-     * Trigger ketika PR mencapai status APPROVED akhir.
-     * Membuat data di tabel purchase_order dan purchase_order_dtl jika belum ada,
-     * sehingga terhubung langsung ke inventori saat penerimaan barang.
+     * Dipanggil otomatis oleh SyncModuleApprovalStatus (ketika di-approve lewat Approval Inbox / Mobile)
+     * maupun setelah actOnPr() dari halaman detail PR.
      */
-    public function onFinalApproved($pr, $user)
+    public function syncApprovalStatus(int $prId): void
     {
-        $existingPO = DB::table('purchase_order')->where('PR_No', $pr->PR_No)->first();
-        if ($existingPO) {
-            return $existingPO->PO_No;
+        $pr = DB::table('purchase_request')->where('ID', $prId)->first();
+        if (!$pr || empty($pr->Approval_Request_ID)) {
+            return;
         }
 
-        $location = $pr->Location ?: ($user->Location ?? 'GEU-HO');
-        $username = $user->username ?? 'SYSTEM';
-        $dateR = date('Ymd');
-        $year = date('Y');
-
-        // Generate PO Number
-        $countYear = DB::table('purchase_order')->where('PO_Date', 'LIKE', "$year%")->count() + 1;
-        $seq = str_pad($countYear, 3, '0', STR_PAD_LEFT);
-        $poNo = "PO/{$location}/INV/{$dateR}-{$seq}";
-
-        $details = DB::table('purchase_request_dtl')->where('PR_No', $pr->PR_No)->get();
-
-        $subtotal = 0;
-        foreach ($details as $dtl) {
-            $qty = (float) ($dtl->Qty ?? 1);
-            $price = (float) ($dtl->Price ?? $dtl->Default_Price ?? 0);
-            $total = $qty * $price;
-            $subtotal += $total;
-
-            DB::table('purchase_order_dtl')->insert([
-                'Location' => $location,
-                'PO_No' => $poNo,
-                'Category' => $dtl->Category ?? ($pr->Category ?? 'NON ASSET'),
-                'Sub_Category' => $dtl->Sub_Category ?? ($pr->Sub_Category ?? 'BARANG'),
-                'Purchase_Type' => $dtl->Purchase_Type ?? 'DIRECT',
-                'Product_Code' => $dtl->Product_Code ?? 'GENERAL',
-                'Barcode' => $dtl->Product_Code ?? 'GENERAL',
-                'Product_Desc' => $dtl->Product_Desc ?? $dtl->Item_Name ?? 'Item Pengadaan',
-                'Product_Type' => $dtl->Product_Code ?? 'GENERAL',
-                'Qty' => $qty,
-                'Qty_Receive' => 0,
-                'Qty_Remain' => $qty,
-                'Unit' => $dtl->Unit ?? 'PCS',
-                'Price' => $price,
-                'Subtotal' => $total,
-                'PPN' => 0,
-                'Total' => $total,
-                'Remark' => $dtl->Specification ?? $dtl->Remark ?? '',
-                'PR_No' => $pr->PR_No,
-                'Currency' => 'RP',
-            ]);
+        $req = $this->workflow->getRequest((int) $pr->Approval_Request_ID);
+        if (!$req) {
+            return;
         }
 
-        $finalTotal = $subtotal > 0 ? $subtotal : (float) ($pr->Estimated_Budget ?? 0);
+        $newPrStatus = $this->mapApprovalStatusToPrStatus((string) $req->Status);
 
-        DB::table('purchase_order')->insert([
-            'Location' => $location,
-            'Process_By' => $username,
-            'Purchase_Type' => $pr->Purchase_Type ?? 'DIRECT',
-            'Purchase_Category' => $pr->Category ?? 'NON ASSET',
-            'Purchase_Sub_Category' => $pr->Sub_Category ?? 'BARANG',
-            'PO_No' => $poNo,
-            'PO_Date' => now(),
-            'PO_Method' => 'POSTPAID',
-            'Supplier' => $pr->Supplier_ID ?? 'DEFAULT',
-            'Subtotal' => $finalTotal,
-            'PPN' => 0,
-            'Total' => $finalTotal,
-            'Status' => 'APPROVED',
-            'Status_Receive' => 'OPEN',
-            'Remark' => $pr->Remark ?? 'Auto-generated from PR: ' . $pr->PR_No,
-            'Date_Trx' => now(),
-            'User_Trx' => $username,
-            'PR_No' => $pr->PR_No,
-            'Currency' => 'RP',
-        ]);
+        // Ambil info approver terakhir yang mengeksekusi task
+        $lastTask = DB::table('approval_request_task')
+            ->where('Request_ID', (int) $req->ID)
+            ->whereNotNull('Acted_By')
+            ->orderBy('ID', 'DESC')
+            ->first();
 
-        DB::table('purchase_request')->where('ID', $pr->ID)->update([
-            'PO_No' => $poNo,
-            'PO_Status' => 'NORMAL',
-            'Processing_Status' => 'PO CREATED',
-            'Processing_Date' => now(),
-        ]);
+        $approverName = null;
+        if ($lastTask && $lastTask->Acted_By) {
+            $approver = DB::table('users')->where('id', $lastTask->Acted_By)->first();
+            $approverName = $approver->Name ?? $approver->username ?? 'SYSTEM';
+        }
 
-        return $poNo;
+        $updateData = [
+            'Status' => $newPrStatus,
+        ];
+
+        if (in_array($newPrStatus, ['APPROVED', 'REJECTED', 'RETURNED'], true)) {
+            $updateData['Approval_User'] = $approverName ?? $pr->Approval_User;
+            $updateData['Approval_Date'] = now();
+        }
+
+        DB::table('purchase_request')->where('ID', $prId)->update($updateData);
+
+        // Catat ke pr_notes_history agar tampil di riwayat percakapan detail PR
+        if ($lastTask && !empty($lastTask->Notes)) {
+            $alreadyLogged = DB::table('pr_notes_history')
+                ->where('PR_No', $pr->PR_No)
+                ->where('Note', $lastTask->Notes)
+                ->where('Created_By', $approverName ?? 'SYSTEM')
+                ->exists();
+
+            if (!$alreadyLogged) {
+                DB::table('pr_notes_history')->insert([
+                    'PR_No'         => $pr->PR_No,
+                    'Action_Status' => $newPrStatus,
+                    'Note'          => $lastTask->Notes,
+                    'Created_By'    => $approverName ?? 'SYSTEM',
+                    'Created_Date'  => now(),
+                ]);
+            }
+        }
     }
 
     /**
-     * Membangun payload konteks untuk evaluasi policy approval.
+     * Membangun payload konteks untuk evaluasi policy approval sesuai 3 Matriks SK.
      */
     protected function buildContext($pr, $user): array
     {
         $location = trim((string) ($pr->Location ?? $user->Location ?? ''));
-        $company = trim((string) ($user->Company_ID ?? 'GEU'));
-        $dept = trim((string) ($pr->Department ?? $user->Department ?? ''));
+        $company  = trim((string) ($user->Company_ID ?? 'GEU'));
+        $dept     = trim((string) ($pr->Department ?? $user->Department ?? ''));
 
         if ($location === '') {
             $location = 'GEU-HO';
@@ -317,88 +285,41 @@ class ProcurementApprovalService
         $estimatedBudget = (float) ($pr->Estimated_Budget ?? 0);
 
         return [
-            'Request_Type' => self::REQUEST_TYPE,
-            'Location' => $location,
-            'Company_ID' => $company,
-            'Department' => $dept,
-            'Amount' => $estimatedBudget,
-            'Estimated_Budget' => $estimatedBudget,
-            'Category' => $pr->Category ?? 'NON ASSET',
-            'Sub_Category' => $pr->Sub_Category ?? 'BARANG',
-            'Priority_Status' => $pr->Priority_Status ?? 'NORMAL',
+            'Request_Type'         => self::REQUEST_TYPE,
+            'Location'             => $location,
+            'Company_ID'           => $company,
+            'Department'           => $dept,
+            'Amount'               => $estimatedBudget,
+            'Estimated_Budget'     => $estimatedBudget,
+            // Atribut penentu 3 Matriks SK (OPS / NON-OPS / NON-OPS-CNS & ASSET / NON ASSET):
+            'Supplies_Type'        => strtoupper((string) ($pr->Supplies_Type ?? 'NON-OPS')),
+            'Category'             => strtoupper((string) ($pr->Category ?? 'NON ASSET')),
+            'Sub_Category'         => strtoupper((string) ($pr->Sub_Category ?? 'BARANG')),
+            'Procurement_Category' => (string) ($pr->Procurement_Category ?? 'Rutin'),
+            'Priority_Status'      => strtoupper((string) ($pr->Urgency ?? $pr->Priority_Status ?? 'NORMAL')),
         ];
     }
 
     /**
-     * Sinkronkan status approval_request ke purchase_request, log, dan auto-PO.
-     */
-    public function syncApprovalStatus(int $prId, $actorUser = null): void
-    {
-        $pr = DB::table('purchase_request')->where('ID', $prId)->first();
-        if (!$pr || empty($pr->Approval_Request_ID)) {
-            return;
-        }
-
-        $request = $this->workflow->getRequest((int) $pr->Approval_Request_ID);
-        if (!$request) {
-            return;
-        }
-
-        $newPrStatus = $this->mapApprovalStatusToPrStatus((string) $request->Status);
-        if (strtoupper((string) $pr->Status) === $newPrStatus && $newPrStatus !== 'APPROVED') {
-            return;
-        }
-
-        if (!$actorUser) {
-            $lastTask = DB::table('approval_request_task')
-                ->where('Request_ID', (int) $request->ID)
-                ->whereNotNull('Acted_By')
-                ->orderBy('ID', 'DESC')
-                ->first();
-            if ($lastTask) {
-                $actorUser = DB::table('users')->where('id', (int) $lastTask->Acted_By)->first();
-            }
-        }
-
-        DB::transaction(function () use ($pr, $prId, $request, $newPrStatus, $actorUser) {
-            DB::table('purchase_request')->where('ID', $prId)->update([
-                'Status' => $newPrStatus,
-            ]);
-
-            DB::table('purchase_request_log')->insert([
-                'PR_No' => $pr->PR_No,
-                'Action_By' => $actorUser->username ?? 'SYSTEM',
-                'Action_Date' => now(),
-                'Action_Status' => $newPrStatus,
-                'Last_ID' => $pr->ID,
-                'Category' => $pr->Category ?? '',
-                'Sub_Category' => $pr->Sub_Category ?? '',
-                'Supplies_Type' => $pr->Supplies_Type ?? '',
-                'Note' => 'Sinkronisasi Approval Engine (' . $request->Status . ')',
-                'Reference' => $pr->Reference ?? '',
-            ]);
-
-            if (strtoupper((string) $request->Status) === 'APPROVED') {
-                $this->onFinalApproved($pr, $actorUser ?: (object) ['username' => 'SYSTEM', 'Location' => $pr->Location]);
-            }
-        });
-    }
-
-    /**
      * Memetakan status ApprovalWorkflow ke status purchase_request.
+     * PENDING / APPROVAL_PROCESS mengarahkan ke form detail pending/approval.
+     * APPROVED mengarahkan ke form detail approved (siap buat Multi-Vendor RFQ).
      */
     protected function mapApprovalStatusToPrStatus(string $status): string
     {
-        switch ($status) {
+        switch (strtoupper($status)) {
             case 'APPROVED':
                 return 'APPROVED';
             case 'REJECTED':
                 return 'REJECTED';
             case 'RETURNED':
                 return 'RETURNED';
+            case 'CANCELLED':
+                return 'CANCELLED';
             case 'IN_PROGRESS':
+            case 'BLOCKED':
             default:
-                return 'APPROVAL_PROCESS';
+                return 'PENDING';
         }
     }
 }

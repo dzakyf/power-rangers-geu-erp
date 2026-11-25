@@ -51,11 +51,21 @@ class CnsRouteRbacMiddlewareTest extends TestCase
 
         $this->assertTrue(Gate::forUser($admRoleUser)->check('cns.shipping_instruction.view'));
         $this->assertTrue(Gate::forUser($admRoleUser)->check('cns.buyer_contract.create'));
+        $this->assertTrue(Gate::forUser($admRoleUser)->check('cns.user_management.view'));
+        $this->assertTrue(Gate::forUser($admRoleUser)->check('cns.role_management.view'));
     }
 
     /** @test */
-    public function offering_letter_approve_has_correct_cns_permission_middleware(): void
+    public function user_and_role_management_have_correct_cns_permission_middleware(): void
     {
+        $userRoute = Route::getRoutes()->getByName('cns-user-management.index');
+        $this->assertNotNull($userRoute);
+        $this->assertContains('can:cns.user_management.view', $userRoute->gatherMiddleware());
+
+        $roleRoute = Route::getRoutes()->getByName('cns-role-management.index');
+        $this->assertNotNull($roleRoute);
+        $this->assertContains('can:cns.role_management.view', $roleRoute->gatherMiddleware());
+
         $olApproveRoute = Route::getRoutes()->getByName('cns-offering-letter.approve');
         $this->assertNotNull($olApproveRoute);
         $this->assertContains('can:cns.offering_letter.approve', $olApproveRoute->gatherMiddleware());

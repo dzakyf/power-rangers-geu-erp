@@ -14,42 +14,47 @@ $Saya =  Auth::user()->username;
 
 @section('content-wrapper')
 @csrf
-<!-- Main Content Header -->
-<div class="main-content-header">
-	<h1>Partner</h1>
-	<ol class="breadcrumb">
-		<li class="breadcrumb-item">
-			<a href="/">Commercial Invoice</a>
-		</li>
-		<li class="breadcrumb-item active">
-			<span class="active">Commercial Invoice List</span>
-		</li>
-	</ol>
-</div>
+@include('cns.partials.page-header', [
+	'title' => 'Commercial Invoice',
+	'breadcrumbs' => [
+		['label' => 'Export Management'],
+		['label' => 'Commercial Invoice'],
+	],
+])
 
-<div>
-	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">COMMERCIAL INVOICE LIST</div>
-	<div class="card">
-		<div class="card-body">
-			<div class="mb-2">
-				Periode : <input type="date" id="tgl1" name="tgl1" value="{{ date('Y-m-01', strtotime('-7 days')) }}" class="form-control-sm" />
-				s/d <input type="date" id="tgl2" name="tgl2" value="{{ date('Y-m-d') }}" class="form-control-sm" />
-				<button onclick="refreshdata()" class="btn btn-primary p-2">Refresh</button>
-			</div>
-			<div id="ShipmentInstruction" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
-			<div>
-				<input type="button" id="newSchedule" name="newSchedule" value="New CI" class="btn btn-primary mt-2 mr-2" onclick="ShipmentInstructionNewBtn()" />
-				<input type="button" id="DetailSchedule" name="DetailSchedule" value="Detail CI" class="btn btn-info mt-2 mr-2" onclick="ShipmentInstructionKlik()" />
-				<input type="button" id="printCI" name="printCI" value="Print CI for BC" class="btn btn-secondary mt-2 mr-2" onclick="PrintCI()" />
-				<input type="button" id="printCIBuyer" name="printCIBuyer" value="Print CI for Buyer" class="btn btn-secondary mt-2 mr-2" onclick="PrintCIBuyer()" />
-				<input type="button" id="ekselShipmentInstructionDet" name="ekselShipmentInstructionDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="ShipmentInstruction.toExcel('./export/generate.php');" />
-			</div>
+<div class="card cns-card">
+	<div class="card-header">
+		<h5 class="card-title mb-0">Commercial Invoice List</h5>
+		<div class="d-flex align-items-center flex-wrap" style="gap: 0.5rem;">
+			<input type="button" id="newSchedule" name="newSchedule" value="New CI" class="btn btn-sm btn-primary" onclick="ShipmentInstructionNewBtn()" />
+			<input type="button" id="DetailSchedule" name="DetailSchedule" value="Detail CI" class="btn btn-sm btn-info" onclick="ShipmentInstructionKlik()" />
+			<input type="button" id="printCI" name="printCI" value="Print CI for BC" class="btn btn-sm btn-secondary" onclick="PrintCI()" />
+			<input type="button" id="printCIBuyer" name="printCIBuyer" value="Print CI for Buyer" class="btn btn-sm btn-secondary" onclick="PrintCIBuyer()" />
+			<input type="button" id="ekselShipmentInstructionDet" name="ekselShipmentInstructionDet" class="btn btn-sm btn-warning" value="Export Excel" onclick="ShipmentInstruction.toExcel('./export/generate.php');" />
+			<button type="button" onclick="refreshdata()" class="btn btn-sm btn-outline-secondary">Refresh</button>
 		</div>
 	</div>
-	<div id="divlistOpportunity"></div>
-	<div id="DivProcess"></div>
-
+	<div class="card-body">
+		<div class="cns-filter-bar">
+			<div>
+				<label for="tgl1" class="d-block mb-1"><small>Dari Tanggal</small></label>
+				<input type="date" id="tgl1" name="tgl1" value="{{ date('Y-m-01', strtotime('-7 days')) }}" class="form-control form-control-sm" style="width:auto;" />
+			</div>
+			<div>
+				<label for="tgl2" class="d-block mb-1"><small>Sampai Tanggal</small></label>
+				<input type="date" id="tgl2" name="tgl2" value="{{ date('Y-m-d') }}" class="form-control form-control-sm" style="width:auto;" />
+			</div>
+			<div>
+				<button type="button" onclick="refreshdata()" class="btn btn-sm btn-primary">Filter</button>
+			</div>
+		</div>
+		<div class="cns-grid-wrapper">
+			<div id="ShipmentInstruction" class="cns-grid" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
+		</div>
+	</div>
 </div>
+<div id="divlistOpportunity"></div>
+<div id="DivProcess"></div>
 
 <script>
 	function PrintCI()
@@ -58,7 +63,7 @@ $Saya =  Auth::user()->username;
 		if (ShipmentInstructionID != null) {
 			window.open('cns-export-commercial-invoice-print?Task=' + ShipmentInstruction.cells(ShipmentInstructionID, 2).getValue() + "&Buyer=0", '_blank');
 		}else {
-			alert("Pilih baris data");
+			swal('Perhatian', 'Pilih baris data', 'warning');
 		}
 		return true;
 	 }
@@ -68,7 +73,7 @@ $Saya =  Auth::user()->username;
 		if (ShipmentInstructionID != null) {
 			window.open('cns-export-commercial-invoice-print?Task=' + ShipmentInstruction.cells(ShipmentInstructionID, 2).getValue() + "&Buyer=1", '_blank');
 		}else {
-			alert("Pilih baris data");
+			swal('Perhatian', 'Pilih baris data', 'warning');
 		}
 		return true;
 	 }
@@ -83,7 +88,7 @@ $Saya =  Auth::user()->username;
 		if (ShipmentInstructionID != null) {
 			LoadM('divlistOpportunity', 'cns-export-commercial-invoice-detail?Task=' + ShipmentInstruction.cells(ShipmentInstructionID, 2).getValue());
 		}else {
-			alert("Pilih baris data");
+			swal('Perhatian', 'Pilih baris data', 'warning');
 		}
 		return true;
 	}
@@ -96,16 +101,33 @@ $Saya =  Auth::user()->username;
 	ShipmentInstruction.setColAlign("center,left,left,left,left,left,left,left,left,left,left,left,left,left,left");
 	ShipmentInstruction.setColSorting("int,str,str,str,str,str,str,str,str,str,str,str,str,str,str");
 	ShipmentInstruction.setColTypes("ron,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
-	ShipmentInstruction.enableSmartRendering(true, 150);
 	// ShipmentInstruction.setNumberFormat("0,000", 7, ".", ",");
 	ShipmentInstruction.attachEvent("onRowDblClicked", ShipmentInstructionKlik);
 	ShipmentInstruction.setSkin("dhx_skyblue");
 	ShipmentInstruction.init();
+
+	var CommercialInvoicePagination = initCnsGridPagination(ShipmentInstruction, {
+		pageSize: 25,
+		pageSizeOptions: [10, 25, 50, 100],
+		serverFilter: false,
+		getUrl: function (params) {
+			var q = [
+				'posStart=' + params.posStart,
+				'count=' + params.count,
+				'tgl1=' + encodeURIComponent($('#tgl1').val()),
+				'tgl2=' + encodeURIComponent($('#tgl2').val())
+			];
+			if (params.sortCol !== null && params.sortCol !== undefined) {
+				q.push('sort_col=' + params.sortCol);
+				q.push('sort_dir=' + (params.sortDir || 'asc'));
+			}
+			return 'xml-cns-export-commercial-invoice?' + q.join('&');
+		}
+	});
 	refreshdata();
 
 	function refreshdata() {
-		ShipmentInstruction.clearAndLoad('xml-cns-export-commercial-invoice?tgl1=' + $('#tgl1').val() + "&tgl2=" + $('#tgl2').val());
-
+		CommercialInvoicePagination.reload(1);
 	}
 </script>
 @endsection

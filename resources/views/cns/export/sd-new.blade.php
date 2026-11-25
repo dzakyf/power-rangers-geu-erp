@@ -3,8 +3,8 @@ use Illuminate\Support\Facades\Auth;
 $Saya = Auth::user()->username;
 ?>
 <div class="mt-3">
-    <div class="JudulContent" style="color:#699;">NEW SUSTAINABILITY DECLARATION</div>
-    <div class="card">
+    <div class="cns-section-header">NEW SUSTAINABILITY DECLARATION</div>
+    <div class="card cns-card">
         <div class="card-body">
             <div id="ContentPagesSD">
 
@@ -13,7 +13,7 @@ $Saya = Auth::user()->username;
                     <div class="col-md-6">
                         <div class="form-group">
                             <label>Unique Number of Sustainability Declaration</label>
-                            <input type="text" name="SD_No" id="SD_No" value="{{ $SdNo }}" class="form-control shadow-sm" required />
+                            <input type="text" name="SD_No" id="SD_No" value="{{ $SdNo }}" class="form-control shadow-sm" required readonly />
                         </div>
                     </div>
                     <div class="col-md-3">
@@ -333,16 +333,16 @@ Jl. Perak Timur No.610, Perak Utara, Kec. Pabean Cantikan, Surabaya, Jawa Timur 
             success: function (data) {
                 $.unblockUI();
                 if (data.indexOf("success") !== -1) {
-                    alert('Sustainability Declaration berhasil disimpan!');
+                    swal('Berhasil!', 'Sustainability Declaration berhasil disimpan!', 'success');
                     refreshdata();
                     $('#divlistOpportunity').html('');
                 } else {
-                    alert('Gagal menyimpan!');
+                    swal('Error', 'Gagal menyimpan!', 'error');
                 }
             },
             error: function () {
                 $.unblockUI();
-                alert("Error Internal! Silakan coba lagi.");
+                swal('Error', 'Error Internal! Silakan coba lagi.', 'error');
             }
         });
     });

@@ -901,13 +901,13 @@ class ApprovalWorkflowService
     }
 
     /**
-     * Force Approve resmi untuk transaksi Dynamic Engine (khusus Wildcard Admin).
+     * Force Approve resmi untuk transaksi Dynamic Engine (khusus akun yang diizinkan di helpers.php).
      */
     public function forceApprove(int $requestId, int $adminId, string $reason)
     {
         $admin = \App\User::find($adminId);
-        if (!$admin || !$this->authorization->isWildcardAdmin($admin)) {
-            throw new ApprovalWorkflowException('Hanya Wildcard Admin yang dapat melakukan Force Approve.', 'FORCE_APPROVE_FORBIDDEN', 403);
+        if (!$admin || !$this->authorization->canForceApprove($admin)) {
+            throw new ApprovalWorkflowException('Anda tidak memiliki akses untuk melakukan Force Approve.', 'FORCE_APPROVE_FORBIDDEN', 403);
         }
 
         $reason = trim($reason);

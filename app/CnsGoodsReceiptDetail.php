@@ -18,6 +18,7 @@ class CnsGoodsReceiptDetail extends Model
         'qty_ordered',
         'qty_received',
         'notes',
+        'serial_number',
     ];
 
     protected $casts = [

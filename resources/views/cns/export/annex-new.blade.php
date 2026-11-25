@@ -9,8 +9,8 @@ $Saya =  Auth::user()->username;
 
 ?>
 <div class="mt-3">
-	<div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">ANNEX VII</div>
-	<div class="card">
+	<div class="cns-section-header">ANNEX VII</div>
+	<div class="card cns-card">
 		<div class="card-body">
 			<div id="ContentPages">
 				<div class="FormInput_Form_Content">
@@ -152,12 +152,7 @@ $Saya =  Auth::user()->username;
 						</div>
 						<div class="col-md-6 form-group">
 							<label for="Destination_Port">Destination Port</label>
-							<select name="Destination_Port" id="Destination_Port" class="form-control">
-								<option value="">-- Select Destination Port --</option>
-								@foreach($comps as $comp)
-									<option value="{{ $comp->Supplier_ID }}">{{ $comp->Company_Name }}</option>
-								@endforeach
-							</select>
+							<input type="text" id="Destination_Port" name="Destination_Port" class="form-control" value="{{ old('Destination_Port', '') }}" />
 						</div>
 						<div class="col-md-6 form-group">
 							<label for="Notify">Notify</label>
@@ -454,7 +449,7 @@ $Saya =  Auth::user()->username;
                 $.unblockUI();
             },
             error:function() {
-                alert('Error fetching si details. Please try again.');
+                swal('Error', 'Error fetching si details. Please try again.', 'error');
                 $.unblockUI();
             }
         });
@@ -479,17 +474,17 @@ $Saya =  Auth::user()->username;
 				var dataPos = data.indexOf("success");
 				if (dataPos != '-1') {
 					var cariAWB = data.split(":");
-					alert('Data Annex Submitted!');
+					swal('Berhasil!', 'Data Annex Submitted!', 'success');
 
 					// location.href = "partner-announcement";
                     refreshdata();
                     $('#divlistOpportunity').html('')
 				} else {
-					alert('Announcement Failed to Submit!');
+					swal('Error', 'Announcement Failed to Submit!', 'error');
 				}
 			},
 			error: function(jqXHR, textStatus, errorThrown) {
-				alert("Error Internal! Please Try again!");
+				swal('Error', 'Error Internal! Please Try again!', 'error');
 
 			}
 		});

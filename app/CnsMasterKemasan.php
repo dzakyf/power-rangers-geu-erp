@@ -30,4 +30,16 @@ class CnsMasterKemasan extends Model
     {
         return (bool) $this->Is_Ampas || stripos((string) $this->Name, 'ampas') !== false;
     }
+
+    public function serialNumbers()
+    {
+        return $this->hasMany(CnsKemasanSerialNumber::class, 'kemasan_id', 'Kemasan_ID');
+    }
+
+    public function availableSerialNumbers()
+    {
+        return $this->serialNumbers()
+            ->where('status', CnsKemasanSerialNumber::STATUS_AVAILABLE)
+            ->orderBy('id');
+    }
 }

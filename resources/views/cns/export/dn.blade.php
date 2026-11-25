@@ -12,42 +12,83 @@ $Saya = Auth::user()->username;
 
 @section('content-wrapper')
 @csrf
-<div class="main-content-header">
-    <h1>Export</h1>
-    <ol class="breadcrumb">
-        <li class="breadcrumb-item">
-            <a href="/">Delivery Note</a>
-        </li>
-        <li class="breadcrumb-item active">
-            <span class="active">Delivery Note List</span>
-        </li>
-    </ol>
-</div>
+@include('cns.partials.page-header', [
+    'title' => 'Delivery Note',
+    'breadcrumbs' => [
+        ['label' => 'Export Management'],
+        ['label' => 'Delivery Note'],
+    ],
+])
 
-<div>
-    <div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">DELIVERY NOTE LIST</div>
-    <div class="card">
-        <div class="card-body">
-            <div id="DeliveryNote" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
-            <div>
-                <input type="button" id="newDN" name="newDN" value="New DN" class="btn btn-primary mt-2 mr-2" onclick="DeliveryNoteNewBtn()" />
-                <input type="button" id="detailDN" name="detailDN" value="Detail DN" class="btn btn-info mt-2 mr-2" onclick="DeliveryNoteKlik()" />
-                <input type="button" id="printDN" name="printDN" value="Print DN" class="btn btn-secondary mt-2 mr-2" onclick="PrintDN()" />
-                <input type="button" id="ekselDeliveryNoteDet" name="ekselDeliveryNoteDet" class="btn btn-warning mt-2 mr-2" value="Export Excel" onclick="DeliveryNote.toExcel('./export/generate.php');" />
-            </div>
+<div class="card cns-card">
+    <div class="card-header">
+        <h5 class="card-title mb-0">Delivery Note List</h5>
+        <div class="d-flex align-items-center flex-wrap" style="gap: 0.5rem;">
+            <input type="button" id="newDN" name="newDN" value="New DN" class="btn btn-sm btn-primary" onclick="DeliveryNoteNewBtn()" />
+            <input type="button" id="detailDN" name="detailDN" value="Detail DN" class="btn btn-sm btn-info" onclick="DeliveryNoteKlik()" />
+            <input type="button" id="approveDN" name="approveDN" value="Approve DN" class="btn btn-sm btn-success" onclick="ApproveDN()" />
+            <input type="button" id="printDN" name="printDN" value="Print DN" class="btn btn-sm btn-secondary" onclick="PrintDN()" />
+            <input type="button" id="ekselDeliveryNoteDet" name="ekselDeliveryNoteDet" class="btn btn-sm btn-warning" value="Export Excel" onclick="DeliveryNote.toExcel('./export/generate.php');" />
+            <button type="button" onclick="refreshdata()" class="btn btn-sm btn-outline-secondary">Refresh</button>
         </div>
     </div>
-    <div id="divlistOpportunity"></div>
-    <div id="DivProcess"></div>
+    <div class="card-body">
+        <div class="cns-grid-wrapper">
+            <div id="DeliveryNote" class="cns-grid" style="width:auto;height:320px; background-color:white;overflow:hidden"></div>
+        </div>
+    </div>
 </div>
+<div id="divlistOpportunity"></div>
+<div id="DivProcess"></div>
 
 <script>
+    function ApproveDN() {
+        DeliveryNoteID = DeliveryNote.getSelectedId();
+        if (DeliveryNoteID == null) {
+            swal('Perhatian', 'Pilih baris data', 'warning');
+            return false;
+        }
+        var dnNo = DeliveryNote.cells(DeliveryNoteID, 1).getValue();
+        var status = DeliveryNote.cells(DeliveryNoteID, 9).getValue();
+        if (status === 'APPROVED') {
+            swal('Informasi', 'Delivery Note ' + dnNo + ' sudah berstatus APPROVED.', 'info');
+            return false;
+        }
+        swal({
+            title: 'Konfirmasi Approve',
+            text: 'Approve Delivery Note ' + dnNo + '?',
+            icon: 'warning',
+            buttons: ['Batal', 'Ya, Approve']
+        }).then(function (ok) {
+            if (!ok) return;
+            $.ajax({
+                headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
+                url: 'cns-export-delivery-note-approve?_token={{ csrf_token() }}',
+                type: 'POST',
+                data: { dn_no: dnNo },
+                success: function (res) {
+                    if (res && res.status === 'success') {
+                        swal('Berhasil!', res.message || 'Delivery Note berhasil di-approve!', 'success');
+                        refreshdata();
+                    } else {
+                        swal('Error', (res && res.message) || 'Gagal approve Delivery Note!', 'error');
+                    }
+                },
+                error: function (xhr) {
+                    var msg = (xhr.responseJSON && xhr.responseJSON.message) || 'Error Internal! Silakan coba lagi.';
+                    swal('Error', msg, 'error');
+                }
+            });
+        });
+        return true;
+    }
+
     function PrintDN() {
         DeliveryNoteID = DeliveryNote.getSelectedId();
         if (DeliveryNoteID != null) {
             window.open('cns-export-delivery-note-print?Task=' + DeliveryNote.cells(DeliveryNoteID, 1).getValue(), '_blank');
         } else {
-            alert("Pilih baris data");
+            swal('Perhatian', 'Pilih baris data', 'warning');
         }
         return true;
     }
@@ -60,7 +101,7 @@ $Saya = Auth::user()->username;
         if (DeliveryNoteID != null) {
             LoadM('divlistOpportunity', 'cns-export-delivery-note-detail?Task=' + DeliveryNote.cells(DeliveryNoteID, 1).getValue());
         } else {
-            alert("Pilih baris data");
+            swal('Perhatian', 'Pilih baris data', 'warning');
         }
         return true;
     }
@@ -71,15 +112,31 @@ $Saya = Auth::user()->username;
     DeliveryNote.setInitWidths("50,160,180,100,160,140,220,120,120,90");
     DeliveryNote.setColAlign("center,left,left,left,left,left,left,right,left,center");
     DeliveryNote.setColSorting("int,str,str,str,str,str,str,str,str,str");
-    DeliveryNote.setColTypes("ron,ro,ro,ro,ro,ro,ro,ro,ro,ro");
-    DeliveryNote.enableSmartRendering(true, 150);
+    DeliveryNote.setColTypes("ron,ro,ro,ro,ro,ro,ro,ro,ro,cns_badge");
     DeliveryNote.attachEvent("onRowDblClicked", DeliveryNoteKlik);
     DeliveryNote.setSkin("dhx_skyblue");
     DeliveryNote.init();
+
+    var DeliveryNotePagination = initCnsGridPagination(DeliveryNote, {
+        pageSize: 25,
+        pageSizeOptions: [10, 25, 50, 100],
+        serverFilter: false,
+        getUrl: function (params) {
+            var q = [
+                'posStart=' + params.posStart,
+                'count=' + params.count
+            ];
+            if (params.sortCol !== null && params.sortCol !== undefined) {
+                q.push('sort_col=' + params.sortCol);
+                q.push('sort_dir=' + (params.sortDir || 'asc'));
+            }
+            return 'xml-cns-export-delivery-note?' + q.join('&');
+        }
+    });
     refreshdata();
 
     function refreshdata() {
-        DeliveryNote.clearAndLoad('xml-cns-export-delivery-note');
+        DeliveryNotePagination.reload(1);
     }
 </script>
 @endsection

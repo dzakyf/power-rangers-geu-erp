@@ -88,3 +88,6 @@ use App\Http\Controllers\Finance\FinanceApprovalController;
 
 Route::post('finance-hr-approval-maintenance-confirm', [FinanceApprovalController::class, 'confirmMaintenanceVoucher']);
     Route::post('finance-hr-approval-tax-pay', [FinanceApprovalController::class, 'payVehicleTaxVoucher']);
+
+// Theme sync: GA payment voucher approval
+Route::post('finance-hr-approval-ga-pay', [FinanceApprovalController::class, 'payGaVoucher']);

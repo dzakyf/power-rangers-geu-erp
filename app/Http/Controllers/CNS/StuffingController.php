@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\CNS;
 
+use App\CnsKemasanSerialNumber;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\CNS\StuffingContainerRequest;
 use App\Services\CNS\FlexibagInventoryService;
@@ -10,6 +11,7 @@ use App\Services\CNS\StuffingBookingConfirmationService;
 use App\Services\CNS\StuffingNoteService;
 use App\Services\CNS\StuffingPhotoService;
 use App\Services\CNS\StuffingReportService;
+use App\Support\DhtmlxGridPagination;
 use App\VesselSchedule;
 use App\VesselScheduleDtl;
 use Illuminate\Http\Request;
@@ -50,34 +52,54 @@ class StuffingController extends Controller
 
     public function indexStuffingXml(Request $request)
     {
-        if (!headers_sent()) {
-            if (stristr($_SERVER["HTTP_ACCEPT"] ?? "", "application/xhtml+xml")) {
-                header("Content-type: application/xhtml+xml");
-            } else {
-                header("Content-type: text/xml");
-            }
-        }
-        echo ("<?xml version='1.0' encoding='iso-8859-1'?>\n");
-
-        echo "<rows>";
-
-        $dtl = VesselScheduleDtl::active()->get();
-        $vsd = [];
-        foreach ($dtl as $value) {
-            $vsd[$value->Order_No][] = $value->Container . " (" . $value->Seal . ")";
-        }
-
         $canonicalIds = VesselSchedule::whereBetween('Stuffing', [$request->tgl1, $request->tgl2])
             ->selectRaw('MIN(id) as id')
             ->groupBy('Order_No')
             ->pluck('id');
 
-        $vessels = VesselSchedule::whereIn('id', $canonicalIds)
-            ->whereBetween('Stuffing', [$request->tgl1, $request->tgl2])
-            ->orderBy('id')
-            ->get();
+        $query = VesselSchedule::whereIn('id', $canonicalIds)
+            ->whereBetween('Stuffing', [$request->tgl1, $request->tgl2]);
 
-        foreach ($vessels as $key => $vessel) {
+        if (!$request->filled('sort_col')) {
+            $query->orderBy('id');
+        }
+
+        $colMap = [
+            1 => 'Order_No',
+            2 => 'Qty',
+            3 => 'Vessel',
+            4 => 'POL',
+            5 => 'POD',
+            6 => 'Stuffing',
+            7 => 'Checking_BC',
+            8 => 'Closing_CY',
+            9 => 'ETD',
+            10 => 'ATD',
+            11 => 'ETA',
+            12 => 'ATA',
+            15 => 'Note',
+        ];
+
+        $paginated = DhtmlxGridPagination::paginateQuery($query, $request, [
+            'col_map' => $colMap,
+            'default_page_size' => 25,
+        ]);
+
+        $vessels = $paginated['rows'];
+        $orderNos = $vessels->pluck('Order_No')->filter()->unique()->values()->all();
+        $dtl = count($orderNos)
+            ? VesselScheduleDtl::active()->whereIn('Order_No', $orderNos)->get()
+            : collect();
+
+        $vsd = [];
+        foreach ($dtl as $value) {
+            $vsd[$value->Order_No][] = $value->Container . " (" . $value->Seal . ")";
+        }
+
+        $bodyXml = '';
+        $nomor = $paginated['posStart'] + 1;
+
+        foreach ($vessels as $vessel) {
             $hasContainers = isset($vsd[$vessel->Order_No]) && count($vsd[$vessel->Order_No]) > 0;
             $isDone = !empty($vessel->Checklist_Done_Kapal_Berangkat);
 
@@ -88,70 +110,81 @@ class StuffingController extends Controller
             } else {
                 $warna = "style='background-color: #ffccccff'";
             }
-            echo "<row id=\"$vessel->id\" $warna>";
-            echo "<cell>" . ($key + 1) . "</cell>";
-            echo "<cell>" . htmlspecialchars((string) $vessel->Order_No) . "</cell>";
-            echo "<cell>" . htmlspecialchars((string) $vessel->Qty) . "</cell>";
-            echo "<cell>" . htmlspecialchars((string) $vessel->Vessel) . "</cell>";
-            echo "<cell>" . htmlspecialchars((string) $vessel->POL) . "</cell>";
-            echo "<cell>" . htmlspecialchars((string) $vessel->POD) . "</cell>";
-            echo "<cell>" . htmlspecialchars($vessel->Stuffing != "" ? date("d F Y", strtotime($vessel->Stuffing)) : "") . "</cell>";
-            echo "<cell>" . htmlspecialchars($vessel->Checking_BC != "" ? date("d F Y", strtotime($vessel->Checking_BC)) : "") . "</cell>";
-            echo "<cell>" . htmlspecialchars($vessel->Closing_CY != "" ? date("d F Y", strtotime($vessel->Closing_CY)) : "") . "</cell>";
-            echo "<cell>" . htmlspecialchars($vessel->ETD != "" ? date("d F Y", strtotime($vessel->ETD)) : "") . "</cell>";
-            echo "<cell>" . htmlspecialchars($vessel->ATD != "" ? date("d F Y", strtotime($vessel->ATD)) : "") . "</cell>";
-            echo "<cell>" . htmlspecialchars($vessel->ETA != "" ? date("d F Y", strtotime($vessel->ETA)) : "") . "</cell>";
-            echo "<cell>" . htmlspecialchars($vessel->ATA != "" ? date("d F Y", strtotime($vessel->ATA)) : "") . "</cell>";
+            $bodyXml .= "<row id=\"$vessel->id\" $warna>";
+            $bodyXml .= "<cell>" . $nomor++ . "</cell>";
+            $bodyXml .= "<cell>" . htmlspecialchars((string) $vessel->Order_No) . "</cell>";
+            $bodyXml .= "<cell>" . htmlspecialchars((string) $vessel->Qty) . "</cell>";
+            $bodyXml .= "<cell>" . htmlspecialchars((string) $vessel->Vessel) . "</cell>";
+            $bodyXml .= "<cell>" . htmlspecialchars((string) $vessel->POL) . "</cell>";
+            $bodyXml .= "<cell>" . htmlspecialchars((string) $vessel->POD) . "</cell>";
+            $bodyXml .= "<cell>" . htmlspecialchars($vessel->Stuffing != "" ? date("d F Y", strtotime($vessel->Stuffing)) : "") . "</cell>";
+            $bodyXml .= "<cell>" . htmlspecialchars($vessel->Checking_BC != "" ? date("d F Y", strtotime($vessel->Checking_BC)) : "") . "</cell>";
+            $bodyXml .= "<cell>" . htmlspecialchars($vessel->Closing_CY != "" ? date("d F Y", strtotime($vessel->Closing_CY)) : "") . "</cell>";
+            $bodyXml .= "<cell>" . htmlspecialchars($vessel->ETD != "" ? date("d F Y", strtotime($vessel->ETD)) : "") . "</cell>";
+            $bodyXml .= "<cell>" . htmlspecialchars($vessel->ATD != "" ? date("d F Y", strtotime($vessel->ATD)) : "") . "</cell>";
+            $bodyXml .= "<cell>" . htmlspecialchars($vessel->ETA != "" ? date("d F Y", strtotime($vessel->ETA)) : "") . "</cell>";
+            $bodyXml .= "<cell>" . htmlspecialchars($vessel->ATA != "" ? date("d F Y", strtotime($vessel->ATA)) : "") . "</cell>";
             if ($vessel->ETD != "0000-00-00" && $vessel->ETA != "0000-00-00") {
                 $etd = new \DateTime($vessel->ETD);
                 $eta = new \DateTime($vessel->ETA);
                 $interval = $etd->diff($eta);
-                echo "<cell>" . htmlspecialchars($interval->format('%a days')) . "</cell>";
+                $bodyXml .= "<cell>" . htmlspecialchars($interval->format('%a days')) . "</cell>";
             } else {
-                echo "<cell></cell>";
+                $bodyXml .= "<cell></cell>";
             }
             if ($vessel->ATD != "0000-00-00" && $vessel->ATA != "0000-00-00") {
                 $atd = new \DateTime($vessel->ATD);
                 $ata = new \DateTime($vessel->ATA);
                 $interval = $atd->diff($ata);
-                echo "<cell>" . htmlspecialchars($interval->format('%a days')) . "</cell>";
+                $bodyXml .= "<cell>" . htmlspecialchars($interval->format('%a days')) . "</cell>";
             } else {
-                echo "<cell></cell>";
+                $bodyXml .= "<cell></cell>";
             }
-            echo "<cell>" . htmlspecialchars((string) $vessel->Note) . "</cell>";
+            $bodyXml .= "<cell>" . htmlspecialchars((string) $vessel->Note) . "</cell>";
             if (isset($vsd[$vessel->Order_No])) {
-                echo "<cell>" . htmlspecialchars(implode(', ', $vsd[$vessel->Order_No])) . "</cell>";
+                $bodyXml .= "<cell>" . htmlspecialchars(implode(', ', $vsd[$vessel->Order_No])) . "</cell>";
             } else {
-                echo "<cell></cell>";
+                $bodyXml .= "<cell></cell>";
             }
-            echo "</row>";
+            $bodyXml .= "</row>\n";
         }
 
-        echo "</rows>";
+        return DhtmlxGridPagination::response($paginated['total'], $paginated['posStart'], $bodyXml);
     }
 
     public function indexStuffingMonitoringXml(Request $request)
     {
-        if (!headers_sent()) {
-            if (stristr($_SERVER["HTTP_ACCEPT"] ?? "", "application/xhtml+xml")) {
-                header("Content-type: application/xhtml+xml");
-            } else {
-                header("Content-type: text/xml");
-            }
-        }
-        echo ("<?xml version='1.0' encoding='iso-8859-1'?>\n");
+        $query = VesselScheduleDtl::active()
+            ->whereBetween('Date', [$request->tgl1, $request->tgl2]);
 
-        echo "<rows>";
+        $colMap = [
+            1 => 'Order_No',
+            2 => 'Time_From',
+            3 => 'Time_To',
+            4 => 'Date',
+            5 => 'Police_No',
+            6 => 'Container',
+            7 => 'Seal',
+            8 => 'Tare',
+            9 => 'Netto_KG',
+            13 => 'Note',
+        ];
 
-        $vessels = VesselScheduleDtl::active()
-            ->whereBetween('Date', [$request->tgl1, $request->tgl2])
-            ->get();
+        $paginated = DhtmlxGridPagination::paginateQuery($query, $request, [
+            'col_map' => $colMap,
+            'default_page_size' => 25,
+        ]);
+
+        $vessels = $paginated['rows'];
 
         $vesselIdsByOrder = VesselSchedule::whereIn('Order_No', $vessels->pluck('Order_No')->filter()->unique()->values())
             ->pluck('id', 'Order_No');
         $noteMetadata = $this->notes->metadataByScheduleIds($vesselIdsByOrder->values()->all());
 
-        foreach ($vessels as $key => $vessel) {
+        $bodyXml = '';
+        $nomor = $paginated['posStart'] + 1;
+
+        foreach ($vessels as $vessel) {
             $tare = (float) $vessel->Tare;
             $nettoKg = (float) $vessel->Netto_KG;
             $nettoMt = round($nettoKg / 1000, 2);
@@ -164,31 +197,31 @@ class StuffingController extends Controller
             $timeTo = $vessel->Time_To ? date("H:i", strtotime($vessel->Time_To)) : "";
             $dateFormatted = $vessel->Date ? date("d M Y", strtotime($vessel->Date)) : "";
 
-            echo "<row id=\"$vessel->ID\" >";
-            echo "<cell>" . ($key + 1) . "</cell>";
-            echo "<cell>" . htmlspecialchars((string) $vessel->Order_No) . "</cell>";
-            echo "<cell>" . htmlspecialchars($timeFrom) . "</cell>";
-            echo "<cell>" . htmlspecialchars($timeTo) . "</cell>";
-            echo "<cell>" . htmlspecialchars($dateFormatted) . "</cell>";
-            echo "<cell>" . htmlspecialchars((string) $vessel->Police_No) . "</cell>";
-            echo "<cell>" . htmlspecialchars((string) $vessel->Container) . "</cell>";
-            echo "<cell>" . htmlspecialchars((string) $vessel->Seal) . "</cell>";
-            echo "<cell>" . htmlspecialchars(number_format($tare, 2, '.', ',')) . "</cell>";
-            echo "<cell>" . htmlspecialchars(number_format($nettoKg, 2, '.', ',')) . "</cell>";
-            echo "<cell>" . htmlspecialchars(number_format($nettoMt, 2, '.', ',')) . "</cell>";
-            echo "<cell>" . htmlspecialchars(number_format($grossKg, 2, '.', ',')) . "</cell>";
-            echo "<cell>" . htmlspecialchars(number_format($grossMt, 2, '.', ',')) . "</cell>";
-            echo "<cell>" . htmlspecialchars((string) $vessel->Note) . "</cell>";
+            $bodyXml .= "<row id=\"$vessel->ID\" >";
+            $bodyXml .= "<cell>" . $nomor++ . "</cell>";
+            $bodyXml .= "<cell>" . htmlspecialchars((string) $vessel->Order_No) . "</cell>";
+            $bodyXml .= "<cell>" . htmlspecialchars($timeFrom) . "</cell>";
+            $bodyXml .= "<cell>" . htmlspecialchars($timeTo) . "</cell>";
+            $bodyXml .= "<cell>" . htmlspecialchars($dateFormatted) . "</cell>";
+            $bodyXml .= "<cell>" . htmlspecialchars((string) $vessel->Police_No) . "</cell>";
+            $bodyXml .= "<cell>" . htmlspecialchars((string) $vessel->Container) . "</cell>";
+            $bodyXml .= "<cell>" . htmlspecialchars((string) $vessel->Seal) . "</cell>";
+            $bodyXml .= "<cell>" . htmlspecialchars(number_format($tare, 2, '.', ',')) . "</cell>";
+            $bodyXml .= "<cell>" . htmlspecialchars(number_format($nettoKg, 2, '.', ',')) . "</cell>";
+            $bodyXml .= "<cell>" . htmlspecialchars(number_format($nettoMt, 2, '.', ',')) . "</cell>";
+            $bodyXml .= "<cell>" . htmlspecialchars(number_format($grossKg, 2, '.', ',')) . "</cell>";
+            $bodyXml .= "<cell>" . htmlspecialchars(number_format($grossMt, 2, '.', ',')) . "</cell>";
+            $bodyXml .= "<cell>" . htmlspecialchars((string) $vessel->Note) . "</cell>";
             if ($hasNote) {
-                echo "<cell><![CDATA[Ada (<a href=\"cns-stuffing-detail-note?Order_No=" . urlencode((string) $vessel->Order_No) . "\" target=\"_blank\" class=\"badge badge-success text-white p-1\">Lihat Nota</a>)]]></cell>";
+                $bodyXml .= "<cell><![CDATA[Ada (<a href=\"cns-stuffing-detail-note?Order_No=" . urlencode((string) $vessel->Order_No) . "\" target=\"_blank\" class=\"badge rounded-pill bg-success text-white p-1\">Lihat Nota</a>)]]></cell>";
             } else {
-                echo "<cell>Tidak Ada</cell>";
+                $bodyXml .= "<cell>Tidak Ada</cell>";
             }
-            echo "<cell>" . htmlspecialchars((string) ($vesselId ?? '')) . "</cell>";
-            echo "</row>";
+            $bodyXml .= "<cell>" . htmlspecialchars((string) ($vesselId ?? '')) . "</cell>";
+            $bodyXml .= "</row>\n";
         }
 
-        echo "</rows>";
+        return DhtmlxGridPagination::response($paginated['total'], $paginated['posStart'], $bodyXml);
     }
 
     public function generateStuffingReport(Request $request)
@@ -216,8 +249,9 @@ class StuffingController extends Controller
             ? DB::table('cns_buyer_contracts')->where('ID', $vs->Contract_ID)->first()
             : null;
         $bookingConfirmation = $this->bookingConfirmations->forSchedule($vs);
+        $availableSerialNumbers = $this->availableFlexibagSerialNumbers();
 
-        return view('cns.vs.stuffing-detail', compact('vs', 'contract', 'bookingConfirmation'));
+        return view('cns.vs.stuffing-detail', compact('vs', 'contract', 'bookingConfirmation', 'availableSerialNumbers'));
     }
 
     public function detailStuffingXml(Request $request)
@@ -252,6 +286,7 @@ class StuffingController extends Controller
             }
 
             echo "<cell>" . ($key + 1) . "</cell>";
+            echo "<cell>" . htmlspecialchars((string) $vessel->Stuffing_No) . "</cell>";
             echo "<cell>" . htmlspecialchars((string) $vessel->Order_No) . "</cell>";
             echo "<cell>" . htmlspecialchars(date("H:i", strtotime($vessel->Time_From))) . "</cell>";
             echo "<cell>" . htmlspecialchars(date("H:i", strtotime($vessel->Time_To))) . "</cell>";
@@ -259,6 +294,7 @@ class StuffingController extends Controller
             echo "<cell>" . htmlspecialchars((string) $vessel->Police_No) . "</cell>";
             echo "<cell>" . htmlspecialchars((string) $vessel->Container) . "</cell>";
             echo "<cell>" . htmlspecialchars((string) $vessel->Seal) . "</cell>";
+            echo "<cell>" . htmlspecialchars((string) ($vessel->serial_number ?? '')) . "</cell>";
             echo "<cell>" . htmlspecialchars(number_format($tare, 2, '.', ',')) . "</cell>";
             echo "<cell>" . htmlspecialchars(number_format($nettoKg, 2, '.', ',')) . "</cell>";
             echo "<cell>" . htmlspecialchars(number_format($nettoMt, 2, '.', ',')) . "</cell>";
@@ -288,6 +324,7 @@ class StuffingController extends Controller
 
         return response()->json([
             'ID' => $container->ID,
+            'Stuffing_No' => $container->Stuffing_No,
             'Order_No' => $container->Order_No,
             'Time_From' => substr($container->Time_From, 0, 5),
             'Time_To' => substr($container->Time_To, 0, 5),
@@ -295,6 +332,8 @@ class StuffingController extends Controller
             'Police_No' => $container->Police_No,
             'Container' => $container->Container,
             'Seal' => $container->Seal,
+            'serial_number' => $container->serial_number ?? '',
+            'available_serial_numbers' => $this->availableFlexibagSerialNumbers($container->serial_number ?? null),
             'Tare' => (float) $container->Tare,
             'Netto_KG' => (float) $container->Netto_KG,
             'Note' => $container->Note,
@@ -341,6 +380,7 @@ class StuffingController extends Controller
             'id' => $container ? $container->ID : null,
             'note_url' => $this->notes->url($note),
             'note_name' => $note ? $note->Filename : null,
+            'available_serial_numbers' => $this->availableFlexibagSerialNumbers(),
         ]);
     }
 
@@ -368,7 +408,29 @@ class StuffingController extends Controller
             'status' => 'success',
             'message' => 'Container berhasil dihapus.',
             'count' => $result['count'],
+            'available_serial_numbers' => $this->availableFlexibagSerialNumbers(),
         ]);
+    }
+
+    private function availableFlexibagSerialNumbers(?string $includeSerial = null): array
+    {
+        if (!\Illuminate\Support\Facades\Schema::hasTable('cns_kemasan_serial_numbers')) {
+            return [];
+        }
+
+        $serials = CnsKemasanSerialNumber::query()
+            ->join('cns_master_kemasan', 'cns_master_kemasan.Kemasan_ID', '=', 'cns_kemasan_serial_numbers.kemasan_id')
+            ->where('cns_kemasan_serial_numbers.status', CnsKemasanSerialNumber::STATUS_AVAILABLE)
+            ->where('cns_master_kemasan.Name', 'like', '%Flexibag%')
+            ->orderBy('cns_kemasan_serial_numbers.id')
+            ->pluck('cns_kemasan_serial_numbers.serial_number')
+            ->all();
+
+        if ($includeSerial && !in_array($includeSerial, $serials, true)) {
+            array_unshift($serials, $includeSerial);
+        }
+
+        return $serials;
     }
 
     public function deleteDetailPhoto(Request $request)
@@ -465,7 +527,10 @@ class StuffingController extends Controller
 
         abort_if(!$schedule, 404);
 
-        if ((int) $schedule->Checklist_Done_Kapal_Berangkat === 1) {
+        $isFinalDone = (int) $schedule->Checklist_Done_Kapal_Berangkat === 1;
+        $isNpeReleased = (int) $schedule->Checklist_Rilis_NPE === 1;
+
+        if ($isFinalDone && $isNpeReleased) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Status pengiriman sudah final (Done/Kapal Berangkat). Checklist terkunci dan tidak dapat diubah lagi.',
@@ -473,18 +538,22 @@ class StuffingController extends Controller
         }
 
         $wasDone = (bool) $schedule->Checklist_Done_Kapal_Berangkat;
-        $isDoneNow = (bool) $request->input('Checklist_Done_Kapal_Berangkat');
+        $isDoneNow = $isFinalDone ? true : (bool) $request->input('Checklist_Done_Kapal_Berangkat');
 
-        $fields = [
-            'Checklist_Pickup_Container',
-            'Checklist_Stuffing_Process',
-            'Checklist_Rilis_NPE',
-            'Checklist_Get_In_CY',
-            'Checklist_Done_Kapal_Berangkat',
-        ];
+        if ($isFinalDone) {
+            $schedule->Checklist_Rilis_NPE = $request->input('Checklist_Rilis_NPE') ? 1 : 0;
+        } else {
+            $fields = [
+                'Checklist_Pickup_Container',
+                'Checklist_Stuffing_Process',
+                'Checklist_Rilis_NPE',
+                'Checklist_Get_In_CY',
+                'Checklist_Done_Kapal_Berangkat',
+            ];
 
-        foreach ($fields as $field) {
-            $schedule->{$field} = $request->input($field) ? 1 : 0;
+            foreach ($fields as $field) {
+                $schedule->{$field} = $request->input($field) ? 1 : 0;
+            }
         }
 
         $schedule->Checklist_Updated_By = auth()->check() ? auth()->user()->username : 'system';

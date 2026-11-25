@@ -1,14 +1,14 @@
 @extends('layout.mainlayout-cns')
 
 @section('content-wrapper')
-<div class="main-content-header">
-    <h1>Procurement</h1>
-    <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="{{ url('home-cns') }}">Home</a></li>
-        <li class="breadcrumb-item"><a href="{{ route('cns-procurement-goods-receipt.index') }}">Goods Receipt</a></li>
-        <li class="breadcrumb-item active"><span class="active">Penerimaan Barang Baru</span></li>
-    </ol>
-</div>
+@include('cns.partials.page-header', [
+    'title' => 'Form Penerimaan Barang (Goods Receipt)',
+    'breadcrumbs' => [
+        ['label' => 'Procurement'],
+        ['label' => 'Goods Receipt', 'url' => route('cns-procurement-goods-receipt.index')],
+        ['label' => 'Penerimaan Barang Baru'],
+    ],
+])
 
 <style>
     #formCreateGR .form-label {
@@ -88,33 +88,23 @@
     }
 </style>
 
-<div class="row m-1">
-    <div class="JudulContent" style="color:#699;background-image:url(hdr_back.gif);">FORM PENERIMAAN BARANG (GOODS RECEIPT)</div>
+@if(isset($errors) && $errors->any())
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <ul class="mb-0 ps-3">
+            @foreach($errors->all() as $err)
+                <li>{{ $err }}</li>
+            @endforeach
+        </ul>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+@endif
 
-    @if(session('error'))
-        <div class="alert alert-danger alert-dismissible fade show w-100" role="alert">
-            {{ session('error') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+<form action="{{ route('cns-procurement-goods-receipt.store') }}" method="POST" enctype="multipart/form-data" id="formCreateGR">
+    @csrf
+    <div class="card cns-card">
+        <div class="card-header">
+            <h5 class="card-title"><i class="fa fa-file-text-o mr-1"></i> 1. Informasi PO &amp; Pengiriman</h5>
         </div>
-    @endif
-
-    @if(isset($errors) && $errors->any())
-        <div class="alert alert-danger alert-dismissible fade show w-100" role="alert">
-            <ul class="mb-0 ps-3">
-                @foreach($errors->all() as $err)
-                    <li>{{ $err }}</li>
-                @endforeach
-            </ul>
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
-
-    <form action="{{ route('cns-procurement-goods-receipt.store') }}" method="POST" enctype="multipart/form-data" class="w-100 px-0" id="formCreateGR">
-        @csrf
-        <div class="card mb-3 shadow-sm">
-            <div class="card-header bg-light fw-bold py-2">
-                <i class="fa fa-file-text-o me-1"></i> 1. Informasi PO &amp; Pengiriman
-            </div>
             <div class="card-body">
                 <div class="row g-3">
                     <div class="col-md-4">
@@ -174,9 +164,9 @@
             </div>
         </div>
 
-        <div class="card mb-3 shadow-sm">
-            <div class="card-header bg-light fw-bold py-2 d-flex justify-content-between align-items-center flex-wrap gap-2">
-                <span><i class="fa fa-cubes me-1"></i> 2. Rincian Item Barang yang Diterima</span>
+        <div class="card cns-card">
+            <div class="card-header">
+                <h5 class="card-title"><i class="fa fa-cubes mr-1"></i> 2. Rincian Item Barang yang Diterima</h5>
                 <div class="d-flex align-items-center gap-2">
                     <span id="loadingPoItems" style="display:none;" class="text-primary small fw-normal">
                         <i class="fa fa-spinner fa-spin me-1"></i> Mengambil data item PO...
@@ -204,12 +194,13 @@
                                 <th style="width: 105px;">Sisa Datang</th>
                                 <th style="width: 75px;">Satuan</th>
                                 <th style="width: 155px;" class="col-qty-input">Qty Diterima Saat Ini <span class="text-danger">*</span></th>
+                                <th style="min-width: 200px; display: none;" class="col-serial-number">Serial Number <span class="text-danger">*</span></th>
                                 <th style="min-width: 180px;">Catatan Item</th>
                             </tr>
                         </thead>
                         <tbody id="itemsTableBody">
                             <tr>
-                                <td colspan="9" class="text-center text-muted py-4">Silakan pilih Purchase Order di atas untuk memuat daftar item.</td>
+                                <td colspan="10" class="text-center text-muted py-4">Silakan pilih Purchase Order di atas untuk memuat daftar item.</td>
                             </tr>
                         </tbody>
                     </table>
@@ -225,11 +216,11 @@
                 <i class="fa fa-save me-1"></i> Simpan sebagai DRAFT
             </button>
         </div>
-    </form>
-</div>
+</form>
 
 <script>
     var isLoadingPoItems = false;
+    var oldItems = @json(old('items', []));
 
     function escapeHtml(str) {
         return String(str == null ? '' : str)
@@ -247,12 +238,105 @@
     function fillAllRemainingQty() {
         $('#itemsTableBody .qty-received-input').each(function() {
             var remain = cnsParseNumber($(this).attr('data-remain'), 0);
-            $(this).val(cnsFormatNumber(remain, 2));
+            $(this).val(cnsFormatNumber(remain, 2)).trigger('change');
         });
     }
 
     function resetAllReceivedQty() {
-        $('#itemsTableBody .qty-received-input').val(cnsFormatNumber(0, 2));
+        $('#itemsTableBody .qty-received-input').val(cnsFormatNumber(0, 2)).trigger('change');
+    }
+
+    function splitSerialTokens(raw) {
+        return String(raw || '')
+            .split(/[\r\n,;\t]+/)
+            .map(function(s) { return $.trim(s); })
+            .filter(function(s) { return s !== ''; });
+    }
+
+    function renderSerialBoxes(idx, qtyInt, presetValues) {
+        var $subrow = $('#itemsTableBody .serial-number-subrow[data-item-idx="' + idx + '"]');
+        if ($subrow.length === 0) return;
+
+        var existing = Array.isArray(presetValues) ? presetValues : [];
+        if (!Array.isArray(presetValues)) {
+            $subrow.find('.sn-box-input').each(function() {
+                existing.push($(this).val());
+            });
+        }
+
+        if (qtyInt <= 0) {
+            $subrow.hide();
+            $subrow.find('.sn-boxes-grid').empty();
+            syncAllSerialNumbers();
+            return;
+        }
+
+        var html = '';
+        for (var i = 0; i < qtyInt; i++) {
+            var val = existing[i] != null ? existing[i] : '';
+            html += '<div class="col-6 col-md-4 col-lg-3">';
+            html += '<div class="input-group input-group-sm">';
+            html += '<span class="input-group-text text-muted" style="min-width:38px;justify-content:center;">#' + (i + 1) + '</span>';
+            html += '<input type="text" class="form-control form-control-sm sn-box-input" data-item-idx="' + idx + '" data-sn-pos="' + i + '" value="' + escapeHtml(val) + '" placeholder="Scan / ketik SN #' + (i + 1) + '" autocomplete="off" />';
+            html += '</div>';
+            html += '</div>';
+        }
+        $subrow.find('.sn-boxes-grid').html(html);
+        $subrow.show();
+        syncAllSerialNumbers();
+    }
+
+    function syncAllSerialNumbers() {
+        var counts = {};
+        var $allInputs = $('#itemsTableBody .sn-box-input');
+
+        $allInputs.each(function() {
+            var val = $.trim($(this).val());
+            if (val !== '') {
+                var key = val.toLowerCase();
+                counts[key] = (counts[key] || 0) + 1;
+            }
+        });
+
+        $allInputs.each(function() {
+            var val = $.trim($(this).val());
+            var isDup = val !== '' && counts[val.toLowerCase()] > 1;
+            $(this).toggleClass('is-invalid', isDup);
+        });
+
+        $('#itemsTableBody tr.item-main-row[data-flexibag="1"]').each(function() {
+            var $row = $(this);
+            var idx = $row.attr('data-item-idx');
+            var qtyInt = Math.max(0, Math.floor(cnsParseNumber($row.find('.qty-received-input').val(), 0)));
+            var $subrow = $('#itemsTableBody .serial-number-subrow[data-item-idx="' + idx + '"]');
+            var values = [];
+            var hasDup = false;
+
+            $subrow.find('.sn-box-input').each(function() {
+                var val = $.trim($(this).val());
+                if (val !== '') {
+                    values.push(val);
+                    if (counts[val.toLowerCase()] > 1) {
+                        hasDup = true;
+                    }
+                }
+            });
+
+            $row.find('.serial-number-input').val(values.join('\n'));
+
+            var $badge = $row.find('.sn-status-badge');
+            $badge.removeClass('bg-success bg-warning bg-danger bg-secondary text-dark');
+            if (qtyInt <= 0) {
+                $badge.addClass('bg-secondary').text('0 / 0');
+            } else if (hasDup) {
+                $badge.addClass('bg-danger').text(values.length + ' / ' + qtyInt + ' (Duplikat)');
+            } else if (values.length === qtyInt) {
+                $badge.addClass('bg-success').text(values.length + ' / ' + qtyInt + ' Lengkap');
+            } else {
+                $badge.addClass('bg-warning text-dark').text(values.length + ' / ' + qtyInt);
+            }
+            $subrow.find('.sn-dup-warning').toggle(hasDup);
+        });
     }
 
     function onPoChanged(poNo) {
@@ -260,7 +344,8 @@
             isLoadingPoItems = false;
             $('#displaySupplier').val('');
             $('#itemQuickActions').hide();
-            $('#itemsTableBody').html('<tr><td colspan="9" class="text-center text-muted py-4">Silakan pilih Purchase Order di atas untuk memuat daftar item.</td></tr>');
+            $('.col-serial-number').hide();
+            $('#itemsTableBody').html('<tr><td colspan="10" class="text-center text-muted py-4">Silakan pilih Purchase Order di atas untuk memuat daftar item.</td></tr>');
             return;
         }
 
@@ -275,20 +360,29 @@
             if (res.status === 'success') {
                 $('#displaySupplier').val(res.po.supplier_name || '-');
 
+                var hasFlexibag = (res.items || []).some(function(item) {
+                    return /flexibag/i.test(item.item_name || '');
+                });
+                $('.col-serial-number').toggle(hasFlexibag);
+
                 var rowsHtml = '';
                 if (!res.items || res.items.length === 0) {
-                    rowsHtml = '<tr><td colspan="9" class="text-center text-warning py-3">Tidak ada item dalam PO ini.</td></tr>';
+                    rowsHtml = '<tr><td colspan="' + (hasFlexibag ? 10 : 9) + '" class="text-center text-warning py-3">Tidak ada item dalam PO ini.</td></tr>';
                     $('#itemQuickActions').hide();
                 } else {
                     res.items.forEach(function(item, idx) {
-                        var defaultQty = item.qty_remain > 0 ? item.qty_remain : 0;
+                        var oldItem = oldItems[idx] || null;
+                        var defaultQty = oldItem && oldItem.qty_received != null
+                            ? cnsParseNumber(oldItem.qty_received, 0)
+                            : (item.qty_remain > 0 ? item.qty_remain : 0);
                         var maxQty = item.qty_remain > 0 ? item.qty_remain : item.qty_ordered;
                         var itemName = escapeHtml(item.item_name || 'Item Non-UCO');
                         var category = escapeHtml(item.category || 'General');
                         var unit = escapeHtml(item.unit || 'PCS');
                         var itemCode = escapeHtml(item.item_code || '');
+                        var isFlexibag = /flexibag/i.test(item.item_name || '');
 
-                        rowsHtml += '<tr>';
+                        rowsHtml += '<tr class="item-main-row" data-item-idx="' + idx + '" data-flexibag="' + (isFlexibag ? '1' : '0') + '">';
                         rowsHtml += '<td class="text-center">' + (idx + 1) + '</td>';
                         rowsHtml += '<td class="fw-semibold">' + itemName + '</td>';
                         rowsHtml += '<td class="text-center">' + category + '</td>';
@@ -303,24 +397,59 @@
                         rowsHtml += '<input type="hidden" name="items[' + idx + '][category]" value="' + category + '" />';
                         rowsHtml += '<input type="hidden" name="items[' + idx + '][unit]" value="' + unit + '" />';
                         rowsHtml += '<input type="hidden" name="items[' + idx + '][qty_ordered]" value="' + escapeHtml(item.qty_ordered) + '" />';
-                        rowsHtml += '<input type="text" inputmode="decimal" data-max="' + escapeHtml(maxQty) + '" data-remain="' + escapeHtml(defaultQty) + '" name="items[' + idx + '][qty_received]" value="' + escapeHtml(cnsFormatNumber(defaultQty, 2)) + '" class="form-control form-control-sm text-end fw-bold qty-received-input cns-decimal" required />';
+                        rowsHtml += '<input type="text" inputmode="decimal" data-max="' + escapeHtml(maxQty) + '" data-remain="' + escapeHtml(item.qty_remain > 0 ? item.qty_remain : 0) + '" name="items[' + idx + '][qty_received]" value="' + escapeHtml(cnsFormatNumber(defaultQty, 2)) + '" class="form-control form-control-sm text-end fw-bold qty-received-input cns-decimal" required />';
                         rowsHtml += '</td>';
+                        if (hasFlexibag) {
+                            rowsHtml += '<td class="col-serial-number text-center">';
+                            if (isFlexibag) {
+                                rowsHtml += '<input type="hidden" name="items[' + idx + '][serial_number]" class="serial-number-input" value="" />';
+                                rowsHtml += '<span class="badge bg-warning text-dark sn-status-badge">0 / 0</span>';
+                            } else {
+                                rowsHtml += '<span class="text-muted">-</span>';
+                            }
+                            rowsHtml += '</td>';
+                        }
                         rowsHtml += '<td>';
-                        rowsHtml += '<input type="text" name="items[' + idx + '][notes]" class="form-control form-control-sm" placeholder="Kondisi barang / keterangan" />';
+                        rowsHtml += '<input type="text" name="items[' + idx + '][notes]" value="' + escapeHtml(oldItem && oldItem.notes ? oldItem.notes : '') + '" class="form-control form-control-sm" placeholder="Kondisi barang / keterangan" />';
                         rowsHtml += '</td>';
                         rowsHtml += '</tr>';
+
+                        if (isFlexibag) {
+                            var colSpan = hasFlexibag ? 10 : 9;
+                            rowsHtml += '<tr class="serial-number-subrow bg-light" data-item-idx="' + idx + '" style="display:none;">';
+                            rowsHtml += '<td colspan="' + colSpan + '" class="p-2 ps-4">';
+                            rowsHtml += '<div class="d-flex justify-content-between align-items-center mb-2">';
+                            rowsHtml += '<small class="fw-semibold text-dark"><i class="fa fa-barcode me-1"></i> Serial Number ' + itemName + ' <span class="text-muted fw-normal">(Tekan Enter setelah scan untuk lanjut, atau paste daftar dari Excel/WA)</span></small>';
+                            rowsHtml += '<small class="text-danger fw-semibold sn-dup-warning" style="display:none;"><i class="fa fa-exclamation-triangle me-1"></i> Ada Serial Number duplikat!</small>';
+                            rowsHtml += '</div>';
+                            rowsHtml += '<div class="row g-2 sn-boxes-grid" style="max-height:240px;overflow-y:auto;"></div>';
+                            rowsHtml += '</td>';
+                            rowsHtml += '</tr>';
+                        }
                     });
                     $('#itemQuickActions').show();
                 }
                 $('#itemsTableBody').html(rowsHtml);
                 cnsInitDecimalInputs('#itemsTableBody');
+
+                if (res.items && res.items.length > 0) {
+                    res.items.forEach(function(item, idx) {
+                        if (/flexibag/i.test(item.item_name || '')) {
+                            var $row = $('#itemsTableBody tr.item-main-row[data-item-idx="' + idx + '"]');
+                            var qtyInt = Math.max(0, Math.floor(cnsParseNumber($row.find('.qty-received-input').val(), 0)));
+                            var oldItem = oldItems[idx] || null;
+                            var preset = oldItem && oldItem.serial_number ? splitSerialTokens(oldItem.serial_number) : [];
+                            renderSerialBoxes(idx, qtyInt, preset);
+                        }
+                    });
+                }
             } else {
-                alert('Gagal memuat item: ' + res.message);
+                swal('Error', 'Gagal memuat item: ' + res.message, 'error');
             }
         }).fail(function() {
             isLoadingPoItems = false;
             $('#loadingPoItems').hide();
-            alert('Terjadi kesalahan koneksi saat memuat item PO.');
+            swal('Error', 'Terjadi kesalahan koneksi saat memuat item PO.', 'error');
         });
     }
 
@@ -334,17 +463,63 @@
             });
         }
 
+        $('#itemsTableBody').on('input change', '.qty-received-input', function() {
+            var $row = $(this).closest('tr.item-main-row');
+            if ($row.attr('data-flexibag') === '1') {
+                var idx = $row.attr('data-item-idx');
+                var qtyInt = Math.max(0, Math.floor(cnsParseNumber($(this).val(), 0)));
+                renderSerialBoxes(idx, qtyInt);
+            }
+        });
+
+        $('#itemsTableBody').on('input', '.sn-box-input', function() {
+            syncAllSerialNumbers();
+        });
+
+        $('#itemsTableBody').on('keydown', '.sn-box-input', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                var idx = $(this).attr('data-item-idx');
+                var pos = parseInt($(this).attr('data-sn-pos'), 10);
+                var $next = $('#itemsTableBody .sn-box-input[data-item-idx="' + idx + '"][data-sn-pos="' + (pos + 1) + '"]');
+                if ($next.length > 0) {
+                    $next.focus().select();
+                }
+            }
+        });
+
+        $('#itemsTableBody').on('paste', '.sn-box-input', function(e) {
+            var clipboard = (e.originalEvent || e).clipboardData;
+            var text = clipboard ? clipboard.getData('text') : '';
+            if (!text || !/[\r\n,;\t]/.test(text)) {
+                return;
+            }
+            e.preventDefault();
+            var tokens = splitSerialTokens(text);
+            if (tokens.length === 0) return;
+
+            var idx = $(this).attr('data-item-idx');
+            var startPos = parseInt($(this).attr('data-sn-pos'), 10);
+            tokens.forEach(function(token, offset) {
+                var $target = $('#itemsTableBody .sn-box-input[data-item-idx="' + idx + '"][data-sn-pos="' + (startPos + offset) + '"]');
+                if ($target.length > 0) {
+                    $target.val(token);
+                }
+            });
+            syncAllSerialNumbers();
+        });
+
         $('#formCreateGR').on('submit', function(e) {
             if (isLoadingPoItems) {
                 e.preventDefault();
-                alert('Mohon tunggu, data item PO masih dimuat.');
+                swal('Perhatian', 'Mohon tunggu, data item PO masih dimuat.', 'warning');
                 return false;
             }
 
             var $qtyInputs = $('#itemsTableBody .qty-received-input');
             if ($qtyInputs.length === 0) {
                 e.preventDefault();
-                alert('Pilih Purchase Order yang memiliki item terlebih dahulu.');
+                swal('Perhatian', 'Pilih Purchase Order yang memiliki item terlebih dahulu.', 'warning');
                 return false;
             }
 
@@ -358,8 +533,63 @@
 
             if (!hasPositiveQty) {
                 e.preventDefault();
-                alert('Minimal satu item harus memiliki Qty Diterima lebih dari 0.');
-                $qtyInputs.first().focus();
+                swal('Perhatian', 'Minimal satu item harus memiliki Qty Diterima lebih dari 0.', 'warning').then(function() {
+                    $qtyInputs.first().focus();
+                });
+                return false;
+            }
+
+            syncAllSerialNumbers();
+
+            var snErrorMsg = null;
+            var snErrorFocus = null;
+
+            $('#itemsTableBody tr.item-main-row[data-flexibag="1"]').each(function() {
+                var $row = $(this);
+                var idx = $row.attr('data-item-idx');
+                var rawQty = cnsParseNumber($row.find('.qty-received-input').val(), 0);
+                if (rawQty <= 0) {
+                    return true;
+                }
+                if (Math.abs(rawQty - Math.round(rawQty)) > 0.0001) {
+                    snErrorMsg = 'Qty Diterima untuk item Flexibag harus bilangan bulat.';
+                    snErrorFocus = $row.find('.qty-received-input');
+                    return false;
+                }
+
+                var qtyInt = Math.round(rawQty);
+                var $boxes = $('#itemsTableBody .sn-box-input[data-item-idx="' + idx + '"]');
+                var emptyBox = null;
+                var filledCount = 0;
+
+                $boxes.each(function() {
+                    if ($.trim($(this).val()) === '') {
+                        if (!emptyBox) emptyBox = $(this);
+                    } else {
+                        filledCount++;
+                    }
+                });
+
+                if (filledCount !== qtyInt) {
+                    snErrorMsg = 'Jumlah Serial Number (' + filledCount + ') harus sama dengan Qty Diterima (' + qtyInt + ').';
+                    snErrorFocus = emptyBox || $boxes.first();
+                    return false;
+                }
+            });
+
+            if (!snErrorMsg) {
+                var $dupBox = $('#itemsTableBody .sn-box-input.is-invalid').first();
+                if ($dupBox.length > 0) {
+                    snErrorMsg = 'Terdapat Serial Number duplikat di form. Periksa kotak berwarna merah.';
+                    snErrorFocus = $dupBox;
+                }
+            }
+
+            if (snErrorMsg) {
+                e.preventDefault();
+                swal('Perhatian', snErrorMsg, 'warning').then(function() {
+                    if (snErrorFocus) snErrorFocus.focus();
+                });
                 return false;
             }
 

@@ -1,40 +1,45 @@
 @extends('layout.mainlayout-cns')
 
 @section('content-wrapper')
-<div class="main-content-header">
-    <h1>CNS</h1>
-    <ol class="breadcrumb">
-        <li class="breadcrumb-item">
-            <a href="/dashboard1">Procurement</a>
-        </li>
-        <li class="breadcrumb-item active">
-            <span class="active">Kontrak Buyer &amp; Supplier</span>
-        </li>
-    </ol>
-</div>
+@include('cns.partials.page-header', [
+    'title' => 'Kontrak Buyer & Supplier',
+    'breadcrumbs' => [
+        ['label' => 'Procurement'],
+        ['label' => 'Kontrak Buyer & Supplier'],
+    ],
+])
 
-<div class="card">
+<div class="card cns-card">
+    <div class="card-header">
+        <h5 class="card-title mb-0">Data Kontrak Buyer &amp; Supplier</h5>
+        <div class="d-flex align-items-center flex-wrap" style="gap: 0.5rem;">
+            <button type="button" class="btn btn-sm btn-primary" onclick="BuyerContractNew()">New Data</button>
+            <button type="button" class="btn btn-sm btn-info" onclick="OpenProcurementDetail()">Open Detail</button>
+            <button type="button" class="btn btn-sm btn-success" onclick="BuyerContractGrid.toExcel('./export/generate.php');">Excel</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="refreshdata()">Refresh</button>
+        </div>
+    </div>
     <div class="card-body">
-        <div class="row mb-2">
+        <div class="row cns-filter-bar align-items-end">
             <div class="col-md-3">
-                <label for="filter_contract" class="mb-1">Kontrak</label>
-                <select id="filter_contract" class="form-control">
+                <label for="filter_contract" class="d-block mb-1"><small>Kontrak</small></label>
+                <select id="filter_contract" class="form-control form-control-sm">
                     <option value="all">Semua</option>
                     <option value="with">Menggunakan kontrak</option>
                     <option value="without">Tidak menggunakan kontrak</option>
                 </select>
             </div>
             <div class="col-md-3">
-                <label for="filter_group" class="mb-1">Kelompok Pembelian</label>
-                <select id="filter_group" class="form-control">
+                <label for="filter_group" class="d-block mb-1"><small>Kelompok Pembelian</small></label>
+                <select id="filter_group" class="form-control form-control-sm">
                     <option value="all">Semua</option>
                     <option value="UCO">UCO</option>
                     <option value="Non-UCO">Non UCO</option>
                 </select>
             </div>
             <div class="col-md-3">
-                <label for="filter_product" class="mb-1">Jenis Produk</label>
-                <select id="filter_product" class="form-control">
+                <label for="filter_product" class="d-block mb-1"><small>Jenis Produk</small></label>
+                <select id="filter_product" class="form-control form-control-sm">
                     <option value="all">Semua</option>
                     <option value="UCO">UCO</option>
                     <option value="Flexibag">Flexibag</option>
@@ -42,17 +47,14 @@
                     <option value="Kemasan dan Ampas">Kemasan dan Ampas</option>
                 </select>
             </div>
-            <div class="col-md-3 d-flex align-items-end">
-                <button type="button" class="btn btn-primary mr-2" onclick="refreshdata()">Filter</button>
-                <button type="button" class="btn btn-light" onclick="resetFilters()">Reset</button>
+            <div class="col-md-3 d-flex align-items-end" style="gap: 0.5rem;">
+                <button type="button" class="btn btn-sm btn-primary" onclick="refreshdata()">Filter</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="resetFilters()">Reset</button>
             </div>
         </div>
 
-        <div id="BuyerContractGrid" style="width:auto;height:360px;background-color:white;overflow:hidden"></div>
-        <div class="mt-2">
-            <button type="button" class="btn btn-primary" onclick="BuyerContractNew()">New Data</button>
-            <button type="button" class="btn btn-info" onclick="OpenProcurementDetail()">Open Detail</button>
-            <button type="button" class="btn btn-warning" onclick="BuyerContractGrid.toExcel('./export/generate.php');">Excel</button>
+        <div class="cns-grid-wrapper">
+            <div id="BuyerContractGrid" class="cns-grid" style="width:auto;height:360px;background-color:white;overflow:hidden"></div>
         </div>
     </div>
 </div>
@@ -67,7 +69,7 @@
     function OpenProcurementDetail() {
         var id = BuyerContractGrid.getSelectedId();
         if (id == null) {
-            alert('Pilih baris data');
+            swal('Perhatian', 'Pilih baris data', 'warning');
             return;
         }
 
@@ -89,6 +91,10 @@
     }
 
     function refreshdata() {
+        if (typeof BuyerContractPagination !== 'undefined' && BuyerContractPagination) {
+            BuyerContractPagination.reload(1);
+            return;
+        }
         var params = $.param({
             contract: $('#filter_contract').val(),
             group: $('#filter_group').val(),
@@ -105,12 +111,27 @@
     BuyerContractGrid.setInitWidths('50,220,260,130,240,130,150,80,150,190,130,130,140,180,100');
     BuyerContractGrid.setColAlign('center,left,left,left,left,center,left,center,left,left,right,right,right,left,center');
     BuyerContractGrid.setColSorting('int,str,str,str,str,str,str,str,str,str,str,str,str,str,str');
-    BuyerContractGrid.setColTypes('ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,link');
-    BuyerContractGrid.enableSmartRendering(true, 100);
+    BuyerContractGrid.setColTypes('ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,cns_badge,link');
     BuyerContractGrid.enableMultiline(true);
     BuyerContractGrid.attachEvent('onRowDblClicked', OpenProcurementDetail);
     BuyerContractGrid.setSkin('dhx_skyblue');
     BuyerContractGrid.init();
+
+    var BuyerContractPagination = initCnsGridPagination(BuyerContractGrid, {
+        pageSize: 25,
+        pageSizeOptions: [10, 25, 50, 100],
+        serverSort: false,
+        serverFilter: false,
+        getUrl: function (params) {
+            return 'xml-cns-procurement-buyer-contract?' + $.param({
+                posStart: params.posStart,
+                count: params.count,
+                contract: $('#filter_contract').val(),
+                group: $('#filter_group').val(),
+                product: $('#filter_product').val()
+            });
+        }
+    });
 
     (function () {
         var params = new URLSearchParams(window.location.search);

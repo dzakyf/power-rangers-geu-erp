@@ -39,21 +39,22 @@ InsuranceGrid.setColAlign("center,left,left,center,left,center,center,center,cen
 InsuranceGrid.setColSorting("int,str,str,str,str,str,str,str,str,str,str,str,str,str,str,str,str");
 InsuranceGrid.setColTypes("ro,ro,ed,coro,ro,ro,ed,ch,ed,ed,ed,ed,ed,ed,ed,ed,ed");
 InsuranceGrid.setDateFormat("%Y-%m-%d"); 
-PInsuranceGrid = new dataProcessor("employee-lists-detail-insurance-update");
+var empInsuranceTaskId = {!! json_encode((string) ($_GET['ID'] ?? '')) !!};
+PInsuranceGrid = new dataProcessor("{{ url('employee-lists-detail-insurance-update') }}?Task_ID=" + encodeURIComponent(empInsuranceTaskId));
 PInsuranceGrid.setTransactionMode({
     mode: "POST",
     total: true,
     headers: {
         'X-CSRF-TOKEN': "{{ csrf_token() }}"
     },
-    payload: {"Task_ID":"<?php echo $_GET['ID'] ?>"}
+    payload: {"Task_ID": empInsuranceTaskId}
 });
 PInsuranceGrid.init(InsuranceGrid);
 InsuranceGrid.setEditable(true);
 InsuranceGrid.setSkin("dhx_skyblue");
 InsuranceGrid.enableEditEvents(true,false,true);
 InsuranceGrid.init();
-InsuranceGrid.loadXML("xml-employee-lists-detail-insurance?ID=<?php echo $_GET['ID'];?>");
+InsuranceGrid.loadXML("{{ url('xml-employee-lists-detail-insurance') }}?ID=" + encodeURIComponent(empInsuranceTaskId));
 InsuranceGrid.getCombo(3).put("OWNER","WIFE");
 InsuranceGrid.getCombo(3).put("ISTRI","ISTRI");
 InsuranceGrid.getCombo(3).put("ANAK KE 1","ANAK KE 1");

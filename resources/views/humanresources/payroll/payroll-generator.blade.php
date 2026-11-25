@@ -91,10 +91,6 @@
             </nav>
         </div>
         <div class="d-flex align-items-center flex-wrap gap-2">
-            <a href="{{ url('payroll-thr') }}" class="btn btn-sm rounded-pill shadow-sm"
-                style="background: rgba(255, 255, 255, 0.25); border: 1px solid rgba(255, 255, 255, 0.6); color: #ffffff !important;">
-                <i class="fe fe-gift me-1"></i> Perhitungan THR
-            </a>
             <a href="{{ url('payroll-tax') }}" class="btn btn-sm rounded-pill shadow-sm"
                 style="background: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255, 255, 255, 0.5); color: #ffffff !important;">
                 <i class="fe fe-percent me-1"></i> Master Tax &amp; TER

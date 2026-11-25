@@ -1,7 +1,7 @@
-<div class="ml-2">
-    <div class="JudulContent" style="color:#699;">NEW INBOUND ADJUSTMENT</div>
-    <div class="card">
-        <div class="card-body pt-2">
+<div class="mt-3">
+    <div class="cns-section-header">NEW INBOUND ADJUSTMENT</div>
+    <div class="card cns-card">
+        <div class="card-body pt-3">
             <p class="text-muted mb-3">Formulir penyesuaian kuantiti movement sebelum inbound karena melebihi kapasitas tangki penampung. Kuantiti hasil adjustment yang sudah di-approve akan otomatis menggantikan kuantiti pada saat input Inbound Movement.</p>
 
             <form id="formInboundAdjustmentNew" onsubmit="submitNewAdjustment(event)" enctype="multipart/form-data">
@@ -250,7 +250,7 @@
         e.preventDefault();
 
         if (!validateAdjCapacity()) {
-            alert('Qty adjustment melebihi sisa kapasitas tangki.');
+            swal('Perhatian', 'Qty adjustment melebihi sisa kapasitas tangki.', 'warning');
             return;
         }
 
@@ -275,16 +275,17 @@
             contentType: false,
             headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
             success: function(res) {
-                alert(res.message || 'Inbound Adjustment berhasil disimpan.');
-                $('#InboundAdjustmentDet').empty();
-                refreshAdjData();
+                swal('Berhasil!', res.message || 'Inbound Adjustment berhasil disimpan.', 'success').then(function () {
+                    $('#InboundAdjustmentDet').empty();
+                    refreshAdjData();
+                });
             },
             error: function(xhr) {
                 var msg = 'Terjadi kesalahan saat menyimpan data.';
                 if (xhr.responseJSON && xhr.responseJSON.message) {
                     msg = xhr.responseJSON.message;
                 }
-                alert(msg);
+                swal('Error', msg, 'error');
                 $('#btnSaveAdjustment').prop('disabled', false).html('Simpan Inbound Adjustment');
             }
         });

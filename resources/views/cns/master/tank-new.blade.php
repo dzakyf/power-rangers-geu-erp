@@ -1,7 +1,7 @@
-<div class="ml-2">
-    <div class="JudulContent" style="color:#699;">NEW TANGKI</div>
-    <div class="card">
-        <div class="card-body pt-2">
+<div class="mt-3">
+    <div class="cns-section-header">NEW TANGKI</div>
+    <div class="card cns-card">
+        <div class="card-body pt-3">
             <p class="text-muted mb-3">Isi form berikut untuk menambahkan master tangki baru.</p>
 
             <form id="formTankNew" onsubmit="submitNewTank(event)">
@@ -67,11 +67,12 @@
             success: function(res) {
                 $btn.prop('disabled', false).text('Submit');
                 if (res.success) {
-                    alert('New Tank Created!');
-                    $('#MasterTankDet').empty();
-                    refreshdata();
+                    swal('Berhasil!', 'New Tank Created!', 'success').then(function() {
+                        $('#MasterTankDet').empty();
+                        refreshdata();
+                    });
                 } else {
-                    alert(res.message || 'Gagal menyimpan data.');
+                    swal('Error', res.message || 'Gagal menyimpan data.', 'error');
                 }
             },
             error: function(xhr) {
@@ -80,7 +81,7 @@
                 if (xhr.responseJSON && xhr.responseJSON.message) {
                     msg = xhr.responseJSON.message;
                 }
-                alert(msg);
+                swal('Error', msg, 'error');
             }
         });
     }

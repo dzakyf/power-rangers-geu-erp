@@ -132,6 +132,7 @@ class ShippingInstructionPrintService
                 'product_name' => $this->first([$shipment->Product_Name]),
                 'hs_code' => $this->first([$shipment->HS_Code]),
                 'package_type' => $packageType,
+                'remarks' => trim((string) ($shipment->Remarks ?? '')),
             ],
         ];
     }
