@@ -91,9 +91,24 @@
                 <small class="text-muted">Klik dua kali pada baris untuk melihat atau memperbarui detail aset.</small>
             </div>
             <div class="d-flex flex-wrap gap-2 align-items-center">
+                <select id="filterCategory" class="form-select form-select-sm" style="width:auto" onchange="DATAASSETSRefresh();">
+                    <option value="">Semua Category</option>
+                    @foreach(($filterOptions['categories'] ?? []) as $cat)
+                        <option value="{{ $cat }}">{{ $cat }}</option>
+                    @endforeach
+                </select>
                 <select id="filterSubCategory" class="form-select form-select-sm" style="width:auto" onchange="DATAASSETSRefresh();">
                     <option value="">Semua Sub Category</option>
-                    <option value="VEHICLE">VEHICLE (Kendaraan)</option>
+                    @foreach(($filterOptions['subCategories'] ?? []) as $subCat)
+                        <option value="{{ $subCat }}">{{ $subCat }}</option>
+                    @endforeach
+                </select>
+                <select id="filterLocation" class="form-select form-select-sm" style="width:auto; max-width:240px;" onchange="DATAASSETSRefresh();">
+                    <option value="">Semua Asset Location / Site</option>
+                    @foreach(($filterOptions['locations'] ?? []) as $loc)
+                        <option value="{{ $loc['code'] }}">{{ $loc['label'] }}</option>
+                    @endforeach
+                    <option value="__UNASSIGNED__">Belum Ada Lokasi</option>
                 </select>
                 <select id="filterStatus" class="form-select form-select-sm" style="width:auto" onchange="DATAASSETSRefresh();">
                     <option value="">Semua Status</option>
@@ -122,6 +137,15 @@
                     </button>
                     <button type="button" id="DATAASSETS_Detail" class="btn btn-secondary btn-sm" onclick="DATAASSETSDBL();">
                         <i class="fa fa-eye me-1"></i> Detail Data
+                    </button>
+                    <button type="button" id="DATAASSETS_QrSelected" class="btn btn-success btn-sm" onclick="openSelectedAssetQr();">
+                        <i class="fa fa-qrcode me-1"></i> Cetak QR Aset Terpilih
+                    </button>
+                    <button type="button" id="DATAASSETS_QrLocation" class="btn btn-outline-success btn-sm" onclick="openLocationQrPrint();">
+                        <i class="fa fa-map-marker-alt me-1"></i> Cetak QR Lokasi / Site
+                    </button>
+                    <button type="button" id="DATAASSETS_QrAll" class="btn btn-outline-primary btn-sm" onclick="openAllAssetQrPrint();">
+                        <i class="fa fa-print me-1"></i> Cetak QR Semua Aset
                     </button>
                 </div>
                 <div class="d-flex flex-wrap gap-2">
@@ -202,10 +226,60 @@ function DATAASSETSDBL() {
 }
 
 function resetAssetFilters() {
+    $('#filterCategory').val('');
     $('#filterSubCategory').val('');
+    $('#filterLocation').val('');
     $('#filterStatus').val('');
     $('#filterKondisi').val('');
     DATAASSETSRefresh();
+}
+
+function getActiveAssetFilterParams() {
+    var params = [];
+    var category = document.getElementById('filterCategory').value;
+    var subCat = document.getElementById('filterSubCategory').value;
+    var location = document.getElementById('filterLocation').value;
+    var status = document.getElementById('filterStatus').value;
+    var kondisi = document.getElementById('filterKondisi').value;
+
+    if (category) params.push('category=' + encodeURIComponent(category));
+    if (subCat) params.push('sub_category=' + encodeURIComponent(subCat));
+    if (location) params.push('location=' + encodeURIComponent(location));
+    if (status) params.push('status=' + encodeURIComponent(status));
+    if (kondisi) params.push('kondisi=' + encodeURIComponent(kondisi));
+
+    return params;
+}
+
+function openSelectedAssetQr() {
+    var selectedId = DATAASSETS.getSelectedId();
+    if (!selectedId) {
+        notifyAsset('warning', 'Perhatian', 'Pilih baris aset terlebih dahulu.');
+        return;
+    }
+    var assetNo = DATAASSETS.cells(selectedId, 1).getValue();
+    if (!assetNo) {
+        notifyAsset('warning', 'Perhatian', 'Asset No pada baris terpilih kosong.');
+        return;
+    }
+    var url = '{{ url('hrd-asset-lists-qr-print') }}?mode=asset&filter=1&codes[]=' + encodeURIComponent(assetNo);
+    window.open(url, '_blank');
+}
+
+function openLocationQrPrint() {
+    var location = document.getElementById('filterLocation').value;
+    var url = '{{ url('hrd-asset-lists-qr-print') }}?mode=location';
+    if (location && location !== '__UNASSIGNED__') {
+        url += '&filter=1&codes[]=' + encodeURIComponent(location);
+    }
+    window.open(url, '_blank');
+}
+
+function openAllAssetQrPrint() {
+    var params = getActiveAssetFilterParams();
+    params.unshift('mode=asset');
+    var url = '{{ url('hrd-asset-lists-qr-print') }}?' + params.join('&');
+    window.open(url, '_blank');
 }
 
 DATAASSETS = new dhtmlXGridObject('DATAASSETS');
@@ -226,15 +300,7 @@ DATAASSETS.setSkin("dhx_skyblue");
 DATAASSETS.init();
 
 function DATAASSETSRefresh() {
-    var params = [];
-    var subCat = document.getElementById('filterSubCategory').value;
-    var status = document.getElementById('filterStatus').value;
-    var kondisi = document.getElementById('filterKondisi').value;
-
-    if (subCat) params.push('sub_category=' + encodeURIComponent(subCat));
-    if (status) params.push('status=' + encodeURIComponent(status));
-    if (kondisi) params.push('kondisi=' + encodeURIComponent(kondisi));
-
+    var params = getActiveAssetFilterParams();
     var url = 'hrd-asset-lists-data' + (params.length ? ('?' + params.join('&')) : '');
     DATAASSETS.clearAndLoad(url);
 }

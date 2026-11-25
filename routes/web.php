@@ -280,6 +280,14 @@ Route::prefix('mobile')->middleware(['mobile.security'])->group(function () {
 Route::get('hrd-training-certificate-verify/{token}', [HCGATrainingSummaryController::class, 'verifyCertificate'])
     ->name('hrd.training.certificate.verify');
 
+// Public Asset QR PDF endpoints (HMAC-signed, read-only inline PDF)
+Route::get('public-asset-qr/location/{location}', [HCGAAssetListController::class, 'publicLocationQrPdf'])
+    ->where('location', '.*')
+    ->middleware('throttle:60,1');
+Route::get('public-asset-qr/item/{assetNo}', [HCGAAssetListController::class, 'publicAssetQrPdf'])
+    ->where('assetNo', '.*')
+    ->middleware('throttle:60,1');
+
 Route::group(['middleware' => 'log.access'], function () {
     Route::get('/dashboard-history-proforma', function () {
         return view('dashboard.history-proforma');
@@ -3667,6 +3675,12 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get('/attendant-data/manual-correction/pending', [\App\Http\Controllers\HCGA\AttendancesController::class, 'manualCorrectionPendingList'])->name('attendance.manual.pending');
     Route::post('/attendant-data/manual-correction/bulk-approve', [\App\Http\Controllers\HCGA\AttendancesController::class, 'manualCorrectionBulkApprove'])->name('attendance.manual.bulk_approve');
     Route::get('/attendant-data/manual-correction/audit-logs', [\App\Http\Controllers\HCGA\AttendancesController::class, 'manualCorrectionAuditLogs'])->name('attendance.manual.audit');
+    Route::get('/attendant-data/manual-leave/context', [\App\Http\Controllers\HCGA\AttendancesController::class, 'manualLeaveContext'])->name('attendance.manual_leave.context');
+    Route::post('/attendant-data/manual-leave/store', [\App\Http\Controllers\HCGA\AttendancesController::class, 'manualLeaveStore'])->name('attendance.manual_leave.store');
+    Route::get('/attendant-data/manual-leave/template', [\App\Http\Controllers\HCGA\AttendancesController::class, 'manualLeaveTemplate'])->name('attendance.manual_leave.template');
+    Route::post('/attendant-data/manual-leave/bulk-upload', [\App\Http\Controllers\HCGA\AttendancesController::class, 'manualLeaveBulkUpload'])->name('attendance.manual_leave.bulk_upload');
+    Route::get('/attendant-data/manual-leave/pending', [\App\Http\Controllers\HCGA\AttendancesController::class, 'manualLeavePendingList'])->name('attendance.manual_leave.pending');
+    Route::post('/attendant-data/manual-leave/bulk-approve', [\App\Http\Controllers\HCGA\AttendancesController::class, 'manualLeaveBulkApprove'])->name('attendance.manual_leave.bulk_approve');
     Route::get('/xml-attendant-data', [\App\Http\Controllers\HCGA\AttendancesController::class, 'indexXml']);
 
     // Web Desktop Portal Attendance, Leave & Approval Tracking
@@ -3695,6 +3709,12 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::post('/hrd-master-location/store', [\App\Http\Controllers\HCGA\MasterLocationController::class, 'store'])->name('hrd.master-location.store');
     Route::post('/hrd-master-location/{id}/update', [\App\Http\Controllers\HCGA\MasterLocationController::class, 'update'])->name('hrd.master-location.update');
     Route::delete('/hrd-master-location/{id}', [\App\Http\Controllers\HCGA\MasterLocationController::class, 'destroy'])->name('hrd.master-location.destroy');
+    
+    // HCGA Master Warehouse / Site (gudang_list)
+    Route::get('/hrd-master-warehouse', [\App\Http\Controllers\HCGA\MasterWarehouseController::class, 'index'])->name('hrd.master-warehouse.index');
+    Route::post('/hrd-master-warehouse', [\App\Http\Controllers\HCGA\MasterWarehouseController::class, 'store'])->name('hrd.master-warehouse.store');
+    Route::post('/hrd-master-warehouse/{id}/update', [\App\Http\Controllers\HCGA\MasterWarehouseController::class, 'update'])->name('hrd.master-warehouse.update');
+    Route::post('/hrd-master-warehouse/{id}/toggle-status', [\App\Http\Controllers\HCGA\MasterWarehouseController::class, 'toggleStatus'])->name('hrd.master-warehouse.toggle-status');
 
     // Overtime (Lembur) Matrix & Requests
     Route::get('/hrd-overtime-matrix', [\App\Http\Controllers\HCGA\OvertimeRequestController::class, 'indexMatrix'])->name('attendance.overtime.matrix');
@@ -6667,6 +6687,8 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$hcAssetPref-lists-sub-sub-category", [HCGAAssetListController::class, 'subSubCategory']);
     Route::post("$hcAssetPref-lists-new-from-po", [HCGAAssetListController::class, 'getDataFromPO']);
     Route::post("$hcAssetPref-lists-new-get-wh", [HCGAAssetListController::class, 'getDataFromWH']);
+    Route::get("$hcAssetPref-lists-qr-image", [HCGAAssetListController::class, 'qrImage']);
+    Route::match(['get', 'post'], "$hcAssetPref-lists-qr-print", [HCGAAssetListController::class, 'qrPrint']);
 
     // Vehicle Management: Master Kendaraan + Reminder STNK & KEUR + Pajak
     $hcVehMgmtPref = "$hcPref-vehicle-management";

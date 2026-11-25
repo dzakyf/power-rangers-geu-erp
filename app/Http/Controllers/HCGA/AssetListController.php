@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\HCGA;
 
 use App\Http\Controllers\Controller;
+use App\Services\HCGA\AssetQrService;
 use App\Services\HCGA\AssetVehicleService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -14,15 +16,21 @@ class AssetListController extends Controller
     /** @var AssetVehicleService */
     protected $assetService;
 
-    public function __construct(AssetVehicleService $assetService)
+    /** @var AssetQrService */
+    protected $qrService;
+
+    public function __construct(AssetVehicleService $assetService, AssetQrService $qrService)
     {
         $this->assetService = $assetService;
+        $this->qrService = $qrService;
     }
 
     public function index()
     {
         $summary = $this->assetService->getAssetSummaryStats();
-        return view('humanresources.asset-lists.index', compact('summary'));
+        $filterOptions = $this->assetService->getFilterOptions();
+
+        return view('humanresources.asset-lists.index', compact('summary', 'filterOptions'));
     }
 
     public function data(Request $request)
@@ -36,7 +44,9 @@ class AssetListController extends Controller
         echo "<?xml version='1.0' encoding='iso-8859-1' ?>\n";
 
         $rows = $this->assetService->getAssetGridData([
+            'category'     => $request->input('category'),
             'sub_category' => $request->input('sub_category'),
+            'location'     => $request->input('location'),
             'status'       => $request->input('status'),
             'kondisi'      => $request->input('kondisi'),
         ]);
@@ -393,6 +403,208 @@ class AssetListController extends Controller
             'status'  => 'success',
             'message' => 'Data WH',
             'data'    => $gudang,
+        ]);
+    }
+
+    public function qrImage(Request $request)
+    {
+        $mode = strtolower(trim((string) $request->query('mode', 'asset'))) === 'location' ? 'location' : 'asset';
+        $code = trim((string) $request->query('code', ''));
+        abort_if($code === '', 404);
+
+        $targetUrl = $mode === 'location'
+            ? $this->qrService->buildPublicLocationUrl($code)
+            : $this->qrService->buildPublicAssetUrl($code);
+
+        $svg = $this->qrService->generateQrSvg($targetUrl, 320);
+
+        return response($svg, 200, [
+            'Content-Type'  => 'image/svg+xml',
+            'Cache-Control' => 'public, max-age=86400',
+        ]);
+    }
+
+    public function qrPrint(Request $request)
+    {
+        $mode = strtolower(trim((string) $request->input('mode', 'location'))) === 'asset' ? 'asset' : 'location';
+        $layout = strtolower(trim((string) $request->input('layout', 'card'))) === 'compact' ? 'compact' : 'card';
+
+        $activeFilters = [
+            'category'     => trim((string) $request->input('category', '')),
+            'sub_category' => trim((string) $request->input('sub_category', '')),
+            'location'     => trim((string) $request->input('location', '')),
+            'status'       => trim((string) $request->input('status', '')),
+            'kondisi'      => trim((string) $request->input('kondisi', '')),
+        ];
+
+        $items = $mode === 'location'
+            ? $this->qrService->getLocationItems()
+            : $this->qrService->getAssetItems($activeFilters);
+
+        $codesParam = $request->input('codes', []);
+        if (!is_array($codesParam)) {
+            $codesParam = trim((string) $codesParam) === '' ? [] : explode(',', (string) $codesParam);
+        }
+        $selectedCodes = array_values(array_unique(array_filter(array_map(function ($val) {
+            return trim((string) $val);
+        }, $codesParam), function ($val) {
+            return $val !== '';
+        })));
+
+        $filterFlag = $request->input('filter');
+        $hasFilter = $request->has('codes') || (is_scalar($filterFlag) && (string) $filterFlag === '1');
+
+        $selectedMap = array_flip($selectedCodes);
+        if ($hasFilter) {
+            $selectedItems = $items->filter(function ($item) use ($mode, $selectedMap) {
+                $key = $mode === 'location' ? (string) $item->code : (string) $item->Asset_No;
+                return isset($selectedMap[$key]);
+            })->values();
+        } else {
+            $selectedItems = $items;
+        }
+
+        $action = strtolower(trim((string) $request->input('action', '')));
+        $download = $request->boolean('download') || $action === 'download';
+        $generatePdf = $action === 'print' || $action === 'download' || $download;
+
+        $filterOptions = $this->assetService->getFilterOptions();
+
+        if (!$generatePdf) {
+            return view('humanresources.asset-lists.qr-print', compact(
+                'mode',
+                'layout',
+                'items',
+                'selectedItems',
+                'selectedCodes',
+                'hasFilter',
+                'activeFilters',
+                'filterOptions'
+            ));
+        }
+
+        if ($selectedItems->isEmpty()) {
+            return view('humanresources.asset-lists.qr-print', [
+                'mode'          => $mode,
+                'layout'        => $layout,
+                'items'         => $items,
+                'selectedItems' => $selectedItems,
+                'selectedCodes' => $selectedCodes,
+                'hasFilter'     => $hasFilter,
+                'activeFilters' => $activeFilters,
+                'filterOptions' => $filterOptions,
+                'warning'       => 'Pilih minimal satu item sebelum mencetak PDF QR.',
+            ]);
+        }
+
+        $viewName = $layout === 'compact'
+            ? 'humanresources.asset-lists.qr-print-pdf-compact'
+            : 'humanresources.asset-lists.qr-print-pdf';
+
+        $tempDir = storage_path('app/mpdf');
+        if (!is_dir($tempDir)) {
+            mkdir($tempDir, 0775, true);
+        }
+
+        $margin = $layout === 'compact' ? 6 : 8;
+        $mpdf = new \Mpdf\Mpdf([
+            'mode'          => 'utf-8',
+            'format'        => 'A4',
+            'orientation'   => 'P',
+            'margin_left'   => $margin,
+            'margin_right'  => $margin,
+            'margin_top'    => $margin,
+            'margin_bottom' => $margin,
+            'tempDir'       => $tempDir,
+        ]);
+
+        $docTitle = ($mode === 'location' ? 'QR Lokasi Asset' : 'QR Asset Individual')
+            . ($layout === 'compact' ? ' (Stiker)' : ' (Kartu)');
+        $mpdf->SetTitle($docTitle);
+
+        $logoRaw = $this->qrService->logoRawPng(public_path('assets/images/small-logo.png'));
+        $logoSrc = null;
+        if ($logoRaw !== null) {
+            $mpdf->imageVars['hcga_logo'] = $logoRaw;
+            $logoSrc = 'var:hcga_logo';
+        }
+
+        $cssHtml = view($viewName, [
+            'mode'          => $mode,
+            'selectedItems' => collect(),
+            'qrImages'      => [],
+            'logo'          => $logoSrc,
+            'part'          => 'css',
+        ])->render();
+        $mpdf->WriteHTML($cssHtml, \Mpdf\HTMLParserMode::HEADER_CSS);
+
+        foreach ($selectedItems->chunk(4) as $itemChunk) {
+            $qrImages = [];
+            foreach ($itemChunk as $item) {
+                $code = $mode === 'location' ? (string) $item->code : (string) $item->Asset_No;
+                $targetUrl = $mode === 'location'
+                    ? $this->qrService->buildPublicLocationUrl($code)
+                    : $this->qrService->buildPublicAssetUrl($code);
+                $qrImages[$code] = $this->qrService->generateQrDataUri($targetUrl);
+            }
+
+            $bodyChunk = view($viewName, [
+                'mode'          => $mode,
+                'selectedItems' => $itemChunk->values(),
+                'qrImages'      => $qrImages,
+                'logo'          => $logoSrc,
+                'part'          => 'body',
+            ])->render();
+            $mpdf->WriteHTML($bodyChunk, \Mpdf\HTMLParserMode::HTML_BODY);
+        }
+
+        $prefix = ($mode === 'location' ? 'QR-AssetLoc-' : 'QR-Asset-')
+            . ($layout === 'compact' ? 'Sticker-' : 'Card-');
+        $filename = $prefix . Carbon::now()->format('YmdHis') . '.pdf';
+        $disposition = $download ? 'attachment' : 'inline';
+
+        return response(
+            $mpdf->Output($filename, \Mpdf\Output\Destination::STRING_RETURN),
+            200,
+            [
+                'Content-Type'        => 'application/pdf',
+                'Content-Disposition' => $disposition . '; filename="' . $filename . '"',
+            ]
+        );
+    }
+
+    public function publicLocationQrPdf(Request $request, $location)
+    {
+        $locCode = trim((string) $location);
+        $sig = $request->query('sig');
+
+        abort_if($locCode === '' || !$this->qrService->verifySignature('location', $locCode, $sig), 403, 'QR signature tidak valid.');
+
+        $pdf = $this->qrService->renderPublicLocationPdf($locCode);
+
+        return response($pdf['binary'], 200, [
+            'Content-Type'        => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="' . $pdf['filename'] . '"',
+            'Cache-Control'       => 'no-store, no-cache, must-revalidate',
+            'X-Robots-Tag'        => 'noindex, nofollow',
+        ]);
+    }
+
+    public function publicAssetQrPdf(Request $request, $assetNo)
+    {
+        $code = trim((string) $assetNo);
+        $sig = $request->query('sig');
+
+        abort_if($code === '' || !$this->qrService->verifySignature('asset', $code, $sig), 403, 'QR signature tidak valid.');
+
+        $pdf = $this->qrService->renderPublicAssetPdf($code);
+        abort_if(!$pdf, 404, 'Data asset tidak ditemukan.');
+
+        return response($pdf['binary'], 200, [
+            'Content-Type'        => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="' . $pdf['filename'] . '"',
+            'Cache-Control'       => 'no-store, no-cache, must-revalidate',
+            'X-Robots-Tag'        => 'noindex, nofollow',
         ]);
     }
 

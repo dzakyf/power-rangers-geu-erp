@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Libur;
 use App\Services\Attendance\AttendanceService;
 use App\Services\Attendance\ManualAttendanceCorrectionService;
+use App\Services\Attendance\ManualLeaveEntryService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -2028,17 +2029,165 @@ class AttendancesController extends Controller
     }
 
     /**
-     * AJAX: Riwayat Audit Log Perbaikan Absen Manual.
+     * AJAX: Riwayat Audit Log Perbaikan Absen & Cuti Manual.
      */
     public function manualCorrectionAuditLogs(Request $request)
     {
         $this->authorizeManualCorrection($request);
         $service = app(ManualAttendanceCorrectionService::class);
         $rows = $service->getAuditLogs([
-            'nik'    => $request->input('nik'),
-            'action' => $request->input('action', 'ALL'),
+            'nik'      => $request->input('nik'),
+            'action'   => $request->input('action', 'ALL'),
+            'category' => $request->input('category', 'ALL'),
         ]);
 
         return response()->json(['status' => 'success', 'data' => $rows]);
+    }
+
+    /**
+     * AJAX: Cek konteks cuti manual (saldo, overlap, log absensi, payroll lock, self-guard).
+     */
+    public function manualLeaveContext(Request $request)
+    {
+        $user = $this->authorizeManualCorrection($request);
+        $request->validate([
+            'nik'        => 'required|string|max:50',
+            'start_date' => 'required|date',
+            'end_date'   => 'nullable|date',
+            'leave_type' => 'nullable|string|max:100',
+        ]);
+
+        try {
+            $service = app(ManualLeaveEntryService::class);
+            $startDate = (string) $request->input('start_date');
+            $endDate = (string) ($request->input('end_date') ?: $startDate);
+            $ctx = $service->inspectContext(
+                (string) $request->input('nik'),
+                $startDate,
+                $endDate,
+                $request->input('leave_type'),
+                $user
+            );
+
+            return response()->json(['status' => 'success', 'data' => $ctx]);
+        } catch (\Throwable $e) {
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 422);
+        }
+    }
+
+    /**
+     * AJAX: Simpan Input Cuti/Izin Manual Karyawan Lain (Single).
+     */
+    public function manualLeaveStore(Request $request)
+    {
+        $user = $this->authorizeManualCorrection($request);
+        $request->validate([
+            'nik'                => 'required|string|max:50',
+            'leave_type'         => 'required|string|max:100',
+            'start_date'         => 'required|date',
+            'end_date'           => 'required|date|after_or_equal:start_date',
+            'clock_in_time'      => 'nullable|string|max:10',
+            'clock_out_time'     => 'nullable|string|max:10',
+            'reason'             => 'nullable|string|max:1000',
+            'execution_mode'     => 'required|in:APPROVAL_REQUIRED,DIRECT_UPDATE',
+            'post_cutoff_action' => 'nullable|in:NONE,RAPEL_NEXT_PERIOD,FINANCE_DIRECT',
+            'post_cutoff_notes'  => 'nullable|string|max:500',
+            'attachment'         => 'nullable|file|max:5120|mimes:jpg,jpeg,png,pdf',
+        ]);
+
+        try {
+            $service = app(ManualLeaveEntryService::class);
+            $result = $service->submitManualLeave(
+                $user,
+                $request->all(),
+                $request->file('attachment'),
+                $request->ip(),
+                'MANUAL_SINGLE'
+            );
+
+            return response()->json($result, 200);
+        } catch (\Throwable $e) {
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 422);
+        }
+    }
+
+    /**
+     * Download Template Excel (.xlsx) untuk Bulk Upload Cuti/Izin Manual.
+     */
+    public function manualLeaveTemplate(Request $request)
+    {
+        $this->authorizeManualCorrection($request);
+        $service = app(ManualLeaveEntryService::class);
+        $spreadsheet = $service->buildBulkTemplateSpreadsheet();
+
+        $filename = 'Template_Cuti_Manual.xlsx';
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment;filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        $writer->save('php://output');
+        exit;
+    }
+
+    /**
+     * AJAX: Preview / Eksekusi Bulk Upload Excel Cuti/Izin Manual.
+     */
+    public function manualLeaveBulkUpload(Request $request)
+    {
+        $user = $this->authorizeManualCorrection($request);
+        $request->validate([
+            'file'        => 'required|file|mimes:xlsx,xls,csv|max:10240',
+            'action_mode' => 'nullable|in:preview,execute',
+        ]);
+
+        try {
+            $service = app(ManualLeaveEntryService::class);
+            $result = $service->processBulkUpload(
+                $user,
+                $request->file('file'),
+                $request->input('action_mode', 'preview'),
+                $request->ip()
+            );
+
+            return response()->json(['status' => 'success', 'data' => $result]);
+        } catch (\Throwable $e) {
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 422);
+        }
+    }
+
+    /**
+     * AJAX: Daftar Pengajuan Cuti SUBMITTED untuk diproses massal.
+     */
+    public function manualLeavePendingList(Request $request)
+    {
+        $this->authorizeManualCorrection($request);
+        $service = app(ManualLeaveEntryService::class);
+        $rows = $service->getPendingLeaveRequests([
+            'department' => $request->input('department', 'ALL'),
+        ]);
+
+        return response()->json(['status' => 'success', 'data' => $rows]);
+    }
+
+    /**
+     * AJAX: Setujui & Terapkan Banyak Pengajuan Cuti SUBMITTED Sekaligus.
+     */
+    public function manualLeaveBulkApprove(Request $request)
+    {
+        $user = $this->authorizeManualCorrection($request);
+        $request->validate([
+            'leave_ids'   => 'required|array|min:1',
+            'leave_ids.*' => 'integer',
+        ]);
+
+        try {
+            $service = app(ManualLeaveEntryService::class);
+            $result = $service->bulkApprovePendingLeaves($user, $request->input('leave_ids', []), $request->ip());
+
+            return response()->json(array_merge(['status' => 'success'], $result));
+        } catch (\Throwable $e) {
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 422);
+        }
     }
 }

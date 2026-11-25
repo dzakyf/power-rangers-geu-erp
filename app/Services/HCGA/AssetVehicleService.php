@@ -5,6 +5,7 @@ namespace App\Services\HCGA;
 use Carbon\Carbon;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class AssetVehicleService
 {
@@ -82,14 +83,35 @@ class AssetVehicleService
             )
             ->orderBy('ID', 'ASC');
 
-        if (!empty($filters['sub_category'])) {
-            $query->where('Asset_Sub_Category', $filters['sub_category']);
+        $category = trim((string) ($filters['category'] ?? ''));
+        if ($category !== '') {
+            $query->where('Asset_Category', $category);
         }
-        if (!empty($filters['status'])) {
-            $query->where('Status', $filters['status']);
+
+        $subCategory = trim((string) ($filters['sub_category'] ?? ''));
+        if ($subCategory !== '') {
+            $query->where('Asset_Sub_Category', $subCategory);
         }
-        if (!empty($filters['kondisi'])) {
-            $query->where('Kondisi_Aset', $filters['kondisi']);
+
+        $location = trim((string) ($filters['location'] ?? ''));
+        if ($location !== '') {
+            if ($location === '__UNASSIGNED__') {
+                $query->where(function ($q) {
+                    $q->whereNull('Asset_Location')->orWhere('Asset_Location', '');
+                });
+            } else {
+                $query->where('Asset_Location', $location);
+            }
+        }
+
+        $status = trim((string) ($filters['status'] ?? ''));
+        if ($status !== '') {
+            $query->where('Status', $status);
+        }
+
+        $kondisi = trim((string) ($filters['kondisi'] ?? ''));
+        if ($kondisi !== '') {
+            $query->where('Kondisi_Aset', $kondisi);
         }
 
         return $query->get();
@@ -212,15 +234,108 @@ class AssetVehicleService
     }
 
     /**
+     * Daftar opsi filter dinamis untuk halaman Asset Lists.
+     */
+    public function getFilterOptions(): array
+    {
+        $masterCategories = DB::table('master_product_group')
+            ->whereNotNull('Product_Group')
+            ->where('Product_Group', '!=', '')
+            ->pluck('Product_Group')
+            ->all();
+        $assetCategories = DB::table('asset_list')
+            ->whereNotNull('Asset_Category')
+            ->where('Asset_Category', '!=', '')
+            ->distinct()
+            ->pluck('Asset_Category')
+            ->all();
+        $categories = array_values(array_unique(array_map('trim', array_merge($masterCategories, $assetCategories))));
+        $categories = array_values(array_filter($categories, function ($v) {
+            return $v !== '';
+        }));
+        sort($categories, SORT_NATURAL | SORT_FLAG_CASE);
+
+        $masterSubCategories = DB::table('master_product_sub_group')
+            ->whereNotNull('Sub_Group')
+            ->where('Sub_Group', '!=', '')
+            ->pluck('Sub_Group')
+            ->all();
+        $assetSubCategories = DB::table('asset_list')
+            ->whereNotNull('Asset_Sub_Category')
+            ->where('Asset_Sub_Category', '!=', '')
+            ->distinct()
+            ->pluck('Asset_Sub_Category')
+            ->all();
+        $subCategories = array_values(array_unique(array_map('trim', array_merge($masterSubCategories, $assetSubCategories))));
+        $subCategories = array_values(array_filter($subCategories, function ($v) {
+            return $v !== '';
+        }));
+        sort($subCategories, SORT_NATURAL | SORT_FLAG_CASE);
+
+        $locationsMap = [];
+        $warehouses = DB::table('gudang_list')
+            ->select('Gudang_ID', 'Description', 'Location')
+            ->orderBy('Gudang_ID', 'ASC')
+            ->get();
+
+        foreach ($warehouses as $wh) {
+            $code = trim((string) ($wh->Gudang_ID ?? ''));
+            if ($code === '') {
+                continue;
+            }
+            $desc = trim((string) ($wh->Description ?? ''));
+            $locationsMap[$code] = [
+                'code'  => $code,
+                'label' => $desc !== '' ? ($code . ' - ' . $desc) : $code,
+            ];
+        }
+
+        $assetLocations = DB::table('asset_list')
+            ->whereNotNull('Asset_Location')
+            ->where('Asset_Location', '!=', '')
+            ->distinct()
+            ->orderBy('Asset_Location', 'ASC')
+            ->pluck('Asset_Location')
+            ->all();
+
+        foreach ($assetLocations as $loc) {
+            $code = trim((string) $loc);
+            if ($code !== '' && !isset($locationsMap[$code])) {
+                $locationsMap[$code] = [
+                    'code'  => $code,
+                    'label' => $code,
+                ];
+            }
+        }
+
+        ksort($locationsMap, SORT_NATURAL | SORT_FLAG_CASE);
+
+        return [
+            'categories'    => $categories,
+            'subCategories' => $subCategories,
+            'locations'     => array_values($locationsMap),
+        ];
+    }
+
+    /**
      * Data master untuk form create asset baru.
      */
     public function getCreateFormData(): array
     {
+        $warehouseQuery = DB::table('gudang_list')->orderBy('Gudang_ID', 'ASC');
+        if (Schema::hasColumn('gudang_list', 'Status')) {
+            $warehouseQuery->where(function ($q) {
+                $q->where('Status', 'ACTIVE')
+                    ->orWhereNull('Status')
+                    ->orWhere('Status', '');
+            });
+        }
+
         return [
             'categories' => DB::table('master_product_group')->orderBy('Product_Group', 'ASC')->get(),
             'suppliers'  => DB::table('supplier')->orderBy('Company_Name', 'ASC')->get(),
             'banks'      => DB::table('bank_acc')->where('Status', 'ACTIVE')->orderBy('Bank_Acc', 'ASC')->get(),
-            'warehouses' => DB::table('gudang_list')->orderBy('Gudang_ID', 'ASC')->get(),
+            'warehouses' => $warehouseQuery->get(),
             'poList'     => DB::table('purchase_order')
                 ->whereIn('Status_Receive', ['WAITING', 'PARTIAL', ''])
                 ->orWhereNull('Status_Receive')

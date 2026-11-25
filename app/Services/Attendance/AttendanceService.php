@@ -1308,6 +1308,11 @@ class AttendanceService
             ->pluck('Department');
 
         $allCutoffRules = $this->cutoffService->getAllActiveRules();
+        $leaveCategories = DB::table('kategori_izin')
+            ->where('status', 'ACTIVE')
+            ->orderBy('izin_jenis_id', 'asc')
+            ->orderBy('kat_izin_id', 'asc')
+            ->get();
 
         return [
             'metrics' => [
@@ -1334,6 +1339,7 @@ class AttendanceService
             'cutoffRule'             => $cutoffRule,
             'cutoffRange'            => $cutoffRange,
             'allCutoffRules'         => $allCutoffRules,
+            'leaveCategories'        => $leaveCategories,
         ];
     }
 

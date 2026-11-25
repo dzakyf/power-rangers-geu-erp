@@ -79,11 +79,33 @@ class LeaveEntitlementService
 
     /**
      * Potong saldo cuti dengan prioritas saldo akumulasi tahun lalu sebelum masa reset.
+     * Mendukung idempotensi berdasarkan reference_no dan opsi saldo minus untuk input cuti manual.
      */
-    public function deductLeaveBalance(string $nik, int $days, string $refNo, string $leaveCategoryCode, $adminUser = null): array
-    {
+    public function deductLeaveBalance(
+        string $nik,
+        int $days,
+        string $refNo,
+        string $leaveCategoryCode,
+        $adminUser = null,
+        bool $allowNegative = false,
+        ?int $targetYear = null
+    ): array {
         if ($days <= 0) {
             return ['status' => 'skipped', 'message' => 'Hari cuti 0. Tidak ada pemotongan.'];
+        }
+
+        // Guard idempotensi: jangan memotong dua kali untuk reference_no yang sama
+        $alreadyDeducted = DB::table('leave_balance_ledgers')
+            ->where('nik', $nik)
+            ->where('reference_no', $refNo)
+            ->where('transaction_type', 'DEDUCTION')
+            ->exists();
+
+        if ($alreadyDeducted) {
+            return [
+                'status'  => 'already_deducted',
+                'message' => "Saldo cuti untuk {$refNo} sudah pernah dipotong.",
+            ];
         }
 
         // Cek apakah kategori ini memotong cuti tahunan
@@ -100,15 +122,15 @@ class LeaveEntitlementService
         }
 
         $today = Carbon::now();
-        $year = (int) $today->year;
+        $year = $targetYear ?: (int) $today->year;
         $balance = $this->getOrCreateUserBalance($nik, $year);
 
-        if ($balance->remaining_total < $days) {
+        if (!$allowNegative && $balance->remaining_total < $days) {
             throw new InvalidArgumentException("Sisa jatah cuti tidak mencukupi (Sisa: {$balance->remaining_total} hari, Diminta: {$days} hari).");
         }
 
         $isCarryValid = $balance->carry_forward_expired_at && $today->lte(Carbon::parse($balance->carry_forward_expired_at));
-        $availableCarry = $isCarryValid ? ($balance->carry_forward_quota - $balance->used_carry_forward) : 0;
+        $availableCarry = $isCarryValid ? max(0, (int) $balance->carry_forward_quota - (int) $balance->used_carry_forward) : 0;
 
         $deductFromCarry = 0;
         $deductFromCurrent = 0;
@@ -121,11 +143,16 @@ class LeaveEntitlementService
             $deductFromCurrent = $days;
         }
 
-        $newUsedCarry = $balance->used_carry_forward + $deductFromCarry;
-        $newUsedCurrent = $balance->used_current_year + $deductFromCurrent;
-        $newTotal = ($balance->allocated_quota - $newUsedCurrent) + ($isCarryValid ? ($balance->carry_forward_quota - $newUsedCarry) : 0);
+        $newUsedCarry = (int) $balance->used_carry_forward + $deductFromCarry;
+        $newUsedCurrent = (int) $balance->used_current_year + $deductFromCurrent;
+        $newTotal = ((int) $balance->allocated_quota - $newUsedCurrent) + ($isCarryValid ? ((int) $balance->carry_forward_quota - $newUsedCarry) : 0);
 
-        DB::transaction(function () use ($balance, $newUsedCarry, $newUsedCurrent, $newTotal, $nik, $refNo, $deductFromCarry, $deductFromCurrent, $days, $adminUser) {
+        $actorUsername = is_object($adminUser)
+            ? ($adminUser->username ?? 'system')
+            : (is_string($adminUser) && trim($adminUser) !== '' ? trim($adminUser) : 'system');
+        $negativeSuffix = ($newTotal < 0) ? ' (Saldo minus diizinkan - Input Cuti Manual)' : '';
+
+        DB::transaction(function () use ($balance, $newUsedCarry, $newUsedCurrent, $newTotal, $nik, $refNo, $deductFromCarry, $deductFromCurrent, $actorUsername, $negativeSuffix) {
             DB::table('user_leave_balances')->where('id', $balance->id)->update([
                 'used_carry_forward' => $newUsedCarry,
                 'used_current_year'  => $newUsedCurrent,
@@ -141,8 +168,8 @@ class LeaveEntitlementService
                     'amount'           => -$deductFromCarry,
                     'source_balance'   => 'CARRY_FORWARD',
                     'balance_after'    => $newTotal,
-                    'description'      => "Potong saldo cuti tahun lalu (Sebelum masa reset)",
-                    'created_by'       => $adminUser ? $adminUser->username : 'system',
+                    'description'      => "Potong saldo cuti tahun lalu (Sebelum masa reset){$negativeSuffix}",
+                    'created_by'       => $actorUsername,
                 ]);
             }
 
@@ -154,8 +181,8 @@ class LeaveEntitlementService
                     'amount'           => -$deductFromCurrent,
                     'source_balance'   => 'CURRENT_YEAR',
                     'balance_after'    => $newTotal,
-                    'description'      => "Potong saldo cuti tahun berjalan",
-                    'created_by'       => $adminUser ? $adminUser->username : 'system',
+                    'description'      => "Potong saldo cuti tahun berjalan{$negativeSuffix}",
+                    'created_by'       => $actorUsername,
                 ]);
             }
         });

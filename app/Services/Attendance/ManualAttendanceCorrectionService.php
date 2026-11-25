@@ -1087,7 +1087,7 @@ class ManualAttendanceCorrectionService
     }
 
     /**
-     * Ambil daftar riwayat audit log perbaikan absen manual.
+     * Ambil daftar riwayat audit log perbaikan absen & cuti manual.
      */
     public function getAuditLogs(array $filters = []): array
     {
@@ -1095,16 +1095,35 @@ class ManualAttendanceCorrectionService
             return [];
         }
 
+        $hasLeaveCol = Schema::hasColumn('attendance_manual_audit_logs', 'leave_request_id');
+        $hasLeaveCutoffCol = Schema::hasColumn('attendance_leave_requests', 'post_cutoff_status');
+
         $q = DB::table('attendance_manual_audit_logs as a')
             ->leftJoin('users as u', 'u.Emp_ID', '=', 'a.target_nik')
-            ->leftJoin('attendance_corrections as c', 'c.id', '=', 'a.correction_id')
-            ->select(
-                'a.*',
-                'u.Name as target_name',
-                'c.correction_no',
-                'c.post_cutoff_status'
-            )
-            ->orderBy('a.id', 'desc');
+            ->leftJoin('attendance_corrections as c', 'c.id', '=', 'a.correction_id');
+
+        if ($hasLeaveCol) {
+            $q->leftJoin('attendance_leave_requests as lr', 'lr.id', '=', 'a.leave_request_id');
+        }
+
+        $selects = [
+            'a.*',
+            'u.Name as target_name',
+            'c.correction_no',
+            'c.post_cutoff_status as corr_post_cutoff_status',
+        ];
+
+        if ($hasLeaveCol) {
+            $selects[] = 'lr.request_no as leave_request_no';
+            $selects[] = $hasLeaveCutoffCol
+                ? 'lr.post_cutoff_status as leave_post_cutoff_status'
+                : DB::raw("'NONE' as leave_post_cutoff_status");
+        } else {
+            $selects[] = DB::raw("NULL as leave_request_no");
+            $selects[] = DB::raw("'NONE' as leave_post_cutoff_status");
+        }
+
+        $q->select($selects)->orderBy('a.id', 'desc');
 
         if (!empty($filters['nik'])) {
             $q->where('a.target_nik', trim($filters['nik']));
@@ -1112,8 +1131,22 @@ class ManualAttendanceCorrectionService
         if (!empty($filters['action']) && $filters['action'] !== 'ALL') {
             $q->where('a.action', $filters['action']);
         }
+        if (!empty($filters['category']) && $filters['category'] !== 'ALL') {
+            $cat = strtoupper(trim((string) $filters['category']));
+            if ($cat === 'LEAVE') {
+                $q->where('a.action', 'like', 'LEAVE_%');
+            } elseif ($cat === 'CORRECTION') {
+                $q->where('a.action', 'not like', 'LEAVE_%');
+            }
+        }
 
-        return $q->limit(150)->get()->toArray();
+        $rows = $q->limit(150)->get();
+        foreach ($rows as $r) {
+            $r->post_cutoff_status = $r->corr_post_cutoff_status ?: ($r->leave_post_cutoff_status ?? 'NONE');
+            $r->ref_no = $r->correction_no ?: ($r->leave_request_no ?? null);
+        }
+
+        return $rows->toArray();
     }
 
     protected function normalizeTime(?string $time): ?string

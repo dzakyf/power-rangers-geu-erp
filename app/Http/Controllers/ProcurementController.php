@@ -400,6 +400,62 @@ class ProcurementController extends Controller
             if ($userObj) {
                 $prRow = DB::table('purchase_request')->where('ID', $prId)->first();
                 $approvalService->submit($prRow, $userObj);
+
+                // 3.1 Kirim notifikasi OneSignal ke approver tahap pertama yang terkait
+                try {
+                    $freshPr = DB::table('purchase_request')->where('ID', $prId)->first();
+                    $reqId   = $freshPr->Approval_Request_ID ?? null;
+
+                    if (!$reqId && !empty($request->pr_no)) {
+                        $reqRow = DB::table('approval_request')
+                            ->where('Request_No', $request->pr_no)
+                            ->orderBy('ID', 'DESC')
+                            ->first();
+                        $reqId = $reqRow->ID ?? null;
+                    }
+
+                    $firstTask = null;
+                    if ($reqId) {
+                        $firstTask = DB::table('approval_request_task')
+                            ->where('Request_ID', $reqId)
+                            ->whereIn(DB::raw('UPPER(COALESCE(Status, \'\'))'), ['PENDING', 'WAITING'])
+                            ->orderBy('Stage_Order', 'ASC')
+                            ->orderBy('Level_Number', 'ASC')
+                            ->orderBy('ID', 'ASC')
+                            ->first();
+                    }
+
+                    $approverTargets = [];
+                    if ($firstTask) {
+                        $userQuery = DB::table('users');
+
+                        if (!empty($firstTask->Position_ID)) {
+                            $userQuery->where('Position_ID', $firstTask->Position_ID);
+                        } elseif (!empty($firstTask->Position_Name)) {
+                            $userQuery->where(DB::raw('UPPER(Position)'), strtoupper(trim($firstTask->Position_Name)));
+                        }
+
+                        $approverTargets = $userQuery->pluck('username')->all();
+                    }
+
+                    if (!empty($approverTargets)) {
+                        $posLabel   = !empty($firstTask->Position_Name) ? " ({$firstTask->Position_Name})" : '';
+                        $nominalStr = 'Rp ' . number_format($estimatedBudget, 0, ',', '.');
+
+                        $this->sendOneSignalNotification(
+                            $approverTargets,
+                            'PR Baru Perlu Approval',
+                            "PR {$request->pr_no} ({$request->department}) sebesar {$nominalStr} menunggu approval Anda{$posLabel}.",
+                            [
+                                'pr_no' => $request->pr_no,
+                                'type'  => 'PR_CREATED',
+                                'url'   => url('mobile/procurement/pr/approval'),
+                            ]
+                        );
+                    }
+                } catch (\Exception $notifEx) {
+                    \Log::warning('Gagal mengirim notifikasi OneSignal saat storePR: ' . $notifEx->getMessage());
+                }
             }
 
             DB::commit();
@@ -409,7 +465,6 @@ class ProcurementController extends Controller
             return redirect()->back()->withInput()->with('error', 'Gagal menyimpan PR: ' . $e->getMessage());
         }
     }
-
 
     // Menampilkan Detail PR (Mode Read-Only)
     public function detailPR(Request $request) {
@@ -2618,6 +2673,55 @@ public function mobileTrackingPR(Request $request)
     }
 
     return view('humanresources.procurement.mobile-pr-tracking', compact('trackingList', 'userObj'));
+}
+
+private function sendOneSignalNotification(array $targetExternalIds, $title, $message, array $extraData = [])
+{
+    $appId  = config('services.onesignal.app_id');
+    $apiKey = config('services.onesignal.rest_api_key');
+
+    $recipients = array_values(array_unique(array_filter(array_map(function ($val) {
+        return trim((string) $val);
+    }, $targetExternalIds))));
+
+    if (empty($appId) || empty($apiKey) || empty($recipients)) {
+        return;
+    }
+
+    $payload = [
+        'app_id' => $appId,
+        'headings' => [
+            'en' => $title,
+            'id' => $title,
+        ],
+        'contents' => [
+            'en' => $message,
+            'id' => $message,
+        ],
+        // Pastikan di Kodular / OneSignal memakai External User ID / Alias yang sama dengan nilai di $recipients
+        'include_external_user_ids' => $recipients,
+        'data' => $extraData,
+    ];
+
+    $ch = curl_init('https://onesignal.com/api/v1/notifications');
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Content-Type: application/json; charset=utf-8',
+        'Authorization: Basic ' . $apiKey,
+    ]);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+    curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+
+    $response = curl_exec($ch);
+    $curlErr  = curl_error($ch);
+    curl_close($ch);
+
+    if ($curlErr) {
+        \Log::warning('OneSignal PR Created error: ' . $curlErr);
+    } elseif ($response) {
+        \Log::info('OneSignal PR Created response: ' . $response);
+    }
 }
 
 }
