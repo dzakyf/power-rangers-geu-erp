@@ -22,15 +22,15 @@
 		<div class="cns-filter-bar">
 			<div>
 				<label class="d-block mb-1"><small>Dari Tanggal</small></label>
-				<input type="date" id="drainAdjFilterStartDate" class="form-control form-control-sm" style="width:140px;" />
+				<input type="date" id="drainAdjFilterStartDate" class="text-black form-control form-control-sm" style="width:140px;" />
 			</div>
 			<div>
 				<label class="d-block mb-1"><small>Sampai Tanggal</small></label>
-				<input type="date" id="drainAdjFilterEndDate" class="form-control form-control-sm" style="width:140px;" />
+				<input type="date" id="drainAdjFilterEndDate" class="text-black form-control form-control-sm" style="width:140px;" />
 			</div>
 			<div>
 				<label class="d-block mb-1"><small>Tangki</small></label>
-				<select id="drainAdjFilterTank" class="form-control form-control-sm" style="width:160px;" onchange="refreshDrainAdjData()">
+				<select id="drainAdjFilterTank" class="text-black form-control form-control-sm" style="width:160px;" onchange="refreshDrainAdjData()">
 					<option value="">Semua Tangki</option>
 					@foreach($tanks as $t)
 						<option value="{{ $t->id }}">{{ $t->name }}</option>
@@ -39,7 +39,7 @@
 			</div>
 			<div>
 				<label class="d-block mb-1"><small>Status Approval</small></label>
-				<select id="drainAdjFilterStatus" class="form-control form-control-sm" style="width:140px;" onchange="refreshDrainAdjData()">
+				<select id="drainAdjFilterStatus" class="text-black form-control form-control-sm" style="width:140px;" onchange="refreshDrainAdjData()">
 					<option value="">Semua Status</option>
 					<option value="PENDING">PENDING</option>
 					<option value="APPROVED">APPROVED</option>
@@ -48,7 +48,7 @@
 			</div>
 			<div>
 				<label class="d-block mb-1"><small>Pencarian</small></label>
-				<input type="text" id="drainAdjFilterSearch" class="form-control form-control-sm" style="width:170px;" placeholder="Kode / Tangki / Ket..." onkeyup="if(event.key==='Enter') refreshDrainAdjData()" />
+				<input type="text" id="drainAdjFilterSearch" class="text-black form-control form-control-sm" style="width:170px;" placeholder="Kode / Tangki / Ket..." onkeyup="if(event.key==='Enter') refreshDrainAdjData()" />
 			</div>
 			<div>
 				<button type="button" class="btn btn-sm btn-primary" onclick="refreshDrainAdjData()">Filter</button>
@@ -125,7 +125,7 @@
 	DrainAdjustmentGrid.setInitWidths("50,150,100,140,130,130,130,100,220,110,120,130");
 	DrainAdjustmentGrid.attachHeader("&nbsp;,#text_filter,#text_filter,#select_filter,#text_filter,#text_filter,#text_filter,#select_filter,#text_filter,&nbsp;,#text_filter,#text_filter");
 	DrainAdjustmentGrid.setColAlign("center,left,center,left,right,right,right,center,left,center,left,center");
-	DrainAdjustmentGrid.setColTypes("dyn,ro,ro,ro,ro,ro,ro,cns_badge,ro,link,ro,ro");
+	DrainAdjustmentGrid.setColTypes("dyn,ro,ro,ro,ro,ro,ro,cns_badge,ro,cns_doc,ro,ro");
 	DrainAdjustmentGrid.attachEvent("onRowDblClicked", DetailDrainAdjustment);
 	DrainAdjustmentGrid.setColSorting("int,str,date,str,int,int,int,str,str,str,str,str");
 	DrainAdjustmentGrid.enableMultiline(true);

@@ -37,11 +37,11 @@
         <div class="cns-filter-bar">
             <div>
                 <label class="d-block mb-1"><small>Dari Tanggal</small></label>
-                <input type="date" id="filterStartDate" class="form-control form-control-sm" style="width:145px;" />
+                <input type="date" id="filterStartDate" class="text-black form-control form-control-sm" style="width:145px;" />
             </div>
             <div>
                 <label class="d-block mb-1"><small>Sampai Tanggal</small></label>
-                <input type="date" id="filterEndDate" class="form-control form-control-sm" style="width:145px;" />
+                <input type="date" id="filterEndDate" class="text-black form-control form-control-sm" style="width:145px;" />
             </div>
             <div>
                 <button type="button" class="btn btn-sm btn-primary" onclick="applyFilters()">Filter</button>

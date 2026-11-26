@@ -39,7 +39,7 @@ class AnnexVIIController extends Controller
                 $val = trim((string) $val);
                 if ($val === '') continue;
                 if ($colIdx == 1) $query->where('Annex_No', 'like', "%{$val}%");
-                if ($colIdx == 2) $query->where('Final_SI_No', 'like', "%{$val}%");
+                if ($colIdx == 2) $query->where('SI_No', 'like', "%{$val}%");
                 if ($colIdx == 3) $query->where('Order_No', 'like', "%{$val}%");
                 if ($colIdx == 4) $query->where('Shipper', 'like', "%{$val}%");
                 if ($colIdx == 5) $query->where('Consignee', 'like', "%{$val}%");
@@ -55,7 +55,7 @@ class AnnexVIIController extends Controller
 
         $colMap = [
             1 => 'Annex_No',
-            2 => 'Final_SI_No',
+            2 => 'SI_No',
             3 => 'Order_No',
             4 => 'Shipper',
             5 => 'Consignee',
@@ -68,10 +68,7 @@ class AnnexVIIController extends Controller
             12 => 'Status',
         ];
 
-        $paginated = DhtmlxGridPagination::paginateQuery($query, $request, [
-            'col_map' => $colMap,
-            'default_page_size' => 25,
-        ]);
+        $paginated = $this->paginateAnnexes($query, $request, $colMap);
 
         $data = $paginated['rows'];
         $total = $paginated['total'];
@@ -81,11 +78,11 @@ class AnnexVIIController extends Controller
         $no = $posStart + 1;
 
         foreach ($data as $row) {
-            $status = $row->Status ?? 'APPROVED';
+            $status = $row->Status ?: 'DRAFT';
             $bodyXml .= "<row id='" . $row->id . "'>";
             $bodyXml .= "<cell><![CDATA[" . $no++ . "]]></cell>";
             $bodyXml .= "<cell><![CDATA[" . $row->Annex_No . "]]></cell>";
-            $bodyXml .= "<cell><![CDATA[" . $row->Final_SI_No . "]]></cell>";
+            $bodyXml .= "<cell><![CDATA[" . $row->SI_No . "]]></cell>";
             $bodyXml .= "<cell><![CDATA[" . $row->Order_No . "]]></cell>";
             $bodyXml .= "<cell><![CDATA[" . $row->Shipper . "]]></cell>";
             $bodyXml .= "<cell><![CDATA[" . $row->Consignee . "]]></cell>";
@@ -224,6 +221,19 @@ class AnnexVIIController extends Controller
 
     public function deleteAnnexDatra() {}
 
+    public function detailAnnex(Request $request)
+    {
+        $annex = $this->findAnnex($request);
+        if (!$annex) {
+            abort(404, 'Annex VII tidak ditemukan.');
+        }
+
+        $shipment = $annex;
+        $shipments = collect([$annex]);
+
+        return view('cns.export.annex-detail', compact('annex', 'shipment', 'shipments'));
+    }
+
     public function printAnnex()
     {
         return view('cns.export.print.annex-print');
@@ -283,11 +293,108 @@ class AnnexVIIController extends Controller
         }
 
         DB::transaction(function () use ($data) {
-            $data['Annex_No'] = CnsCodeGenerator::nextAnnexNo(null, true);
-            AnnexVII::create($data);
+            $annex = new AnnexVII($data);
+            $annex->Annex_No = CnsCodeGenerator::nextAnnexNo(null, true);
+            $annex->Status = 'DRAFT';
+            $annex->save();
         });
 
         // return response()->json(['success' => true, 'id' => $annex->id, 'message' => 'Annex created']);
         echo "success";
+    }
+
+    public function approve(Request $request)
+    {
+        $user = auth()->user();
+        $isAllowed = $user && (
+            $user->username === 'admin'
+            || in_array($user->Priv_ID ?? '', ['ADM', 'CNS', 'SPV', 'MANAGER'])
+            || (method_exists($user, 'hasRole') && ($user->hasRole('ADM') || $user->hasRole('super-admin')))
+            || (method_exists($user, 'can') && (
+                $user->can('menu.SI00325.approve')
+                || $user->can('cns.annex_vii.approve')
+                || $user->can('cns.annex_vii.edit')
+            ))
+        );
+
+        if (!$isAllowed) {
+            return response()->json(['status' => 'error', 'message' => 'Anda tidak memiliki akses approve Annex VII.'], 403);
+        }
+
+        $annex = $this->findAnnex($request);
+        if (!$annex) {
+            return response()->json(['status' => 'error', 'message' => 'Annex VII tidak ditemukan.'], 404);
+        }
+
+        if ($annex->Status === 'APPROVED') {
+            return response()->json(['status' => 'error', 'message' => 'Annex VII sudah berstatus APPROVED.'], 422);
+        }
+
+        $annex->Status = 'APPROVED';
+        $annex->approved_by = $user->id;
+        $annex->approved_at = now();
+        $this->saveAnnex($annex);
+
+        return response()->json([
+            'status'  => 'success',
+            'message' => "Annex VII {$annex->Annex_No} berhasil di-approve.",
+        ]);
+    }
+
+    protected function paginateAnnexes($query, Request $request, array $colMap): array
+    {
+        return DhtmlxGridPagination::paginateQuery($query, $request, [
+            'col_map' => $colMap,
+            'default_page_size' => 25,
+        ]);
+    }
+
+    protected function saveAnnex(AnnexVII $annex): void
+    {
+        $annex->save();
+    }
+
+    protected function findAnnex(Request $request): ?AnnexVII
+    {
+        $id = trim((string) $request->input('id', ''));
+        if ($id !== '' && is_numeric($id)) {
+            $found = AnnexVII::find($id);
+            if ($found) {
+                return $found;
+            }
+        }
+
+        $annexNo = trim((string) ($request->input('annex_no') ?: $request->input('Annex_No', '')));
+        if ($annexNo !== '') {
+            $found = AnnexVII::where('Annex_No', $annexNo)->first();
+            if ($found) {
+                return $found;
+            }
+        }
+
+        $siNo = trim((string) ($request->input('si_no') ?: $request->input('SI_No', '')));
+        if ($siNo !== '') {
+            $found = AnnexVII::where('SI_No', $siNo)->first();
+            if ($found) {
+                return $found;
+            }
+        }
+
+        $task = trim((string) $request->input('Task', ''));
+        if ($task !== '') {
+            $found = AnnexVII::where('Annex_No', $task)->first();
+            if ($found) {
+                return $found;
+            }
+            $found = AnnexVII::where('SI_No', $task)->first();
+            if ($found) {
+                return $found;
+            }
+            if (is_numeric($task)) {
+                return AnnexVII::find($task);
+            }
+        }
+
+        return null;
     }
 }

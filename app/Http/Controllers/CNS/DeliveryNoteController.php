@@ -7,8 +7,10 @@ use App\Http\Controllers\Controller;
 use App\Services\CNS\CnsCodeGenerator;
 use App\Support\DhtmlxGridPagination;
 use App\User;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Mpdf\Mpdf;
 
 class DeliveryNoteController extends Controller
@@ -183,25 +185,57 @@ class DeliveryNoteController extends Controller
         $companies = $this->locationSuppliers();
         $issuers = $this->issuerCompanies();
         $contracts = $this->completedContracts();
+        $bookingConfirmations = $this->availableBookingConfirmations();
         $approvers = function_exists('cns_eligible_approvers') ? cns_eligible_approvers() : collect();
         $DnNo = CnsCodeGenerator::nextDnNo();
 
-        return view('cns.export.dn-new', compact('companies', 'issuers', 'contracts', 'approvers', 'DnNo'));
+        return view('cns.export.dn-new', compact('companies', 'issuers', 'contracts', 'bookingConfirmations', 'approvers', 'DnNo'));
     }
 
     public function newDeliveryNoteSubmit(Request $request)
     {
         $r = $request->all();
         unset($r['_token']);
+
+        $bcNo = trim((string) ($r['BC_No'] ?? ''));
+        if ($bcNo === '') {
+            return response()->json(['status' => 'error', 'message' => 'Nomor BC (Booking Confirmation) wajib dipilih.'], 422);
+        }
+
+        $bcRecord = $this->findBookingConfirmation($bcNo);
+        if (!$bcRecord) {
+            return response()->json(['status' => 'error', 'message' => 'Booking Confirmation (BC No) tidak ditemukan pada Vessel Schedule.'], 422);
+        }
+
+        $r['BC_No'] = $bcNo;
+        if (empty($r['Contract_No']) && !empty($bcRecord->Contract_No)) {
+            $r['Contract_No'] = $bcRecord->Contract_No;
+        }
+
         $r = $this->withSignatoryFields($r);
         $r['Created_By'] = auth()->user()->username;
         $r['Created_Date'] = now();
         $r['Status'] = 'DRAFT';
 
-        DB::transaction(function () use ($r) {
-            $r['DN_No'] = CnsCodeGenerator::nextDnNo($r['Delivery_Date'] ?? null, true);
-            DeliveryNote::create($r);
-        });
+        try {
+            $duplicate = DB::transaction(function () use ($r, $bcNo) {
+                if (DeliveryNote::where('BC_No', $bcNo)->lockForUpdate()->exists()) {
+                    return true;
+                }
+                $r['DN_No'] = CnsCodeGenerator::nextDnNo($r['Delivery_Date'] ?? null, true);
+                DeliveryNote::create($r);
+                return false;
+            });
+        } catch (QueryException $e) {
+            if ($this->isDuplicateEntryException($e)) {
+                return response()->json(['status' => 'error', 'message' => "Delivery Note untuk BC {$bcNo} sudah pernah dibuat."], 422);
+            }
+            throw $e;
+        }
+
+        if ($duplicate) {
+            return response()->json(['status' => 'error', 'message' => "Delivery Note untuk BC {$bcNo} sudah pernah dibuat."], 422);
+        }
 
         echo "success";
     }
@@ -219,6 +253,8 @@ class DeliveryNoteController extends Controller
             $dn = DeliveryNote::find($task);
         }
 
+        $bookingConfirmations = $this->availableBookingConfirmations($dn->BC_No ?? null);
+
         if ($dn && !empty($dn->Shipper) && !$issuers->contains('Supplier_ID', $dn->Shipper)) {
             $extra = DB::table('supplier')->where('Supplier_ID', $dn->Shipper)->first();
             if ($extra) {
@@ -232,7 +268,7 @@ class DeliveryNoteController extends Controller
             }
         }
 
-        return view('cns.export.dn-detail', compact('companies', 'issuers', 'contracts', 'approvers', 'dn'));
+        return view('cns.export.dn-detail', compact('companies', 'issuers', 'contracts', 'bookingConfirmations', 'approvers', 'dn'));
     }
 
     public function detailDeliveryNoteSubmit(Request $request)
@@ -244,6 +280,28 @@ class DeliveryNoteController extends Controller
         if ($dn && $dn->Status === 'APPROVED') {
             echo "Delivery Note sudah di-approve dan tidak dapat diubah";
             return;
+        }
+
+        if (array_key_exists('BC_No', $r)) {
+            $bcNo = trim((string) $r['BC_No']);
+            if ($bcNo !== '') {
+                $bcRecord = $this->findBookingConfirmation($bcNo);
+                if (!$bcRecord) {
+                    return response()->json(['status' => 'error', 'message' => 'Booking Confirmation (BC No) tidak ditemukan pada Vessel Schedule.'], 422);
+                }
+                $exists = DeliveryNote::where('BC_No', $bcNo)
+                    ->where('DN_No', '!=', $r['DN_No'] ?? '')
+                    ->exists();
+                if ($exists) {
+                    return response()->json(['status' => 'error', 'message' => "Delivery Note untuk BC {$bcNo} sudah pernah dibuat."], 422);
+                }
+                $r['BC_No'] = $bcNo;
+                if (empty($r['Contract_No']) && !empty($bcRecord->Contract_No)) {
+                    $r['Contract_No'] = $bcRecord->Contract_No;
+                }
+            } else {
+                $r['BC_No'] = null;
+            }
         }
 
         $r = $this->withSignatoryFields($r);
@@ -388,5 +446,83 @@ class DeliveryNoteController extends Controller
                 DB::raw('s.Address as Supplier_Address'),
             ])
             ->get();
+    }
+
+    private function availableBookingConfirmations(?string $includeBcNo = null)
+    {
+        if (!Schema::hasTable('vessel_schedules') || !Schema::hasColumn('vessel_schedules', 'BC_No')) {
+            return collect();
+        }
+
+        $query = DB::table('vessel_schedules as vs')
+            ->leftJoin('cns_buyer_contracts as c', 'c.ID', '=', 'vs.Contract_ID')
+            ->leftJoin('supplier as s', 's.ID', '=', 'c.Supplier_ID')
+            ->whereNotNull('vs.BC_No')
+            ->where('vs.BC_No', '!=', '');
+
+        if (auth()->check() && !empty(auth()->user()->Location)) {
+            $location = auth()->user()->Location;
+            $query->where(function ($q) use ($location) {
+                $q->where('c.Location', $location)->orWhereNull('c.Location');
+            });
+        }
+
+        if (Schema::hasTable('delivery_notes') && Schema::hasColumn('delivery_notes', 'BC_No')) {
+            $usedBcNos = DeliveryNote::whereNotNull('BC_No')
+                ->where('BC_No', '!=', '')
+                ->when($includeBcNo !== null && $includeBcNo !== '', function ($q) use ($includeBcNo) {
+                    $q->where('BC_No', '!=', $includeBcNo);
+                })
+                ->pluck('BC_No')
+                ->all();
+
+            if (!empty($usedBcNos)) {
+                $query->whereNotIn('vs.BC_No', $usedBcNos);
+            }
+        }
+
+        return $query->groupBy('vs.BC_No')
+            ->orderBy('vs.BC_No')
+            ->select([
+                'vs.BC_No',
+                DB::raw('MAX(c.Contract_No) as Contract_No'),
+                DB::raw('MAX(c.Buyer_Name) as Buyer_Name'),
+                DB::raw('MAX(c.Buyer_Address) as Buyer_Address'),
+                DB::raw('MAX(c.Quantity_MT) as Contract_Quantity_MT'),
+                DB::raw('SUM(COALESCE(vs.Qty, 0)) as Schedule_Qty_MT'),
+                DB::raw('MAX(s.Supplier_ID) as Consignee_Code'),
+                DB::raw('MAX(s.Address) as Supplier_Address'),
+            ])
+            ->get()
+            ->map(function ($row) {
+                $scheduleQty = (float) ($row->Schedule_Qty_MT ?? 0);
+                $row->Quantity_MT = $scheduleQty > 0 ? $scheduleQty : $row->Contract_Quantity_MT;
+                return $row;
+            });
+    }
+
+    private function findBookingConfirmation(string $bcNo)
+    {
+        if (!Schema::hasTable('vessel_schedules') || !Schema::hasColumn('vessel_schedules', 'BC_No')) {
+            return null;
+        }
+
+        return DB::table('vessel_schedules as vs')
+            ->leftJoin('cns_buyer_contracts as c', 'c.ID', '=', 'vs.Contract_ID')
+            ->where('vs.BC_No', $bcNo)
+            ->select(['vs.BC_No', 'c.Contract_No'])
+            ->first();
+    }
+
+    private function isDuplicateEntryException(QueryException $e): bool
+    {
+        $sqlState = $e->errorInfo[0] ?? null;
+        $driverCode = $e->errorInfo[1] ?? null;
+        $message = $e->getMessage();
+
+        return $sqlState === '23000'
+            || $driverCode === 1062
+            || stripos($message, 'UNIQUE constraint failed') !== false
+            || stripos($message, 'Duplicate entry') !== false;
     }
 }

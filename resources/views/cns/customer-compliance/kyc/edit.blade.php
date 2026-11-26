@@ -2,14 +2,20 @@
 
 @section('content-wrapper')
 @include('cns.partials.page-header', [
-    'title' => 'Edit Form KYC: ' . $kyc->kyc_no,
+    'title' => ($kyc->isRejected() ? 'Revisi Form KYC: ' : 'Edit Form KYC: ') . $kyc->kyc_no,
     'breadcrumbs' => [
         ['label' => 'Customer Compliance'],
         ['label' => 'KYC', 'url' => route('cns-customer-compliance-kyc.index')],
         ['label' => $kyc->kyc_no, 'url' => route('cns-customer-compliance-kyc.detail', ['id' => $kyc->id])],
-        ['label' => 'Edit'],
+        ['label' => $kyc->isRejected() ? 'Revisi' : 'Edit'],
     ],
 ])
+
+@if($kyc->isRejected() && $kyc->rejection_reason)
+    <div class="alert alert-danger">
+        <strong>Alasan Reject Sebelumnya:</strong> {{ $kyc->rejection_reason }}
+    </div>
+@endif
 
 <form action="{{ route('cns-customer-compliance-kyc.update', ['id' => $kyc->id]) }}" method="POST" enctype="multipart/form-data">
     @csrf
@@ -22,7 +28,7 @@
                 <i class="fa fa-arrow-left"></i> Batal / Kembali ke Detail
             </a>
             <button type="submit" class="btn btn-warning">
-                <i class="fa fa-save"></i> Perbarui Form KYC
+                <i class="fa fa-save"></i> {{ $kyc->isRejected() ? 'Kirim Revisi KYC' : 'Perbarui Form KYC' }}
             </button>
         </div>
     </div>

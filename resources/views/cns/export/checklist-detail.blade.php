@@ -1,9 +1,8 @@
 <?php
-$completed = collect($statuses)->filter(function ($item) {
-    return $item['exists'];
-})->count();
-$total = count($statuses);
-$percent = $total > 0 ? round(($completed / $total) * 100) : 0;
+$summary = \App\Http\Controllers\CNS\ExportChecklistController::summarizeStages($statuses);
+$completed = $summary['completed'];
+$total = $summary['total'];
+$percent = $summary['percent'];
 ?>
 <style>
     .export-timeline-wrap {
@@ -17,7 +16,7 @@ $percent = $total > 0 ? round(($completed / $total) * 100) : 0;
     .export-timeline {
         display: flex;
         align-items: flex-start;
-        min-width: 1120px;
+        min-width: 1260px;
         padding: 4px 8px;
     }
     .export-timeline-step {
@@ -58,6 +57,12 @@ $percent = $total > 0 ? round(($completed / $total) * 100) : 0;
         color: #fff;
         border-color: #218838;
     }
+    .export-timeline-step.is-optional .export-timeline-dot {
+        background: #f8fafc;
+        color: #64748b;
+        border-color: #cbd5e1;
+        border-style: dashed;
+    }
     .export-timeline-title {
         font-size: 11px;
         font-weight: 700;
@@ -88,9 +93,14 @@ $percent = $total > 0 ? round(($completed / $total) * 100) : 0;
             <div class="export-timeline-wrap">
                 <div class="export-timeline">
                     @foreach(array_values($statuses) as $idx => $doc)
-                        <div class="export-timeline-step {{ $doc['exists'] ? 'is-done' : '' }}" title="{{ $doc['label'] }}: {{ $doc['doc_no'] }} ({{ $doc['note'] }})">
+                        @php
+                            $isDone = !empty($doc['exists']);
+                            $isOptionalEmpty = !$isDone && !empty($doc['optional']);
+                            $stepClass = $isDone ? 'is-done' : ($isOptionalEmpty ? 'is-optional' : '');
+                        @endphp
+                        <div class="export-timeline-step {{ $stepClass }}" title="{{ $doc['label'] }}: {{ $doc['doc_no'] }} ({{ $doc['note'] }})">
                             <div class="export-timeline-dot">
-                                {{ $doc['exists'] ? '✓' : ($idx + 1) }}
+                                {{ $isDone ? '✓' : ($isOptionalEmpty ? '–' : ($idx + 1)) }}
                             </div>
                             <div class="export-timeline-title">{{ $doc['short'] }}</div>
                             <div class="export-timeline-doc">{{ $doc['doc_no'] }}</div>
@@ -110,7 +120,7 @@ $percent = $total > 0 ? round(($completed / $total) * 100) : 0;
                             <th>Nomor / Referensi</th>
                             <th style="width: 120px;">Tanggal</th>
                             <th>Keterangan</th>
-                            <th style="width: 95px;" class="text-center">Aksi</th>
+                            <th style="width: 130px;" class="text-center">Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -119,17 +129,59 @@ $percent = $total > 0 ? round(($completed / $total) * 100) : 0;
                             <td class="text-center">{{ $idx + 1 }}</td>
                             <td>{{ $doc['label'] }}</td>
                             <td class="text-center">
-                                @if($doc['exists'])
-                                    <span class="badge rounded-pillrounded-pill bg-success text-white font-weight-bold">Lengkap</span>
+                                @if(!empty($doc['exists']))
+                                    <span class="badge rounded-pill bg-success text-white font-weight-bold">Lengkap</span>
+                                @elseif(!empty($doc['optional']))
+                                    <span class="badge rounded-pill bg-secondary text-white font-weight-bold">Opsional</span>
                                 @else
-                                    <span class="badge bg-success bg-warning text-white font-weight-bold">Belum</span>
+                                    <span class="badge rounded-pill bg-warning text-dark font-weight-bold">Belum</span>
                                 @endif
                             </td>
-                            <td>{{ $doc['doc_no'] }}</td>
+                            <td>
+                                @if(array_key_exists('sub_docs', $doc))
+                                    @if(!empty($doc['sub_docs']))
+                                        <div class="d-flex flex-column" style="gap: 4px;">
+                                            @foreach($doc['sub_docs'] as $sub)
+                                                <div class="d-flex align-items-center flex-wrap" style="gap: 6px;">
+                                                    <span class="badge badge-info bg-info text-white">{{ $sub['code'] }}</span>
+                                                    <span class="font-weight-bold">{{ $sub['doc_no'] }}</span>
+                                                    @if(!empty($sub['date']) && $sub['date'] !== '-')
+                                                        <small class="text-muted">({{ $sub['date'] }})</small>
+                                                    @endif
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    @else
+                                        <span class="text-muted small">Belum ada dokumen di-approve (Opsional)</span>
+                                    @endif
+                                @else
+                                    {{ $doc['doc_no'] }}
+                                @endif
+                            </td>
                             <td>{{ $doc['date'] ?? '-' }}</td>
                             <td>{{ $doc['note'] }}</td>
                             <td class="text-center">
-                                @if(!empty($doc['preview_url']))
+                                @if(array_key_exists('sub_docs', $doc))
+                                    @php
+                                        $previewSubs = collect($doc['sub_docs'])->filter(function ($s) {
+                                            return !empty($s['preview_url']);
+                                        });
+                                    @endphp
+                                    @if($previewSubs->isNotEmpty())
+                                        <div class="d-flex flex-column align-items-center" style="gap: 4px;">
+                                            @foreach($previewSubs as $sub)
+                                                <button
+                                                    type="button"
+                                                    class="btn btn-sm btn-outline-primary btn-preview-export-doc"
+                                                    data-url="{{ $sub['preview_url'] }}"
+                                                    data-title="{{ $sub['label'] }} ({{ $sub['doc_no'] }})"
+                                                >Preview {{ $sub['code'] }}</button>
+                                            @endforeach
+                                        </div>
+                                    @else
+                                        -
+                                    @endif
+                                @elseif(!empty($doc['preview_url']))
                                     <button
                                         type="button"
                                         class="btn btn-sm btn-outline-primary btn-preview-export-doc"
@@ -162,11 +214,21 @@ $percent = $total > 0 ? round(($completed / $total) * 100) : 0;
                         <strong>Menunggu verifikasi dana masuk dari tim Finance.</strong>
                     @endif
                 </div>
-                @can('cns.export_checklist.edit')
-                    @if(!empty($booking->Finance_Payment_Verified) && empty($booking->Payment_Approved))
-                        <button type="button" class="btn btn-sm btn-primary mt-1 mt-md-0" id="ApprovePaymentBtn">Approve Payment</button>
+                <div class="d-flex align-items-center flex-wrap" style="gap: 0.5rem;">
+                    @if(!empty($statuses['payment']['preview_url']))
+                        <button
+                            type="button"
+                            class="btn btn-sm btn-outline-primary mt-1 mt-md-0 btn-preview-export-doc"
+                            data-url="{{ $statuses['payment']['preview_url'] }}"
+                            data-title="Bukti Transfer ({{ $booking->Booking_No }})"
+                        >Preview Bukti Transfer</button>
                     @endif
-                @endcan
+                    @can('cns.export_checklist.edit')
+                        @if(!empty($booking->Finance_Payment_Verified) && empty($booking->Payment_Approved))
+                            <button type="button" class="btn btn-sm btn-success mt-1 mt-md-0" id="ApprovePaymentBtn">Approve Payment</button>
+                        @endif
+                    @endcan
+                </div>
             </div>
 
             <hr>
@@ -190,7 +252,7 @@ $percent = $total > 0 ? round(($completed / $total) * 100) : 0;
                 <label for="Checklist_Notes"><strong>Catatan</strong></label>
                 <textarea
                     id="Checklist_Notes"
-                    class="form-control"
+                    class="text-black form-control"
                     rows="3"
                     maxlength="2000"
                     placeholder="Tambahkan catatan kelengkapan dokumen atau tindak lanjut..."

@@ -53,6 +53,7 @@ return [
     'SI00315' => ['Delivery Note', 'cns-export-delivery-note', 'CNS', 4, 'SS00082', 8],
     'SI00325' => ['Annex VII', 'cns-export-annex-index', 'CNS', 4, 'SS00082', 9],
     'SI00350' => ['Export Checklist', 'cns-export-checklist', 'CNS', 4, 'SS00082', 10],
+    'SI00356' => ['Customs Clearance', 'cns-export-customs-clearance', 'CNS', 4, 'SS00082', 11],
     'SI00351' => ['Cost Allocation per Shipment', 'cns-export-cost-allocation', 'CNS', 4, 'SS00097', 1],
     'SI00316' => ['Quality Control Reguler', 'cns-quality-index', 'CNS', 4, 'SS00083', 9],
     'SI00318' => ['Sales Order', 'cns-sales-order', 'CNS', 4, 'SS00084', 5],
@@ -77,6 +78,6 @@ return [
     'SI00342' => ['Master Kemasan', 'cns-master-kemasan', 'CNS', 4, 'SS00088', 5],
     'SI00347' => ['Manajemen Pengguna', 'cns-user-management', 'CNS', 4, 'SS00095', 1],
     'SI00348' => ['Role & Hak Akses', 'cns-role-management', 'CNS', 4, 'SS00095', 2],
-    'SI01150' => ['Export Volume', 'cns-dashboard-export-volume', 'CNS', 4, 'SS00150', 1],
+    'SI01150' => ['Export Performance', 'cns-dashboard-export-volume', 'CNS', 4, 'SS00150', 1],
     'SI00353' => ['Export Invoicing', 'finance-export-invoicing', 'CNS', 4, 'SS00099', 1],
 ];

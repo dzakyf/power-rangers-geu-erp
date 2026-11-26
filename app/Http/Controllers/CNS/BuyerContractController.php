@@ -49,7 +49,7 @@ class BuyerContractController extends Controller
             $file = '';
 
             if (!empty($row['file']) && !empty($row['contract_id'])) {
-                $file = htmlspecialchars(route('cns-procurement-buyer-contract.file', ['ID' => $row['contract_id']], false)) . '^Lihat^_blank';
+                $file = htmlspecialchars(route('cns-procurement-buyer-contract.file', ['ID' => $row['contract_id']], false)) . '^' . htmlspecialchars(basename((string) $row['file']));
             }
 
             $bodyXml .= '<row id="' . htmlspecialchars($row['id']) . '">';

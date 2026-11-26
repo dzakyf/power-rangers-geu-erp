@@ -85,7 +85,7 @@ class VesselScheduleController extends Controller
 
             $q88 = $vessel->Q88_Meta_File_ID ? ($q88Files[$vessel->Q88_Meta_File_ID] ?? null) : null;
             $q88Cell = ($isVessel && $q88)
-                ? htmlspecialchars(asset('filevendor/' . $q88->Path)) . '^Lihat^_blank'
+                ? htmlspecialchars(asset('filevendor/' . $q88->Path)) . '^' . htmlspecialchars($q88->Filename ?: basename((string) $q88->Path))
                 : '';
 
             if ($isTruck) {

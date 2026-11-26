@@ -16,13 +16,13 @@ use Illuminate\Database\Eloquent\Builder;
 						<div class="col-md-3 col-12">
 							<div class="form-group">
 								<label for="Packing_List_No">Packing List No</label>
-                                <input type="text" name="Packing_List_No" id="Packing_List_No" value="{{ $plno }}" class="form-control shadow-sm" required readonly />
+                                <input type="text" name="Packing_List_No" id="Packing_List_No" value="{{ $plno }}" class="text-black form-control shadow-sm" required readonly />
 							</div>
 						</div>
 						<div class="col-md-3 col-12">
 							<div class="form-group">
 								<label for="Final_SI_No">SI No</label>
-                                <select name="Final_SI_No" id="Final_SI_No" class="form-control shadow-sm" required>
+                                <select name="Final_SI_No" id="Final_SI_No" class="text-black form-control shadow-sm" required>
                                     <option value="">-- Pilih SI No --</option>
                                     @foreach ($fsis as $si)
                                         <option value="{{ $si->Final_SI_No }}">{{ $si->Final_SI_No }}</option>
@@ -33,13 +33,13 @@ use Illuminate\Database\Eloquent\Builder;
 						<div class="col-md-3 col-12">
 							<div class="form-group">
 								<label for="Order_No">Order No</label>
-                                <input type="text" name="Order_No" id="Order_No" value="" class="form-control shadow-sm" required readonly />
+                                <input type="text" name="Order_No" id="Order_No" value="" class="text-black form-control shadow-sm" required readonly />
 							</div>
 						</div>
 						<div class="col-md-3 col-12">
 							<div class="form-group">
 								<label for="PL_Date">PL Date</label>
-                                <input name="PL_Date" id="PL_Date" class="form-control shadow-sm" value="{{ date('Y-m-d') }}" required />
+                                <input name="PL_Date" id="PL_Date" class="text-black form-control shadow-sm" value="{{ date('Y-m-d') }}" required />
 							</div>
 						</div>
 						<div class="col-12">
@@ -47,7 +47,7 @@ use Illuminate\Database\Eloquent\Builder;
 								<label for="Qty1">Qty</label>
 								<div class="row">
 									<div class="col">
-										<select name="Qty1" id="Qty1" class="form-control shadow-sm" required>
+										<select name="Qty1" id="Qty1" class="text-black form-control shadow-sm" required>
 											<option value="">-- Pilih Qty --</option>
 											@foreach (range(1,1000) as $item)
 											<option value="{{$item}}">{{$item}}</option>
@@ -55,7 +55,7 @@ use Illuminate\Database\Eloquent\Builder;
 										</select>
 									</div>
 									<div class="col">
-										<select name="Qty2" id="Qty2" class="form-control shadow-sm" required>
+										<select name="Qty2" id="Qty2" class="text-black form-control shadow-sm" required>
 											<option value="">-- Pilih Qty --</option>
 											<option value="20 FT">20 FT</option>
 											<option value="20 ISOTANK">20 ISOTANK</option>
@@ -69,10 +69,10 @@ use Illuminate\Database\Eloquent\Builder;
                                 <label for="Jam">Jam</label>
                                 <div class="row">
                                     <div class="col-6">
-                                        <input type="text" name="Hour_From" id="Hour_From" value="" class="form-control shadow-sm" required readonly />
+                                        <input type="text" name="Hour_From" id="Hour_From" value="" class="text-black form-control shadow-sm" required readonly />
                                     </div>
                                     <div class="col-6">
-                                        <input type="text" name="Hour_To" id="Hour_To" value="" class="form-control shadow-sm" required readonly />
+                                        <input type="text" name="Hour_To" id="Hour_To" value="" class="text-black form-control shadow-sm" required readonly />
                                     </div>
                                 </div>
                             </div>
@@ -80,7 +80,7 @@ use Illuminate\Database\Eloquent\Builder;
                         <div class="col-3">
                             <div class="form-group">
                                 <label for="Shipper">Shipper</label>
-                                <select name="Shipper" id="Shipper" class="form-control shadow-sm" required>
+                                <select name="Shipper" id="Shipper" class="text-black form-control shadow-sm" required>
                                     <option value="">-- Pilih Shipper --</option>
                                     @foreach ($companies as $shipper)
                                         <option value="{{ $shipper->Supplier_ID }}">{{ $shipper->Company_Name }}</option>
@@ -91,7 +91,7 @@ use Illuminate\Database\Eloquent\Builder;
                         <div class="col-3">
                             <div class="form-group">
                                 <label for="Consignee">Consignee</label>
-                                <select name="Consignee" id="Consignee" class="form-control shadow-sm" required>
+                                <select name="Consignee" id="Consignee" class="text-black form-control shadow-sm" required>
                                     <option value="">-- Pilih Consignee --</option>
                                     @foreach ($companies as $consignee)
                                         <option value="{{ $consignee->Supplier_ID }}">{{ $consignee->Company_Name }}</option>
@@ -102,7 +102,7 @@ use Illuminate\Database\Eloquent\Builder;
                         <div class="col-3">
                             <div class="form-group">
                                 <label for="Notify">Notify Party</label>
-                                <select name="Notify" id="Notify" class="form-control shadow-sm" required>
+                                <select name="Notify" id="Notify" class="text-black form-control shadow-sm" required>
                                     <option value="">-- Pilih Notify --</option>
                                     @foreach ($companies as $notify)
                                         <option value="{{ $notify->Supplier_ID }}">{{ $notify->Company_Name }}</option>
@@ -113,25 +113,25 @@ use Illuminate\Database\Eloquent\Builder;
                         <div class="col-3">
                             <div class="form-group">
                                 <label for="Destination_Port">Destination Port</label>
-                                <input type="text" id="Destination_Port" name="Destination_Port" class="form-control" value="" />
+                                <input type="text" id="Destination_Port" name="Destination_Port" class="text-black form-control" value="" />
                             </div>
                         </div>
                         <div class="col-4">
                             <div class="form-group">
                                 <label for="Delivery_Terms">Delivery Terms</label>
-                                <input type="text" name="Delivery_Terms" id="Delivery_Terms" value="" class="form-control shadow-sm" required />
+                                <input type="text" name="Delivery_Terms" id="Delivery_Terms" value="" class="text-black form-control shadow-sm" required />
                             </div>
                         </div>
                         <div class="col-4">
                             <div class="form-group">
                                 <label for="Contract_No">Contract No</label>
-                                <input type="text" name="Contract_No" id="Contract_No" value="" class="form-control shadow-sm" required />
+                                <input type="text" name="Contract_No" id="Contract_No" value="" class="text-black form-control shadow-sm" required />
                             </div>
                         </div>
                         <div class="col-4">
                             <div class="form-group">
                                 <label for="Voyage">Voyage</label>
-                                <input type="text" name="Voyage" id="Voyage" value="" class="form-control shadow-sm" required />
+                                <input type="text" name="Voyage" id="Voyage" value="" class="text-black form-control shadow-sm" required />
                             </div>
                         </div>
                         <div class="col-12">
@@ -139,19 +139,19 @@ use Illuminate\Database\Eloquent\Builder;
                                 <div class="col-md-6">
                                     <div class="form-group">
                                         <label for="ETD">ETD</label>
-                                        <input type="text" name="ETD" id="ETD" value="{{ date("Y-m-d") }}" class="form-control shadow-sm bg-white" required readonly />
+                                        <input type="text" name="ETD" id="ETD" value="{{ date("Y-m-d") }}" class="text-black form-control shadow-sm bg-white" required readonly />
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-group">
                                         <label for="ETA">ETA</label>
-                                        <input type="text" name="ETA" id="ETA" value="{{ date("Y-m-d") }}" class="form-control shadow-sm bg-white" required readonly />
+                                        <input type="text" name="ETA" id="ETA" value="{{ date("Y-m-d") }}" class="text-black form-control shadow-sm bg-white" required readonly />
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-group">
                                         <label for="Stuffing">Stuffing</label>
-                                        <input type="text" name="Stuffing" id="Stuffing" value="{{ date("Y-m-d") }}" class="form-control shadow-sm bg-white" required readonly />
+                                        <input type="text" name="Stuffing" id="Stuffing" value="{{ date("Y-m-d") }}" class="text-black form-control shadow-sm bg-white" required readonly />
                                     </div>
                                 </div>
                             </div>
@@ -159,31 +159,31 @@ use Illuminate\Database\Eloquent\Builder;
                         <div class="col-6">
                             <div class="form-group">
                                 <label for="PEB_No">PEB No</label>
-                                <input type="text" name="PEB_No" id="PEB_No" value="" class="form-control shadow-sm" />
+                                <input type="text" name="PEB_No" id="PEB_No" value="" class="text-black form-control shadow-sm" />
                             </div>
                         </div>
                         <div class="col-6">
                             <div class="form-group">
                                 <label for="PEB_Date">PEB Date</label>
-                                <input type="text" name="PEB_Date" id="PEB_Date" value="{{ date("Y-m-d") }}" class="form-control shadow-sm" />
+                                <input type="text" name="PEB_Date" id="PEB_Date" value="{{ date("Y-m-d") }}" class="text-black form-control shadow-sm" />
                             </div>
                         </div>
                         <div class="col-4">
                             <div class="form-group">
                                 <label for="BL_No">B/L No</label>
-                                <input type="text" name="BL_No" id="BL_No" value="" class="form-control shadow-sm" />
+                                <input type="text" name="BL_No" id="BL_No" value="" class="text-black form-control shadow-sm" />
                             </div>
                         </div>
                         <div class="col-4">
                             <div class="form-group">
                                 <label for="POL">Port of Loading</label>
-                                <input type="text" name="POL" id="POL" value="" class="form-control shadow-sm" />
+                                <input type="text" name="POL" id="POL" value="" class="text-black form-control shadow-sm" />
                             </div>
                         </div>
                         <div class="col-4">
                             <div class="form-group">
                                 <label for="POD">Port of Discharge</label>
-                                <input type="text" name="POD" id="POD" value="" class="form-control shadow-sm" />
+                                <input type="text" name="POD" id="POD" value="" class="text-black form-control shadow-sm" />
                             </div>
                         </div>
                         <div class="col-md-4 col-12">
@@ -195,7 +195,7 @@ use Illuminate\Database\Eloquent\Builder;
                         <div class="col-md-4 col-12">
                             <div class="form-group">
                                 <label for="HS_Code">HS Code</label>
-                                <select name="HS_Code" id="HS_Code" class="form-control shadow-sm">
+                                <select name="HS_Code" id="HS_Code" class="text-black form-control shadow-sm">
                                     <option value="">-- Pilih HS Code --</option>
                                     <option value="15180090">15180090</option>
                                     <option value="15119020">15119020</option>
@@ -205,13 +205,13 @@ use Illuminate\Database\Eloquent\Builder;
                         <div class="col-12">
                             <div class="form-group">
                                 <label for="Remarks">Remarks</label>
-                                <textarea name="Remarks" id="Remarks" rows="3" class="form-control shadow-sm" placeholder="Remarks"></textarea>
+                                <textarea name="Remarks" id="Remarks" rows="3" class="text-black form-control shadow-sm" placeholder="Remarks"></textarea>
                             </div>
                         </div>
                         <div class="col-12">
                             <div class="row no-gutters" id="containerList">
                                 <label for="Container1">Container</label>
-                                <select name="Container1" id="Container1" class="form-control shadow-sm">
+                                <select name="Container1" id="Container1" class="text-black form-control shadow-sm">
                                     <option value="">-- Pilih Container --</option>
                                 </select>
                             </div>
@@ -292,7 +292,7 @@ use Illuminate\Database\Eloquent\Builder;
                     <div class="col-12 mb-2">
                         <div class="form-group">
                             <label for="Container${counter}">Container ${counter}</label>
-                            <select name="Container${counter}" id="Container${counter}" class="form-control shadow-sm">
+                            <select name="Container${counter}" id="Container${counter}" class="text-black form-control shadow-sm">
                                 <option value="">-- Pilih Container --</option>
                                 `+ string + `
                             </select>

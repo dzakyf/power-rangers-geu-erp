@@ -13,13 +13,13 @@ $Saya = Auth::user()->username;
                     <div class="col-md-6">
                         <div class="form-group">
                             <label>Unique Number of Sustainability Declaration</label>
-                            <input type="text" name="SD_No" id="SD_No" value="{{ $SdNo }}" class="form-control shadow-sm" required readonly />
+                            <input type="text" name="SD_No" id="SD_No" value="{{ $SdNo }}" class="text-black form-control shadow-sm" required readonly />
                         </div>
                     </div>
                     <div class="col-md-3">
                         <div class="form-group">
                             <label>Date of Issuance</label>
-                            <input type="text" name="Issue_Date" id="Issue_Date" value="{{ date('Y-m-d') }}" class="form-control shadow-sm" required />
+                            <input type="text" name="Issue_Date" id="Issue_Date" value="{{ date('Y-m-d') }}" class="text-black form-control shadow-sm" required />
                         </div>
                     </div>
                 </div>
@@ -30,7 +30,7 @@ $Saya = Auth::user()->username;
                     <div class="col-md-4">
                         <div class="form-group">
                             <label>Consignee (Recipient Name)</label>
-                            <select name="Consignee" id="Consignee" class="form-control shadow-sm" required>
+                            <select name="Consignee" id="Consignee" class="text-black form-control shadow-sm" required>
                                 <option value="">-- Pilih Consignee --</option>
                                 @foreach($companies as $c)
                                     <option value="{{ $c->Supplier_ID }}">{{ $c->Company_Name }}</option>
@@ -41,13 +41,13 @@ $Saya = Auth::user()->username;
                     <div class="col-md-4">
                         <div class="form-group">
                             <label>Certificate Number (Supplier)</label>
-                            <input type="text" name="Certificate_No" id="Certificate_No" value="" class="form-control shadow-sm" />
+                            <input type="text" name="Certificate_No" id="Certificate_No" value="" class="text-black form-control shadow-sm" />
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="form-group">
                             <label>Contract Number</label>
-                            <input type="text" name="Contract_No" id="Contract_No" value="" class="form-control shadow-sm" />
+                            <input type="text" name="Contract_No" id="Contract_No" value="" class="text-black form-control shadow-sm" />
                         </div>
                     </div>
                 </div>
@@ -58,7 +58,7 @@ $Saya = Auth::user()->username;
                     <div class="col-md-6">
                         <div class="form-group">
                             <label>Address of Dispatch / Shipping Point</label>
-                            <textarea name="Dispatch_Address" id="Dispatch_Address" rows="2" class="form-control shadow-sm">PT PELINDO ENERGI LOGISTIK
+                            <textarea name="Dispatch_Address" id="Dispatch_Address" rows="2" class="text-black form-control shadow-sm">PT PELINDO ENERGI LOGISTIK
 Jl. Perak Timur No.610, Perak Utara, Kec. Pabean Cantikan, Surabaya, Jawa Timur 60165</textarea>
                         </div>
                         <div class="form-check mb-2">
@@ -69,7 +69,7 @@ Jl. Perak Timur No.610, Perak Utara, Kec. Pabean Cantikan, Surabaya, Jawa Timur 
                     <div class="col-md-6">
                         <div class="form-group">
                             <label>Address of Receipt / Receiving Point</label>
-                            <textarea name="Receipt_Address" id="Receipt_Address" rows="2" class="form-control shadow-sm">Pasir Gudang, Johor, Malaysia</textarea>
+                            <textarea name="Receipt_Address" id="Receipt_Address" rows="2" class="text-black form-control shadow-sm">Pasir Gudang, Johor, Malaysia</textarea>
                         </div>
                         <div class="form-check mb-2">
                             <input class="form-check-input" type="checkbox" name="Receipt_Same_As_Recipient" id="Receipt_Same_As_Recipient" value="1">
@@ -79,7 +79,7 @@ Jl. Perak Timur No.610, Perak Utara, Kec. Pabean Cantikan, Surabaya, Jawa Timur 
                     <div class="col-md-3">
                         <div class="form-group">
                             <label>Date of Dispatch</label>
-                            <input type="text" name="Dispatch_Date" id="Dispatch_Date" value="{{ date('Y-m-d') }}" class="form-control shadow-sm" />
+                            <input type="text" name="Dispatch_Date" id="Dispatch_Date" value="{{ date('Y-m-d') }}" class="text-black form-control shadow-sm" />
                         </div>
                     </div>
                 </div>
@@ -90,37 +90,37 @@ Jl. Perak Timur No.610, Perak Utara, Kec. Pabean Cantikan, Surabaya, Jawa Timur 
                     <div class="col-md-4">
                         <div class="form-group">
                             <label>Type of Product</label>
-                            <input type="text" name="Product_Type" id="Product_Type" value="Raw Material" class="form-control shadow-sm" required />
+                            <input type="text" name="Product_Type" id="Product_Type" value="Raw Material" class="text-black form-control shadow-sm" required />
                         </div>
                     </div>
                     <div class="col-md-8">
                         <div class="form-group">
                             <label>Type of Raw Material</label>
-                            <input type="text" name="Raw_Material_Type" id="Raw_Material_Type" value="Used cooking oil (UCO) entirely of veg. origin" class="form-control shadow-sm" required />
+                            <input type="text" name="Raw_Material_Type" id="Raw_Material_Type" value="Used cooking oil (UCO) entirely of veg. origin" class="text-black form-control shadow-sm" required />
                         </div>
                     </div>
                     <div class="col-md-12">
                         <div class="form-group">
                             <label>Additional Information (voluntary)</label>
-                            <textarea name="Additional_Info" id="Additional_Info" rows="2" class="form-control shadow-sm"></textarea>
+                            <textarea name="Additional_Info" id="Additional_Info" rows="2" class="text-black form-control shadow-sm"></textarea>
                         </div>
                     </div>
                     <div class="col-md-3">
                         <div class="form-group">
                             <label>Country of Origin</label>
-                            <input type="text" name="Country_Of_Origin" id="Country_Of_Origin" value="Indonesia" class="form-control shadow-sm" required />
+                            <input type="text" name="Country_Of_Origin" id="Country_Of_Origin" value="Indonesia" class="text-black form-control shadow-sm" required />
                         </div>
                     </div>
                     <div class="col-md-3">
                         <div class="form-group">
                             <label>Quantity</label>
-                            <input type="text" inputmode="decimal" name="Quantity" id="Quantity" value="0.00" class="form-control shadow-sm cns-decimal" required />
+                            <input type="text" inputmode="decimal" name="Quantity" id="Quantity" value="0.00" class="text-black form-control shadow-sm cns-decimal" required />
                         </div>
                     </div>
                     <div class="col-md-3">
                         <div class="form-group">
                             <label>Quantity Unit</label>
-                            <select name="Quantity_Unit" id="Quantity_Unit" class="form-control shadow-sm">
+                            <select name="Quantity_Unit" id="Quantity_Unit" class="text-black form-control shadow-sm">
                                 <option value="metric tons" selected>metric tons</option>
                                 <option value="m3">m³</option>
                             </select>
@@ -129,7 +129,7 @@ Jl. Perak Timur No.610, Perak Utara, Kec. Pabean Cantikan, Surabaya, Jawa Timur 
                     <div class="col-md-3">
                         <div class="form-group">
                             <label>Chain of Custody Option</label>
-                            <input type="text" name="Chain_Of_Custody" id="Chain_Of_Custody" value="Mass balance" class="form-control shadow-sm" />
+                            <input type="text" name="Chain_Of_Custody" id="Chain_Of_Custody" value="Mass balance" class="text-black form-control shadow-sm" />
                         </div>
                     </div>
                     <div class="col-md-3">
@@ -166,7 +166,7 @@ Jl. Perak Timur No.610, Perak Utara, Kec. Pabean Cantikan, Surabaya, Jawa Timur 
                         <div class="form-group row align-items-center">
                             <label class="col-md-8 col-form-label">{{ $label }}</label>
                             <div class="col-md-4">
-                                <select name="{{ $field }}" id="{{ $field }}" class="form-control shadow-sm form-control-sm">
+                                <select name="{{ $field }}" id="{{ $field }}" class="text-black form-control shadow-sm form-control-sm">
                                     <option value="Yes" {{ $scopeDefaults[$field]=='Yes'?'selected':'' }}>Yes</option>
                                     <option value="No" {{ $scopeDefaults[$field]=='No'?'selected':'' }}>No</option>
                                 </select>
@@ -177,13 +177,13 @@ Jl. Perak Timur No.610, Perak Utara, Kec. Pabean Cantikan, Surabaya, Jawa Timur 
                     <div class="col-md-6">
                         <div class="form-group">
                             <label>Waste or Animal By-product Permit Number (if applicable)</label>
-                            <input type="text" name="Waste_Permit_No" id="Waste_Permit_No" value="" class="form-control shadow-sm" />
+                            <input type="text" name="Waste_Permit_No" id="Waste_Permit_No" value="" class="text-black form-control shadow-sm" />
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="form-group">
                             <label>Support Nature and Scheme (if applicable)</label>
-                            <textarea name="Support_Nature" id="Support_Nature" rows="2" class="form-control shadow-sm"></textarea>
+                            <textarea name="Support_Nature" id="Support_Nature" rows="2" class="text-black form-control shadow-sm"></textarea>
                         </div>
                     </div>
                 </div>
@@ -193,7 +193,7 @@ Jl. Perak Timur No.610, Perak Utara, Kec. Pabean Cantikan, Surabaya, Jawa Timur 
                 <div class="row">
                     <div class="col-md-4">
                         <label class="d-block">Total Default Value (RED III) Applied</label>
-                        <select name="GHG_Total_Default" id="GHG_Total_Default" class="form-control shadow-sm form-control-sm" style="width:100px;">
+                        <select name="GHG_Total_Default" id="GHG_Total_Default" class="text-black form-control shadow-sm form-control-sm" style="width:100px;">
                             <option value="No" selected>No</option>
                             <option value="Yes">Yes</option>
                         </select>
@@ -204,7 +204,7 @@ Jl. Perak Timur No.610, Perak Utara, Kec. Pabean Cantikan, Surabaya, Jawa Timur 
                     <div class="col-md-1" style="min-width:80px;">
                         <div class="form-group">
                             <label style="font-size:11px;">{{ $ghg }}</label>
-                            <input type="text" name="GHG_{{ $ghg }}" id="GHG_{{ $ghg }}" value="{{ $ghg=='Etd'?'DDV':'' }}" class="form-control shadow-sm form-control-sm" placeholder="{{ $ghg=='Etd'?'DDV':'' }}" />
+                            <input type="text" name="GHG_{{ $ghg }}" id="GHG_{{ $ghg }}" value="{{ $ghg=='Etd'?'DDV':'' }}" class="text-black form-control shadow-sm form-control-sm" placeholder="{{ $ghg=='Etd'?'DDV':'' }}" />
                         </div>
                     </div>
                     @endforeach
@@ -216,19 +216,19 @@ Jl. Perak Timur No.610, Perak Utara, Kec. Pabean Cantikan, Surabaya, Jawa Timur 
                     <div class="col-md-2">
                         <div class="form-group">
                             <label>Ship (km)</label>
-                            <input type="text" inputmode="decimal" name="Transport_Ship_KM" id="Transport_Ship_KM" value="" class="form-control shadow-sm form-control-sm cns-decimal" />
+                            <input type="text" inputmode="decimal" name="Transport_Ship_KM" id="Transport_Ship_KM" value="" class="text-black form-control shadow-sm form-control-sm cns-decimal" />
                         </div>
                     </div>
                     <div class="col-md-2">
                         <div class="form-group">
                             <label>Train (km)</label>
-                            <input type="text" inputmode="decimal" name="Transport_Train_KM" id="Transport_Train_KM" value="" class="form-control shadow-sm form-control-sm cns-decimal" />
+                            <input type="text" inputmode="decimal" name="Transport_Train_KM" id="Transport_Train_KM" value="" class="text-black form-control shadow-sm form-control-sm cns-decimal" />
                         </div>
                     </div>
                     <div class="col-md-2">
                         <div class="form-group">
                             <label>Road (km)</label>
-                            <input type="text" inputmode="decimal" name="Transport_Road_KM" id="Transport_Road_KM" value="3.30" class="form-control shadow-sm form-control-sm cns-decimal" />
+                            <input type="text" inputmode="decimal" name="Transport_Road_KM" id="Transport_Road_KM" value="3.30" class="text-black form-control shadow-sm form-control-sm cns-decimal" />
                         </div>
                     </div>
                 </div>
@@ -246,18 +246,18 @@ Jl. Perak Timur No.610, Perak Utara, Kec. Pabean Cantikan, Surabaya, Jawa Timur 
                     <div class="col-md-3">
                         <div class="form-group">
                             <label>Esca: Bonus or Cap</label>
-                            <input type="text" name="GHG_Esca_Bonus_Cap" id="GHG_Esca_Bonus_Cap" value="" class="form-control shadow-sm form-control-sm" />
+                            <input type="text" name="GHG_Esca_Bonus_Cap" id="GHG_Esca_Bonus_Cap" value="" class="text-black form-control shadow-sm form-control-sm" />
                         </div>
                     </div>
                     <div class="col-md-3">
                         <div class="form-group">
                             <label>NUTS2 Area (if applicable)</label>
-                            <input type="text" name="GHG_NUTS2_Area" id="GHG_NUTS2_Area" value="" class="form-control shadow-sm form-control-sm" />
+                            <input type="text" name="GHG_NUTS2_Area" id="GHG_NUTS2_Area" value="" class="text-black form-control shadow-sm form-control-sm" />
                         </div>
                     </div>
                     <div class="col-md-8">
                         <label>El: Bonus of 29 g CO₂eq/MJ if biomass from restored degraded land</label>
-                        <select name="GHG_El_Bonus" id="GHG_El_Bonus" class="form-control shadow-sm form-control-sm" style="width:100px;">
+                        <select name="GHG_El_Bonus" id="GHG_El_Bonus" class="text-black form-control shadow-sm form-control-sm" style="width:100px;">
                             <option value="Yes" selected>Yes</option>
                             <option value="No">No</option>
                         </select>
@@ -297,7 +297,7 @@ Jl. Perak Timur No.610, Perak Utara, Kec. Pabean Cantikan, Surabaya, Jawa Timur 
                     <div class="col-md-12">
                         <div class="form-group">
                             <label>Note</label>
-                            <textarea name="Note" id="Note" rows="2" class="form-control shadow-sm"></textarea>
+                            <textarea name="Note" id="Note" rows="2" class="text-black form-control shadow-sm"></textarea>
                         </div>
                     </div>
                 </div>

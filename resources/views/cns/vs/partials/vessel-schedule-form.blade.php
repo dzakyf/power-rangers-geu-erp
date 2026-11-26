@@ -26,7 +26,7 @@
                     <div class="col-md-12">
                         <div class="form-group">
                             <label for="VS_No">No Vessel Schedule</label>
-                            <input type="text" id="VS_No" name="VS_No" class="form-control shadow-sm" value="{{ $vs->VS_No ?? $vsNo ?? '' }}" readonly />
+                            <input type="text" id="VS_No" name="VS_No" class="text-black form-control shadow-sm" value="{{ $vs->VS_No ?? $vsNo ?? '' }}" readonly />
                         </div>
                     </div>
                 </div>
@@ -38,7 +38,7 @@
                             @if($isEdit)
                                 <input type="hidden" name="Contract_ID" value="{{ $vs->Contract_ID }}" />
                             @endif
-                            <select name="{{ $isEdit ? '' : 'Contract_ID' }}" id="Contract_ID" class="form-control shadow-sm" required {{ $isEdit ? 'disabled' : '' }}>
+                            <select name="{{ $isEdit ? '' : 'Contract_ID' }}" id="Contract_ID" class="text-black form-control shadow-sm" required {{ $isEdit ? 'disabled' : '' }}>
                                 <option value="">-- Pilih Kontrak --</option>
                                 @foreach($contracts as $contract)
                                     <option value="{{ $contract->ID }}"
@@ -56,7 +56,7 @@
                     <div class="col-md-3">
                         <div class="form-group">
                             <label for="Incoterms">Incoterms</label>
-                            <input type="text" id="Incoterms" class="form-control shadow-sm" value="{{ $vs->Incoterms ?? '' }}" readonly />
+                            <input type="text" id="Incoterms" class="text-black form-control shadow-sm" value="{{ $vs->Incoterms ?? '' }}" readonly />
                         </div>
                     </div>
                     <div class="col-md-3">
@@ -65,7 +65,7 @@
                             @if($isEdit)
                                 <input type="hidden" name="Shipping_Method" value="{{ $vs->Shipping_Method }}" />
                             @endif
-                            <select name="{{ $isEdit ? '' : 'Shipping_Method' }}" id="Shipping_Method" class="form-control shadow-sm" required {{ $isEdit ? 'disabled' : '' }}>
+                            <select name="{{ $isEdit ? '' : 'Shipping_Method' }}" id="Shipping_Method" class="text-black form-control shadow-sm" required {{ $isEdit ? 'disabled' : '' }}>
                                 <option value="">-- Pilih Metode --</option>
                                 <option value="CONTAINER" {{ $isContainer ? 'selected' : '' }}>Container</option>
                                 <option value="VESSEL" {{ $isVessel ? 'selected' : '' }}>Vessel</option>
@@ -84,7 +84,7 @@
                                 @if($isEdit)
                                     <input type="hidden" name="Container_Booking_ID" value="{{ $vs->Booking_ID }}" />
                                 @endif
-                                <select name="{{ $isEdit ? '' : 'Container_Booking_ID' }}" id="Container_Booking_ID" class="form-control shadow-sm" {{ $isEdit ? 'disabled' : '' }}>
+                                <select name="{{ $isEdit ? '' : 'Container_Booking_ID' }}" id="Container_Booking_ID" class="text-black form-control shadow-sm" {{ $isEdit ? 'disabled' : '' }}>
                                     <option value="">-- Pilih Booking --</option>
                                     @foreach($bookings as $booking)
                                         <option value="{{ $booking->ID }}"
@@ -101,13 +101,13 @@
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Container_Qty1">Quantity</label>
-                                <input type="text" inputmode="decimal" name="Container_Qty1" id="Container_Qty1" class="form-control shadow-sm cns-decimal" value="{{ $isContainer && ($vs->Qty1 ?? '') !== '' ? number_format((float) $vs->Qty1, 2, '.', ',') : '' }}" />
+                                <input type="text" inputmode="decimal" name="Container_Qty1" id="Container_Qty1" class="text-black form-control shadow-sm cns-decimal" value="{{ $isContainer && ($vs->Qty1 ?? '') !== '' ? number_format((float) $vs->Qty1, 2, '.', ',') : '' }}" />
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Container_Qty2">Type &amp; Size</label>
-                                <select name="Container_Qty2" id="Container_Qty2" class="form-control shadow-sm">
+                                <select name="Container_Qty2" id="Container_Qty2" class="text-black form-control shadow-sm">
                                     <option value="">-- Pilih Type & Size --</option>
                                     @foreach(['20 FT', '40 FT', '20 ISOTANK'] as $size)
                                         <option value="{{ $size }}" {{ $isContainer && (string) ($vs->Qty2 ?? '') === $size ? 'selected' : '' }}>{{ $size }}</option>
@@ -118,43 +118,43 @@
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label for="Container_Vessel">Vessel</label>
-                                <input type="text" name="Container_Vessel" id="Container_Vessel" class="form-control shadow-sm" value="{{ $isContainer ? ($vs->Vessel ?? '') : '' }}" />
+                                <input type="text" name="Container_Vessel" id="Container_Vessel" class="text-black form-control shadow-sm" value="{{ $isContainer ? ($vs->Vessel ?? '') : '' }}" />
                             </div>
                         </div>
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label for="Container_POL">PoL</label>
-                                <input type="text" name="Container_POL" id="Container_POL" class="form-control shadow-sm" value="{{ $isContainer ? ($vs->POL ?? '') : '' }}" />
+                                <input type="text" name="Container_POL" id="Container_POL" class="text-black form-control shadow-sm" value="{{ $isContainer ? ($vs->POL ?? '') : '' }}" />
                             </div>
                         </div>
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label for="Container_POD">PoD</label>
-                                <input type="text" name="Container_POD" id="Container_POD" class="form-control shadow-sm" value="{{ $isContainer ? ($vs->POD ?? '') : '' }}" />
+                                <input type="text" name="Container_POD" id="Container_POD" class="text-black form-control shadow-sm" value="{{ $isContainer ? ($vs->POD ?? '') : '' }}" />
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Container_Stuffing">Stuffing Date</label>
-                                <input type="date" name="Container_Stuffing" id="Container_Stuffing" class="form-control shadow-sm" value="{{ $isContainer ? $dateValue($vs->Stuffing) : '' }}" />
+                                <input type="date" name="Container_Stuffing" id="Container_Stuffing" class="text-black form-control shadow-sm" value="{{ $isContainer ? $dateValue($vs->Stuffing) : '' }}" />
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Container_Closing_CY">Closing CY</label>
-                                <input type="date" name="Container_Closing_CY" id="Container_Closing_CY" class="form-control shadow-sm" value="{{ $isContainer ? $dateValue($vs->Closing_CY) : '' }}" />
+                                <input type="date" name="Container_Closing_CY" id="Container_Closing_CY" class="text-black form-control shadow-sm" value="{{ $isContainer ? $dateValue($vs->Closing_CY) : '' }}" />
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Container_ETD">ETD</label>
-                                <input type="date" name="Container_ETD" id="Container_ETD" class="form-control shadow-sm" value="{{ $isContainer ? $dateValue($vs->ETD) : '' }}" />
+                                <input type="date" name="Container_ETD" id="Container_ETD" class="text-black form-control shadow-sm" value="{{ $isContainer ? $dateValue($vs->ETD) : '' }}" />
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Container_ETA">ETA</label>
-                                <input type="date" name="Container_ETA" id="Container_ETA" class="form-control shadow-sm" value="{{ $isContainer ? $dateValue($vs->ETA) : '' }}" />
+                                <input type="date" name="Container_ETA" id="Container_ETA" class="text-black form-control shadow-sm" value="{{ $isContainer ? $dateValue($vs->ETA) : '' }}" />
                             </div>
                         </div>
                     </div>
@@ -166,55 +166,55 @@
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Vessel_Qty1">Quantity (MT)</label>
-                                <input type="text" inputmode="decimal" name="Vessel_Qty1" id="Vessel_Qty1" class="form-control shadow-sm cns-decimal" value="{{ $isVessel && ($vs->Qty1 ?? '') !== '' ? number_format((float) $vs->Qty1, 2, '.', ',') : '' }}" />
+                                <input type="text" inputmode="decimal" name="Vessel_Qty1" id="Vessel_Qty1" class="text-black form-control shadow-sm cns-decimal" value="{{ $isVessel && ($vs->Qty1 ?? '') !== '' ? number_format((float) $vs->Qty1, 2, '.', ',') : '' }}" />
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Vessel_POL">PoL</label>
-                                <input type="text" name="Vessel_POL" id="Vessel_POL" class="form-control shadow-sm" value="{{ $isVessel ? ($vs->POL ?? '') : '' }}" />
+                                <input type="text" name="Vessel_POL" id="Vessel_POL" class="text-black form-control shadow-sm" value="{{ $isVessel ? ($vs->POL ?? '') : '' }}" />
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Vessel_POD">PoD</label>
-                                <input type="text" name="Vessel_POD" id="Vessel_POD" class="form-control shadow-sm" value="{{ $isVessel ? ($vs->POD ?? '') : '' }}" />
+                                <input type="text" name="Vessel_POD" id="Vessel_POD" class="text-black form-control shadow-sm" value="{{ $isVessel ? ($vs->POD ?? '') : '' }}" />
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Vessel_Name">Nama Kapal</label>
-                                <input type="text" name="Vessel_Name" id="Vessel_Name" class="form-control shadow-sm" value="{{ $isVessel ? ($vs->Vessel ?? '') : '' }}" />
+                                <input type="text" name="Vessel_Name" id="Vessel_Name" class="text-black form-control shadow-sm" value="{{ $isVessel ? ($vs->Vessel ?? '') : '' }}" />
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Vessel_Laycan_Start">Laycan Start</label>
-                                <input type="date" name="Vessel_Laycan_Start" id="Vessel_Laycan_Start" class="form-control shadow-sm" value="{{ $isVessel ? $dateValue($vs->Laycan_Start) : '' }}" />
+                                <input type="date" name="Vessel_Laycan_Start" id="Vessel_Laycan_Start" class="text-black form-control shadow-sm" value="{{ $isVessel ? $dateValue($vs->Laycan_Start) : '' }}" />
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Vessel_Laycan_End">Laycan End</label>
-                                <input type="date" name="Vessel_Laycan_End" id="Vessel_Laycan_End" class="form-control shadow-sm" value="{{ $isVessel ? $dateValue($vs->Laycan_End) : '' }}" />
+                                <input type="date" name="Vessel_Laycan_End" id="Vessel_Laycan_End" class="text-black form-control shadow-sm" value="{{ $isVessel ? $dateValue($vs->Laycan_End) : '' }}" />
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Vessel_ETD">ETD</label>
-                                <input type="date" name="Vessel_ETD" id="Vessel_ETD" class="form-control shadow-sm" value="{{ $isVessel ? $dateValue($vs->ETD) : '' }}" />
+                                <input type="date" name="Vessel_ETD" id="Vessel_ETD" class="text-black form-control shadow-sm" value="{{ $isVessel ? $dateValue($vs->ETD) : '' }}" />
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Vessel_ETA">ETA</label>
-                                <input type="date" name="Vessel_ETA" id="Vessel_ETA" class="form-control shadow-sm" value="{{ $isVessel ? $dateValue($vs->ETA) : '' }}" />
+                                <input type="date" name="Vessel_ETA" id="Vessel_ETA" class="text-black form-control shadow-sm" value="{{ $isVessel ? $dateValue($vs->ETA) : '' }}" />
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label for="Q88_File">Upload File Q88 (PDF)</label>
-                                <input type="file" name="Q88_File" id="Q88_File" class="form-control-file" accept=".pdf" />
+                                <input type="file" name="Q88_File" id="Q88_File" class="text-black form-control-file" accept=".pdf" />
                                 @if($isVessel && $q88)
                                     <a href="{{ asset('filevendor/' . $q88->Path) }}" target="_blank" class="d-inline-block mt-1">
                                         Lihat Q88 saat ini{{ $q88->Filename ? ' (' . $q88->Filename . ')' : '' }}
@@ -231,7 +231,7 @@
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label for="Truck_Supplier_ID">Truck / Vendor</label>
-                                <select name="Truck_Supplier_ID" id="Truck_Supplier_ID" class="form-control shadow-sm">
+                                <select name="Truck_Supplier_ID" id="Truck_Supplier_ID" class="text-black form-control shadow-sm">
                                     <option value="">-- Pilih Vendor --</option>
                                     @foreach($vendors as $vendor)
                                         <option value="{{ $vendor->ID }}" {{ (string) ($vs->Truck_Supplier_ID ?? '') === (string) $vendor->ID ? 'selected' : '' }}>
@@ -244,26 +244,26 @@
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label for="Truck_Schedule">Schedule (optional)</label>
-                                <input type="datetime-local" name="Truck_Schedule" id="Truck_Schedule" class="form-control shadow-sm" value="{{ $isTruck ? $dateTimeValue($vs->Truck_Schedule) : '' }}" />
+                                <input type="datetime-local" name="Truck_Schedule" id="Truck_Schedule" class="text-black form-control shadow-sm" value="{{ $isTruck ? $dateTimeValue($vs->Truck_Schedule) : '' }}" />
                                 <small class="text-muted">Kosongkan jika masih menunggu informasi Buyer.</small>
                             </div>
                         </div>
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label for="Truck_Qty1">Quantity</label>
-                                <input type="text" inputmode="decimal" name="Truck_Qty1" id="Truck_Qty1" class="form-control shadow-sm cns-decimal" value="{{ $isTruck && ($vs->Qty1 ?? '') !== '' ? number_format((float) $vs->Qty1, 2, '.', ',') : '' }}" />
+                                <input type="text" inputmode="decimal" name="Truck_Qty1" id="Truck_Qty1" class="text-black form-control shadow-sm cns-decimal" value="{{ $isTruck && ($vs->Qty1 ?? '') !== '' ? number_format((float) $vs->Qty1, 2, '.', ',') : '' }}" />
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label for="Truck_Destination">Destination</label>
-                                <input type="text" name="Truck_Destination" id="Truck_Destination" class="form-control shadow-sm" value="{{ $isTruck ? ($vs->Truck_Destination ?? '') : '' }}" />
+                                <input type="text" name="Truck_Destination" id="Truck_Destination" class="text-black form-control shadow-sm" value="{{ $isTruck ? ($vs->Truck_Destination ?? '') : '' }}" />
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label for="Truck_Shipment_Data">Shipment Data / Note</label>
-                                <textarea name="Truck_Shipment_Data" id="Truck_Shipment_Data" rows="2" class="form-control shadow-sm">{{ $isTruck ? ($vs->Truck_Shipment_Data ?? '') : '' }}</textarea>
+                                <textarea name="Truck_Shipment_Data" id="Truck_Shipment_Data" rows="2" class="text-black form-control shadow-sm">{{ $isTruck ? ($vs->Truck_Shipment_Data ?? '') : '' }}</textarea>
                             </div>
                         </div>
                     </div>

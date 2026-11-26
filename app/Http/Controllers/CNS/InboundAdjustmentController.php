@@ -160,7 +160,8 @@ class InboundAdjustmentController extends Controller
             $docCell = '';
             if (!empty($row->document_path)) {
                 $docUrl = route('cns-inbound-adjustment.document', ['id' => $row->id], false);
-                $docCell = htmlspecialchars($docUrl) . '^Lihat Dokumen^_blank';
+                $docName = $row->document_name ?: basename($row->document_path);
+                $docCell = htmlspecialchars($docUrl) . '^' . htmlspecialchars($docName);
             }
 
             $badgeStatus = htmlspecialchars($row->approval_status);

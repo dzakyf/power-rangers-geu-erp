@@ -553,7 +553,8 @@ class TankDrainingController extends Controller
             $bastCell = '';
             if (!empty($row->bast_document_path)) {
                 $bastUrl = route('cns-tank-draining.bast', ['id' => $row->id], false);
-                $bastCell = htmlspecialchars($bastUrl) . '^Lihat BAST^_blank';
+                $bastName = $row->bast_document_name ?: basename($row->bast_document_path);
+                $bastCell = htmlspecialchars($bastUrl) . '^' . htmlspecialchars($bastName);
             }
 
             $bodyXml .= "<row id=\"{$row->id}\">\n";

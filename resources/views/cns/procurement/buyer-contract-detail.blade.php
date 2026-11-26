@@ -53,20 +53,20 @@
             <div class="col-md-2">
                 <div class="form-group">
                     <label>Label</label>
-                    <input type="text" id="Booking_Label" class="form-control shadow-sm" value="{{ $nextBookingLabel }}" readonly />
+                    <input type="text" id="Booking_Label" class="text-black form-control shadow-sm" value="{{ $nextBookingLabel }}" readonly />
                     <small class="text-muted">Terisi otomatis.</small>
                 </div>
             </div>
             <div class="col-md-4">
                 <div class="form-group">
                     <label>Nomor Booking Confirmation</label>
-                    <input type="text" id="Booking_No" class="form-control shadow-sm" placeholder="EGLV081600298008" />
+                    <input type="text" id="Booking_No" class="text-black form-control shadow-sm" placeholder="EGLV081600298008" />
                 </div>
             </div>
             <div class="col-md-4">
                 <div class="form-group">
                     <label>Upload File Booking Confirmation</label>
-                    <input type="file" id="Booking_File" class="form-control-file" accept=".pdf,.doc,.docx" />
+                    <input type="file" id="Booking_File" class="text-black form-control-file" accept=".pdf,.doc,.docx" />
                     <small class="text-muted">Maksimal 5 MB (PDF/DOC/DOCX).</small>
                 </div>
             </div>
@@ -90,7 +90,7 @@
         if ($('#UcoEmailRows .uco-email-row').length >= 10) {
             return;
         }
-        var input = $('<input type="email" name="Buyer_Emails[]" class="form-control shadow-sm" placeholder="nama@domain.com" />');
+        var input = $('<input type="email" name="Buyer_Emails[]" class="text-black form-control shadow-sm" placeholder="nama@domain.com" />');
         input.val(value || '');
         input.prop('readonly', !!readonly);
         $('#UcoEmailRows').append($('<div class="input-group mb-2 uco-email-row"></div>').append(input));

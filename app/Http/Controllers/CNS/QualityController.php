@@ -25,8 +25,9 @@ class QualityController extends Controller
         $category = 'EXTERNAL';
         $contracts = $this->getContracts();
         $tanks = $this->getTanks();
+        $bookings = $this->getBookingsList();
 
-        return view('cns.quality.index', compact('contracts', 'category', 'tanks'));
+        return view('cns.quality.index', compact('contracts', 'category', 'tanks', 'bookings'));
     }
 
     public function internalIndexPage()
@@ -34,8 +35,9 @@ class QualityController extends Controller
         $category = 'INTERNAL';
         $contracts = $this->getContracts();
         $tanks = $this->getTanks();
+        $bookings = $this->getBookingsList();
 
-        return view('cns.quality.index', compact('contracts', 'category', 'tanks'));
+        return view('cns.quality.index', compact('contracts', 'category', 'tanks', 'bookings'));
     }
 
     public function qualityControlIndexPage()
@@ -43,17 +45,19 @@ class QualityController extends Controller
         $category = 'ALL';
         $contracts = $this->getContracts();
         $tanks = $this->getTanks();
+        $bookings = $this->getBookingsList();
 
-        return view('cns.quality.index', compact('contracts', 'category', 'tanks'));
+        return view('cns.quality.index', compact('contracts', 'category', 'tanks', 'bookings'));
     }
 
     public function insertQualityControlPage()
     {
         $contracts = $this->getContracts();
         $tanks = $this->getTanks();
+        $bookings = $this->getBookingsList();
         $category = request()->query('category', 'EXTERNAL');
 
-        return view('cns.quality.create', compact('contracts', 'category', 'tanks'));
+        return view('cns.quality.create', compact('contracts', 'category', 'tanks', 'bookings'));
     }
 
     public function bookings(Request $request)
@@ -114,6 +118,169 @@ class QualityController extends Controller
         return $query->orderBy('name', 'asc')->get();
     }
 
+    private function getBookingsList()
+    {
+        if (!Schema::hasTable('cns_buyer_contract_bookings') || !Schema::hasTable('cns_buyer_contracts')) {
+            return collect();
+        }
+
+        $query = DB::table('cns_buyer_contract_bookings as b')
+            ->join('cns_buyer_contracts as c', 'c.ID', '=', 'b.Contract_ID')
+            ->select('b.ID', 'b.Booking_No', 'b.Contract_ID', 'b.Label', 'c.Contract_No', 'c.Buyer_Name')
+            ->orderBy('c.Contract_No')
+            ->orderBy('b.Label')
+            ->orderBy('b.Booking_No');
+
+        if (auth()->check() && !empty(auth()->user()->Location)) {
+            $query->where('c.Location', auth()->user()->Location);
+        }
+
+        return $query->get();
+    }
+
+    private function resolveSurveyorContext(Request $r, ?int $excludeHeaderId = null)
+    {
+        $bookingId = $r->filled('Booking_ID') ? $r->input('Booking_ID') : null;
+        if (empty($bookingId)) {
+            return response()->json(['status' => 'error', 'message' => 'Nomor Booking Confirmation wajib dipilih untuk QC Surveyor'], 422);
+        }
+
+        if ($excludeHeaderId === null && !$r->hasFile('Attachment')) {
+            return response()->json(['status' => 'error', 'message' => 'File COA Surveyor wajib diupload'], 422);
+        }
+
+        $dupQuery = DB::table('cns_quality_controls')
+            ->where('QC_Type', 'SURVEYOR')
+            ->where('Booking_ID', $bookingId)
+            ->where('Is_Deleted', 0);
+
+        if ($excludeHeaderId !== null) {
+            $dupQuery->where('id', '!=', $excludeHeaderId);
+        }
+
+        if ($dupQuery->exists()) {
+            return response()->json(['status' => 'error', 'message' => 'Booking Confirmation ini sudah memiliki COA Surveyor (1 BC = 1 COA Surveyor)'], 422);
+        }
+
+        $bookingRow = DB::table('cns_buyer_contract_bookings')
+            ->where('ID', $bookingId)
+            ->first();
+
+        if (!$bookingRow) {
+            return response()->json(['status' => 'error', 'message' => 'Booking Confirmation tidak ditemukan'], 422);
+        }
+
+        return [
+            'bookingId'  => $bookingId,
+            'contractId' => $bookingRow->Contract_ID,
+        ];
+    }
+
+    private function storeAttachment(Request $r): ?string
+    {
+        if (!$r->hasFile('Attachment')) {
+            return null;
+        }
+
+        $file = $r->file('Attachment');
+        $year = $this->now->format('Y');
+        $month = $this->now->format('m');
+        $extension = $file->getClientOriginalExtension();
+        $filename = (string) Str::uuid() . '.' . $extension;
+        $destination = public_path("filevendor/{$year}/{$month}");
+
+        if (!file_exists($destination)) {
+            mkdir($destination, 0755, true);
+        }
+
+        $file->move($destination, $filename);
+
+        return "filevendor/{$year}/{$month}/{$filename}";
+    }
+
+    private function saveQualityDetails(int $headerId, Request $r, string $qcType): void
+    {
+        $paramKeys = [
+            'FFA_As_Palmitic', 'FFA_As_Oleic', 'Moisture', 'Impurities',
+            'Unsaponifiables', 'Sulphur', 'IV', 'Total_Chlorides',
+            'Phosphorus', 'Total_Metals',
+        ];
+
+        if ($qcType === 'SURVEYOR') {
+            $avgPayload = ['updated_at' => $this->now];
+            foreach ($paramKeys as $pk) {
+                $raw = $r->filled("avg_{$pk}") ? trim((string) $r->input("avg_{$pk}")) : '';
+                if ($raw === '' || $raw === '-') {
+                    $avgPayload[$pk] = null;
+                } else {
+                    $cleaned = str_replace(',', '', $raw);
+                    $avgPayload[$pk] = is_numeric($cleaned) ? round((float) $cleaned, 2) : null;
+                }
+            }
+
+            DB::table('cns_quality_control_details')->updateOrInsert(
+                [
+                    'Quality_Control_ID' => $headerId,
+                    'Sample_Level'       => 'AVERAGE',
+                ],
+                array_merge($avgPayload, [
+                    'created_at' => $this->now,
+                ])
+            );
+
+            return;
+        }
+
+        $levelsMap = ['top' => 'TOP', 'middle' => 'MIDDLE', 'bottom' => 'BOTTOM'];
+        $paramVals = array_fill_keys($paramKeys, []);
+
+        foreach ($levelsMap as $prefix => $level) {
+            $detailPayload = ['updated_at' => $this->now];
+
+            foreach ($paramKeys as $pk) {
+                $fld = "{$prefix}_{$pk}";
+                $val = $r->filled($fld) ? $r->input($fld) : null;
+                if ($pk === 'Moisture' && $val === null && $r->filled("{$prefix}_MC")) {
+                    $val = $r->input("{$prefix}_MC");
+                }
+                if ($pk === 'Impurities' && $val === null && $r->filled("{$prefix}_IMP")) {
+                    $val = $r->input("{$prefix}_IMP");
+                }
+                $detailPayload[$pk] = $val;
+                if ($val !== null && $val !== '') {
+                    $paramVals[$pk][] = (float) $val;
+                }
+            }
+
+            DB::table('cns_quality_control_details')->updateOrInsert(
+                [
+                    'Quality_Control_ID' => $headerId,
+                    'Sample_Level'       => $level,
+                ],
+                array_merge($detailPayload, [
+                    'created_at' => $this->now,
+                ])
+            );
+        }
+
+        $avgPayload = ['updated_at' => $this->now];
+        foreach ($paramKeys as $pk) {
+            $avgPayload[$pk] = count($paramVals[$pk]) > 0
+                ? round(array_sum($paramVals[$pk]) / count($paramVals[$pk]), 2)
+                : null;
+        }
+
+        DB::table('cns_quality_control_details')->updateOrInsert(
+            [
+                'Quality_Control_ID' => $headerId,
+                'Sample_Level'       => 'AVERAGE',
+            ],
+            array_merge($avgPayload, [
+                'created_at' => $this->now,
+            ])
+        );
+    }
+
     public function insertQualityControl(Request $r)
     {
         $date = Carbon::parse($r->Created_At ?? $this->now)->toDateString();
@@ -127,12 +294,24 @@ class QualityController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Nama Tangki wajib dipilih untuk Daily QC'], 422);
         }
 
+        if ($qcType === 'SURVEYOR') {
+            $qcCategory = 'EXTERNAL';
+            $surveyor = $this->resolveSurveyorContext($r);
+            if ($surveyor instanceof \Illuminate\Http\JsonResponse) {
+                return $surveyor;
+            }
+            $bookingId = $surveyor['bookingId'];
+            $contractId = $surveyor['contractId'];
+        }
+
         $kodeQc = $r->input('Kode_QC');
         if (empty($kodeQc)) {
             if ($qcType === 'DAILY_QC') {
                 $prefixType = 'DLY';
             } elseif ($qcType === 'OUTBOUND') {
                 $prefixType = 'OUT';
+            } elseif ($qcType === 'SURVEYOR') {
+                $prefixType = 'SRV';
             } else {
                 $prefixType = 'IN';
             }
@@ -146,28 +325,16 @@ class QualityController extends Controller
             $kodeQc = "QC/{$prefixType}/{$prefixCat}/{$datePart}/{$nextSeq}";
         }
 
-        $attachmentPath = null;
-        if ($r->hasFile('Attachment')) {
-            $file = $r->file('Attachment');
-            $year = $this->now->format('Y');
-            $month = $this->now->format('m');
-            $extension = $file->getClientOriginalExtension();
-            $filename = (string) Str::uuid() . '.' . $extension;
-            $destination = public_path("filevendor/{$year}/{$month}");
+        $attachmentPath = $this->storeAttachment($r);
 
-            if (!file_exists($destination)) {
-                mkdir($destination, 0755, true);
-            }
+        $qcMethod = ($qcType === 'SURVEYOR' && $r->filled('QC_Method')) ? trim((string) $r->input('QC_Method')) : null;
 
-            $file->move($destination, $filename);
-            $attachmentPath = "filevendor/{$year}/{$month}/{$filename}";
-        }
-
-        DB::transaction(function () use ($r, $date, $qcType, $qcCategory, $contractId, $bookingId, $tankId, $kodeQc, $attachmentPath) {
+        DB::transaction(function () use ($r, $date, $qcType, $qcCategory, $contractId, $bookingId, $tankId, $kodeQc, $attachmentPath, $qcMethod) {
             $headerPayload = [
                 'Inspection_Date' => $date,
                 'QC_Type'         => $qcType,
                 'QC_Category'     => $qcCategory,
+                'QC_Method'       => $qcMethod,
                 'Contract_ID'     => $contractId,
                 'Booking_ID'      => $bookingId,
                 'Tank_ID'         => $tankId,
@@ -196,64 +363,7 @@ class QualityController extends Controller
                 ]));
             }
 
-            $levelsMap = ['top' => 'TOP', 'middle' => 'MIDDLE', 'bottom' => 'BOTTOM'];
-            $paramKeys = ['FFA_As_Palmitic', 'FFA_As_Oleic', 'Moisture', 'Impurities', 'Unsaponifiables', 'Sulphur', 'IV', 'Total_Chlorides', 'Phosphorus', 'Total_Metals'];
-
-            $paramVals = [];
-            foreach ($paramKeys as $pk) {
-                $paramVals[$pk] = [];
-            }
-
-            foreach ($levelsMap as $prefix => $level) {
-                $detailPayload = [
-                    'updated_at' => $this->now,
-                ];
-
-                foreach ($paramKeys as $pk) {
-                    $fld = "{$prefix}_{$pk}";
-                    $val = $r->filled($fld) ? $r->input($fld) : null;
-                    if ($pk === 'Moisture' && $val === null && $r->filled("{$prefix}_MC")) {
-                        $val = $r->input("{$prefix}_MC");
-                    }
-                    if ($pk === 'Impurities' && $val === null && $r->filled("{$prefix}_IMP")) {
-                        $val = $r->input("{$prefix}_IMP");
-                    }
-                    $detailPayload[$pk] = $val;
-                    if ($val !== null && $val !== '') {
-                        $paramVals[$pk][] = (float)$val;
-                    }
-                }
-
-                DB::table('cns_quality_control_details')->updateOrInsert(
-                    [
-                        'Quality_Control_ID' => $headerId,
-                        'Sample_Level'       => $level,
-                    ],
-                    array_merge($detailPayload, [
-                        'created_at' => $this->now,
-                    ])
-                );
-            }
-
-            // AVERAGE row (4th detail row)
-            $avgPayload = [
-                'updated_at' => $this->now,
-            ];
-            foreach ($paramKeys as $pk) {
-                $avgPayload[$pk] = count($paramVals[$pk]) > 0
-                    ? round(array_sum($paramVals[$pk]) / count($paramVals[$pk]), 2)
-                    : null;
-            }
-
-            DB::table('cns_quality_control_details')->updateOrInsert(
-                [
-                    'Quality_Control_ID' => $headerId,
-                    'Sample_Level'       => 'AVERAGE',
-                ],
-                array_merge($avgPayload, [
-                    'created_at' => $this->now,
-                ])
-            );
+            $this->saveQualityDetails((int) $headerId, $r, $qcType);
         });
 
         return response()->json(['status' => 'success', 'message' => 'Berhasil melakukan input']);
@@ -387,12 +497,13 @@ class QualityController extends Controller
             $item->addChild('cell', $avg ? $fmtQc($avg->Phosphorus)       : null);
             $item->addChild('cell', $avg ? $fmtQc($avg->Total_Metals)     : null);
 
-            // 46: Attachment, 47: Contract_ID, 48: Booking_ID, 49: QC_Category, 50: Tank_ID
+            // 46: Attachment, 47: Contract_ID, 48: Booking_ID, 49: QC_Category, 50: Tank_ID, 51: QC_Method
             $item->addChild('cell', $attachmentLink);
             $item->addChild('cell', $header->Contract_ID);
             $item->addChild('cell', $header->Booking_ID);
             $item->addChild('cell', $header->QC_Category);
             $item->addChild('cell', $header->Tank_ID ?? null);
+            $item->addChild('cell', $header->QC_Method ?? '');
 
             $counter++;
         }
@@ -419,73 +530,53 @@ class QualityController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Nama Tangki wajib dipilih untuk Daily QC'], 422);
         }
 
-        DB::transaction(function () use ($r, $headerId, $qcType, $tankId) {
+        $surveyorContractId = null;
+        $surveyorBookingId = null;
+        if ($qcType === 'SURVEYOR') {
+            $surveyor = $this->resolveSurveyorContext($r, (int) $headerId);
+            if ($surveyor instanceof \Illuminate\Http\JsonResponse) {
+                return $surveyor;
+            }
+            $surveyorBookingId = $surveyor['bookingId'];
+            $surveyorContractId = $surveyor['contractId'];
+        }
+
+        $attachmentPath = $this->storeAttachment($r);
+
+        DB::transaction(function () use ($r, $header, $headerId, $qcType, $tankId, $surveyorContractId, $surveyorBookingId, $attachmentPath) {
             $headerUpdate = [
                 'QC_Type'    => $qcType,
                 'Tank_ID'    => $tankId,
                 'updated_at' => $this->now,
             ];
-            if ($qcType === 'OUTBOUND') {
+            if ($qcType === 'SURVEYOR') {
+                $headerUpdate['QC_Category'] = 'EXTERNAL';
+                $headerUpdate['Contract_ID'] = $surveyorContractId;
+                $headerUpdate['Booking_ID'] = $surveyorBookingId;
+            } elseif ($qcType === 'OUTBOUND') {
                 $headerUpdate['Contract_ID'] = $r->filled('Contract_ID') ? $r->Contract_ID : null;
                 $headerUpdate['Booking_ID'] = $r->filled('Booking_ID') ? $r->Booking_ID : null;
             } else {
                 $headerUpdate['Contract_ID'] = null;
                 $headerUpdate['Booking_ID'] = null;
             }
+            $headerUpdate['QC_Method'] = ($qcType === 'SURVEYOR' && $r->filled('QC_Method'))
+                ? trim((string) $r->input('QC_Method'))
+                : null;
+            if ($attachmentPath) {
+                $headerUpdate['Attachment_Path'] = $attachmentPath;
+            }
+
             DB::table('cns_quality_controls')->where('id', $headerId)->update($headerUpdate);
 
-            $levelsMap = ['top' => 'TOP', 'middle' => 'MIDDLE', 'bottom' => 'BOTTOM'];
-            $paramKeys = ['FFA_As_Palmitic', 'FFA_As_Oleic', 'Moisture', 'Impurities', 'Unsaponifiables', 'Sulphur', 'IV', 'Total_Chlorides', 'Phosphorus', 'Total_Metals'];
-
-            $paramVals = [];
-            foreach ($paramKeys as $pk) {
-                $paramVals[$pk] = [];
+            if ($qcType === 'SURVEYOR' && strtoupper((string) ($header->QC_Type ?? '')) !== 'SURVEYOR') {
+                DB::table('cns_quality_control_details')
+                    ->where('Quality_Control_ID', $headerId)
+                    ->whereIn('Sample_Level', ['TOP', 'MIDDLE', 'BOTTOM'])
+                    ->delete();
             }
 
-            foreach ($levelsMap as $prefix => $level) {
-                $detailPayload = [
-                    'updated_at' => $this->now,
-                ];
-
-                foreach ($paramKeys as $pk) {
-                    $fld = "{$prefix}_{$pk}";
-                    $val = $r->filled($fld) ? $r->input($fld) : null;
-                    $detailPayload[$pk] = $val;
-                    if ($val !== null && $val !== '') {
-                        $paramVals[$pk][] = (float)$val;
-                    }
-                }
-
-                DB::table('cns_quality_control_details')->updateOrInsert(
-                    [
-                        'Quality_Control_ID' => $headerId,
-                        'Sample_Level'       => $level,
-                    ],
-                    array_merge($detailPayload, [
-                        'created_at' => $this->now,
-                    ])
-                );
-            }
-
-            // AVERAGE row
-            $avgPayload = [
-                'updated_at' => $this->now,
-            ];
-            foreach ($paramKeys as $pk) {
-                $avgPayload[$pk] = count($paramVals[$pk]) > 0
-                    ? round(array_sum($paramVals[$pk]) / count($paramVals[$pk]), 2)
-                    : null;
-            }
-
-            DB::table('cns_quality_control_details')->updateOrInsert(
-                [
-                    'Quality_Control_ID' => $headerId,
-                    'Sample_Level'       => 'AVERAGE',
-                ],
-                array_merge($avgPayload, [
-                    'created_at' => $this->now,
-                ])
-            );
+            $this->saveQualityDetails((int) $headerId, $r, $qcType);
         });
 
         return response()->json(['status' => 'success']);

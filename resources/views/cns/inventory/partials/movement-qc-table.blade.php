@@ -22,7 +22,7 @@
                         FFA <span class="badge badge-light text-secondary border ml-1">%</span>
                     </td>
                     <td>
-                        <input type="text" id="{{ $prefix }}_mov_ffa" class="form-control form-control-sm text-right bg-light" readonly placeholder="-" />
+                        <input type="text" id="{{ $prefix }}_mov_ffa" class="text-black form-control form-control-sm text-right bg-light" readonly placeholder="-" />
                     </td>
                 </tr>
                 <tr>
@@ -30,7 +30,7 @@
                         Moisture <span class="badge badge-light text-secondary border ml-1">%</span>
                     </td>
                     <td>
-                        <input type="text" id="{{ $prefix }}_mov_mc" class="form-control form-control-sm text-right bg-light" readonly placeholder="-" />
+                        <input type="text" id="{{ $prefix }}_mov_mc" class="text-black form-control form-control-sm text-right bg-light" readonly placeholder="-" />
                     </td>
                 </tr>
                 <tr>
@@ -38,7 +38,7 @@
                         Impurities <span class="badge badge-light text-secondary border ml-1">%</span>
                     </td>
                     <td>
-                        <input type="text" id="{{ $prefix }}_mov_imp" class="form-control form-control-sm text-right bg-light" readonly placeholder="-" />
+                        <input type="text" id="{{ $prefix }}_mov_imp" class="text-black form-control form-control-sm text-right bg-light" readonly placeholder="-" />
                     </td>
                 </tr>
             </tbody>

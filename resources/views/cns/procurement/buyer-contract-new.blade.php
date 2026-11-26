@@ -4,7 +4,7 @@
         <div class="card-body">
             <div class="form-group mb-0">
                 <label for="Purchase_Group">Pilih Kelompok Pembelian</label>
-                <select id="Purchase_Group" class="form-control">
+                <select id="Purchase_Group" class="text-black form-control">
                     <option value="UCO">UCO</option>
                     <option value="Non-UCO">Non-UCO</option>
                 </select>
@@ -49,7 +49,7 @@
             values = [''];
         }
         values.slice(0, 10).forEach(function (email) {
-            var input = $('<input type="email" name="Buyer_Emails[]" class="form-control shadow-sm" placeholder="nama@domain.com" />');
+            var input = $('<input type="email" name="Buyer_Emails[]" class="text-black form-control shadow-sm" placeholder="nama@domain.com" />');
             input.val(email || '');
             input.prop('readonly', !!readonly);
             $('#UcoEmailRows').append($('<div class="input-group mb-2 uco-email-row"></div>').append(input));

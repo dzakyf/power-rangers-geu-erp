@@ -1,6 +1,64 @@
 @extends('layout.mainlayout-cns')
 
 @section('content-wrapper')
+<style>
+    .metric-card {
+        border-radius: 10px;
+        padding: 18px 20px;
+        color: #ffffff;
+        position: relative;
+        min-height: 110px;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+    }
+    .metric-card .metric-header {
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.85);
+        padding-right: 58px;
+    }
+    .metric-card .metric-value {
+        font-size: 26px;
+        font-weight: 700;
+        line-height: 1.15;
+        color: #ffffff;
+        margin-top: 6px;
+        padding-right: 58px;
+    }
+    .metric-card .metric-sub {
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.9);
+        margin-top: 4px;
+        padding-right: 58px;
+    }
+    .metric-card .metric-icon-box {
+        width: 48px;
+        height: 48px;
+        border-radius: 6px;
+        background: rgba(255, 255, 255, 0.18);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: absolute;
+        right: 18px;
+        top: 50%;
+        transform: translateY(-50%);
+    }
+    .metric-card .metric-icon-box i {
+        font-size: 22px;
+        color: #ffffff;
+    }
+    .bg-card-navy { background-color: #3e4f7a !important; }
+    .bg-card-teal { background-color: #11a38f !important; }
+    .bg-card-orange { background-color: #f5a834 !important; }
+    .bg-card-coral { background-color: #ef533c !important; }
+</style>
+
 @include('cns.partials.page-header', [
     'title' => 'Cost Allocation per Shipment',
     'breadcrumbs' => [
@@ -11,43 +69,40 @@
 ])
 
 <div class="row mb-3">
-    <div class="col-md-3 col-sm-6 mb-2">
-        <div class="card border-left-primary shadow-sm h-100">
-            <div class="card-body py-2 px-3">
-                <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Shipments</div>
-                <div class="h5 mb-0 font-weight-bold">{{ number_format($summary['count']) }} <small class="text-muted">({{ $summary['final_count'] }} Final)</small></div>
-                <div class="small text-muted">{{ number_format($summary['total_volume_mt'], 2) }} MT &bull; {{ number_format($summary['total_containers']) }} Ctr</div>
-            </div>
+    <div class="col-xl-3 col-md-6 mb-2">
+        <div class="metric-card bg-card-navy">
+            <div class="metric-header">Total Shipments</div>
+            <div class="metric-value">{{ number_format($summary['count']) }} <small style="font-size: 14px; font-weight: 500; opacity: 0.85;">({{ $summary['final_count'] }} Final)</small></div>
+            <div class="metric-sub">{{ number_format($summary['total_volume_mt'], 2) }} MT &bull; {{ number_format($summary['total_containers']) }} Ctr</div>
+            <div class="metric-icon-box"><i class="fe fe-package"></i></div>
         </div>
     </div>
-    <div class="col-md-3 col-sm-6 mb-2">
-        <div class="card border-left-success shadow-sm h-100">
-            <div class="card-body py-2 px-3">
-                <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Total Cost (USD / IDR)</div>
-                <div class="h5 mb-0 font-weight-bold">$ {{ number_format($summary['total_cost_usd'], 2) }}</div>
-                <div class="small text-muted">Rp {{ number_format($summary['total_cost_idr'], 0, ',', '.') }}</div>
-            </div>
+    <div class="col-xl-3 col-md-6 mb-2">
+        <div class="metric-card bg-card-teal">
+            <div class="metric-header">Total Cost (USD / IDR)</div>
+            <div class="metric-value">$ {{ number_format($summary['total_cost_usd'], 2) }}</div>
+            <div class="metric-sub">Rp {{ number_format($summary['total_cost_idr'], 0, ',', '.') }}</div>
+            <div class="metric-icon-box"><i class="fe fe-dollar-sign"></i></div>
         </div>
     </div>
-    <div class="col-md-3 col-sm-6 mb-2">
-        <div class="card border-left-info shadow-sm h-100">
-            <div class="card-body py-2 px-3">
-                <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Avg Cost / MT</div>
-                <div class="h5 mb-0 font-weight-bold">$ {{ number_format($summary['avg_cost_per_mt_usd'], 2) }} <small class="text-muted">/ MT</small></div>
-            </div>
+    <div class="col-xl-3 col-md-6 mb-2">
+        <div class="metric-card bg-card-orange">
+            <div class="metric-header">Avg Cost / MT</div>
+            <div class="metric-value">$ {{ number_format($summary['avg_cost_per_mt_usd'], 2) }}</div>
+            <div class="metric-sub">Rata-rata per MT (USD)</div>
+            <div class="metric-icon-box"><i class="fe fe-trending-up"></i></div>
         </div>
     </div>
-    <div class="col-md-3 col-sm-6 mb-2">
-        <div class="card border-left-warning shadow-sm h-100">
-            <div class="card-body py-2 px-3">
-                <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Breakdown (USD)</div>
-                <div class="small">
-                    Freight: <strong>${{ number_format($summary['freight_usd'], 2) }}</strong> |
-                    Trucking: <strong>${{ number_format($summary['trucking_usd'], 2) }}</strong><br>
-                    Surveyor: <strong>${{ number_format($summary['surveyor_usd'], 2) }}</strong> |
-                    Port: <strong>${{ number_format($summary['port_usd'], 2) }}</strong>
-                </div>
+    <div class="col-xl-3 col-md-6 mb-2">
+        <div class="metric-card bg-card-coral">
+            <div class="metric-header">Breakdown (USD)</div>
+            <div class="metric-sub mt-2" style="line-height: 1.6;">
+                Freight: <strong>${{ number_format($summary['freight_usd'], 2) }}</strong> &bull;
+                Trucking: <strong>${{ number_format($summary['trucking_usd'], 2) }}</strong><br>
+                Surveyor: <strong>${{ number_format($summary['surveyor_usd'], 2) }}</strong> &bull;
+                Port: <strong>${{ number_format($summary['port_usd'], 2) }}</strong>
             </div>
+            <div class="metric-icon-box"><i class="fe fe-pie-chart"></i></div>
         </div>
     </div>
 </div>
@@ -71,23 +126,23 @@
         <form method="GET" action="{{ route('cns-export-cost-allocation.index') }}" class="form-row row cns-filter-bar align-items-end">
             <div class="col-md-2 col-sm-6 mb-2">
                 <label class="small font-weight-bold mb-1">Dari Tanggal</label>
-                <input type="date" name="tgl1" class="form-control form-control-sm" value="{{ $filters['tgl1'] }}">
+                <input type="date" name="tgl1" class="text-black form-control form-control-sm" value="{{ $filters['tgl1'] }}">
             </div>
             <div class="col-md-2 col-sm-6 mb-2">
                 <label class="small font-weight-bold mb-1">Sampai Tanggal</label>
-                <input type="date" name="tgl2" class="form-control form-control-sm" value="{{ $filters['tgl2'] }}">
+                <input type="date" name="tgl2" class="text-black form-control form-control-sm" value="{{ $filters['tgl2'] }}">
             </div>
             <div class="col-md-2 col-sm-6 mb-2">
                 <label class="small font-weight-bold mb-1">Status</label>
-                <select name="status" class="form-control form-control-sm">
+                <select name="status" class="text-black form-control form-control-sm">
                     <option value="">-- Semua --</option>
                     <option value="DRAFT" {{ $filters['status'] === 'DRAFT' ? 'selected' : '' }}>DRAFT</option>
                     <option value="FINAL" {{ $filters['status'] === 'FINAL' ? 'selected' : '' }}>FINAL</option>
                 </select>
             </div>
             <div class="col-md-4 col-sm-6 mb-2">
-                <label class="small font-weight-bold mb-1">Cari No. Alokasi / SI</label>
-                <input type="text" name="search" class="form-control form-control-sm" placeholder="CA/EXP/... atau SI_No" value="{{ $filters['search'] }}">
+                <label class="small font-weight-bold mb-1">Cari No. Alokasi / BC / SI</label>
+                <input type="text" name="search" class="text-black form-control form-control-sm" placeholder="CA/EXP/..., BC_No, atau SI_No" value="{{ $filters['search'] }}">
             </div>
             <div class="col-md-2 col-sm-12 mb-2">
                 <button type="submit" class="btn btn-sm btn-primary"><i class="fa fa-filter"></i> Filter</button>
@@ -105,15 +160,19 @@
 @php
     $gridRows = [];
     foreach ($allocations as $idx => $row) {
-        $meta = $siMeta[$row->si_no] ?? [];
+        $meta = $metaMap[$row->id] ?? [];
         $vesselPod = trim(($meta['vessel_name'] ?? '-') . ' (' . ($meta['pod'] ?? '-') . ')');
+        $siOrder = collect([$row->si_no ?: ($meta['si_no'] ?? null), $row->order_no ?: ($meta['order_no'] ?? null)])
+            ->filter(function ($v) { return $v && $v !== '-'; })
+            ->unique()
+            ->implode(' / ');
         $gridRows[] = [
             'id' => $row->id,
             'data' => [
                 $idx + 1,
                 $row->allocation_no,
-                $row->si_no,
-                $row->final_si_no ?: '-',
+                $row->bc_no ?: '-',
+                $siOrder ?: '-',
                 $meta['consignee'] ?? '-',
                 $vesselPod,
                 number_format((float) $row->volume_mt, 2) . ' MT / ' . (int) $row->container_count . ' Ctr',
@@ -136,7 +195,7 @@
 
     var CostAllocationGrid = new dhtmlXGridObject('CostAllocationGrid');
     CostAllocationGrid.setImagePath('./dhtmlx/imgs/');
-    CostAllocationGrid.setHeader('No,Allocation No,SI No,Final SI No,Consignee,Vessel & POD,MT / Ctr,Freight (USD),Trucking (USD),Surveyor (USD),Port (USD),Total (USD),Total (IDR),Cost / MT,Status');
+    CostAllocationGrid.setHeader('No,Allocation No,BC No,SI / Order No,Consignee,Vessel & POD,MT / Ctr,Freight (USD),Trucking (USD),Surveyor (USD),Port (USD),Total (USD),Total (IDR),Cost / MT,Status');
     CostAllocationGrid.attachHeader('#rspan,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter');
     CostAllocationGrid.setInitWidths('45,150,145,145,170,180,120,105,105,105,105,115,135,100,85');
     CostAllocationGrid.setColAlign('center,left,left,left,left,left,right,right,right,right,right,right,right,right,center');

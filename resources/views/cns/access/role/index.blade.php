@@ -204,7 +204,7 @@
                     @csrf
                     <div class="form-group mb-2">
                         <label for="createRoleName" class="font-weight-bold"><small>Nama Role <span class="text-danger">*</span></small></label>
-                        <input type="text" class="form-control form-control-sm" id="createRoleName" name="name" placeholder="Misal: CNS_LOGISTIC" required>
+                        <input type="text" class="text-black form-control form-control-sm" id="createRoleName" name="name" placeholder="Misal: CNS_LOGISTIC" required>
                     </div>
                 </form>
             </div>
@@ -230,7 +230,7 @@
                     <input type="hidden" id="editRoleId" name="id">
                     <div class="form-group mb-2">
                         <label for="editRoleName" class="font-weight-bold"><small>Nama Role <span class="text-danger">*</span></small></label>
-                        <input type="text" class="form-control form-control-sm" id="editRoleName" name="name" required>
+                        <input type="text" class="text-black form-control form-control-sm" id="editRoleName" name="name" required>
                     </div>
                 </form>
             </div>

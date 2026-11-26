@@ -25,6 +25,8 @@ class ExportInvoicingRequest extends Model
         'contract_file_name',
         'packing_list_file_path',
         'packing_list_file_name',
+        'transfer_proof_path',
+        'transfer_proof_name',
         'cns_notes',
         'submitted_by',
         'submitted_at',

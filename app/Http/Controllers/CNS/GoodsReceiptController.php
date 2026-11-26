@@ -220,6 +220,8 @@ class GoodsReceiptController extends Controller
             'items.*.item_name'=> 'required|string',
             'items.*.qty_received' => 'required|numeric|min:0',
             'items.*.serial_number' => 'nullable|string',
+            'items.*.serial_photos' => 'nullable|array',
+            'items.*.serial_photos.*' => 'nullable|image|mimes:jpg,jpeg,png|max:10240',
         ]);
 
         $seenSerials = [];
@@ -264,6 +266,15 @@ class GoodsReceiptController extends Controller
                     $seenSerials[$key] = true;
                     $allFlexibagSerials[] = $sn;
                 }
+
+                for ($pos = 0; $pos < $expectedQty; $pos++) {
+                    $photoFile = $request->file("items.{$idx}.serial_photos.{$pos}");
+                    if (!$photoFile || !$photoFile->isValid()) {
+                        return back()
+                            ->withInput()
+                            ->withErrors(["items.{$idx}.serial_photos" => "Foto unit Flexibag #" . ($pos + 1) . " wajib diunggah (JPG/PNG, maks 10MB) untuk item {$itemName}."]);
+                    }
+                }
             }
         }
 
@@ -283,7 +294,8 @@ class GoodsReceiptController extends Controller
             $gr = $this->service->createDraft(
                 $request->all(),
                 $request->file('attachment'),
-                Auth::user()->username ?? 'admin'
+                Auth::user()->username ?? 'admin',
+                $request->file('items', [])
             );
 
             return redirect()->route('cns-procurement-goods-receipt.index')

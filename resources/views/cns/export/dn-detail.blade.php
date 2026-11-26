@@ -40,6 +40,31 @@ $consigneeAddr = !empty($dn->Consignee_Address) ? $dn->Consignee_Address : ($com
                         </div>
                         <div class="col-md-4">
                             <div class="form-group">
+                                <label for="BC_No">Booking Confirmation (BC No)</label>
+                                @php
+                                    $bcCollection = collect($bookingConfirmations ?? []);
+                                    $hasCurrentBc = !empty($dn->BC_No) && $bcCollection->contains('BC_No', $dn->BC_No);
+                                @endphp
+                                <select name="BC_No" id="BC_No" class="text-black form-control shadow-sm">
+                                    <option value="">-- Pilih BC No --</option>
+                                    @if (!empty($dn->BC_No) && !$hasCurrentBc)
+                                        <option value="{{ $dn->BC_No }}" selected>{{ $dn->BC_No }}</option>
+                                    @endif
+                                    @foreach ($bcCollection as $bc)
+                                        <option value="{{ $bc->BC_No }}"
+                                            data-contract="{{ $bc->Contract_No ?? '' }}"
+                                            data-consignee="{{ $bc->Consignee_Code ?? '' }}"
+                                            data-consignee-address="{{ $bc->Buyer_Address ?: ($bc->Supplier_Address ?? '') }}"
+                                            data-tonnage="{{ $bc->Quantity_MT ?? '' }}"
+                                            {{ ($dn->BC_No ?? '') == $bc->BC_No ? 'selected' : '' }}>
+                                            {{ $bc->BC_No }}{{ !empty($bc->Contract_No) ? ' - ' . $bc->Contract_No : '' }}{{ !empty($bc->Buyer_Name) ? ' (' . $bc->Buyer_Name . ')' : '' }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
                                 <label for="Contract_No">Contract Number</label>
                                 @php
                                     $contractCollection = collect($contracts ?? []);
@@ -112,7 +137,7 @@ $consigneeAddr = !empty($dn->Consignee_Address) ? $dn->Consignee_Address : ($com
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label for="signatory_key">Approver / Penandatangan</label>
-                                <select name="signatory_key" id="signatory_key" class="form-control shadow-sm" required>
+                                <select name="signatory_key" id="signatory_key" class="text-black form-control shadow-sm" required>
                                     <option value="">-- Pilih Approver --</option>
                                     @foreach (($approvers ?? []) as $appr)
                                         <option value="{{ $appr->id }}" data-position="{{ $appr->Position ?? '' }}" {{ (string) ($dn->signatory_key ?? '') === (string) $appr->id ? 'selected' : '' }}>
@@ -125,7 +150,7 @@ $consigneeAddr = !empty($dn->Consignee_Address) ? $dn->Consignee_Address : ($com
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label for="signatory_title">Jabatan Penandatangan</label>
-                                <input type="text" name="signatory_title" id="signatory_title" value="{{ $dn->signatory_title ?? '' }}" class="form-control shadow-sm" placeholder="Otomatis dari jabatan approver" />
+                                <input type="text" name="signatory_title" id="signatory_title" value="{{ $dn->signatory_title ?? '' }}" class="text-black form-control shadow-sm" placeholder="Otomatis dari jabatan approver" />
                             </div>
                         </div>
                         <div class="col-md-12">
@@ -189,7 +214,42 @@ $consigneeAddr = !empty($dn->Consignee_Address) ? $dn->Consignee_Address : ($com
         }
     }
 
+    function applyBcToDnForm() {
+        var selected = $('#BC_No').find('option:selected');
+        if (!selected.val()) {
+            return;
+        }
+        var contractNo = selected.data('contract') || '';
+        var consignee = selected.data('consignee') || '';
+        var consigneeAddress = selected.data('consignee-address') || '';
+        var tonnage = selected.data('tonnage');
+
+        if (contractNo) {
+            if ($('#Contract_No option[value="' + contractNo + '"]').length === 0) {
+                $('#Contract_No').append($('<option>', { value: contractNo, text: contractNo }));
+            }
+            $('#Contract_No').val(contractNo).trigger('change.select2');
+        }
+        if (consignee) {
+            $('#Consignee').val(consignee).trigger('change');
+        }
+        if (consigneeAddress) {
+            $('#Consignee_Address').val(consigneeAddress);
+        }
+        if (tonnage !== undefined && tonnage !== '') {
+            var formatted = typeof cnsFormatNumber === 'function'
+                ? cnsFormatNumber(tonnage, 2)
+                : parseFloat(tonnage).toFixed(2);
+            $('#Total_Tonnage').val(formatted);
+        }
+    }
+
     if ($.fn.select2) {
+        $('#BC_No').select2({
+            width: '100%',
+            placeholder: '-- Pilih BC No --',
+            allowClear: true
+        });
         $('#Contract_No').select2({
             width: '100%',
             placeholder: '-- Pilih Contract Number --',
@@ -207,11 +267,21 @@ $consigneeAddr = !empty($dn->Consignee_Address) ? $dn->Consignee_Address : ($com
         $('#signatory_title').val(pos);
     });
 
+    $('#BC_No').on('change', function () {
+        applyBcToDnForm();
+    });
+
     $('#Contract_No').on('change', function () {
         applyContractToDnForm();
     });
 
     $('#UpdateDN').click(function () {
+        var $btn = $(this);
+        if ($btn.prop('disabled')) {
+            return;
+        }
+        $btn.prop('disabled', true);
+
         var inputValues = [];
         $('#ContentPagesDN input,#ContentPagesDN select,#ContentPagesDN textarea').each(function () {
             var type = $(this).attr("type");
@@ -231,16 +301,19 @@ $consigneeAddr = !empty($dn->Consignee_Address) ? $dn->Consignee_Address : ($com
             type: "POST",
             data: inputValues.join('&'),
             success: function (data) {
-                if (data.indexOf("success") !== -1) {
+                if (typeof data === 'string' && data.indexOf("success") !== -1) {
                     swal('Berhasil!', 'Delivery Note berhasil diupdate!', 'success');
                     refreshdata();
                     $('#divlistOpportunity').html('');
                 } else {
-                    swal('Error', 'Gagal mengupdate Delivery Note!', 'error');
+                    $btn.prop('disabled', false);
+                    swal('Error', (data && data.message) ? data.message : 'Gagal mengupdate Delivery Note!', 'error');
                 }
             },
-            error: function () {
-                swal('Error', 'Error Internal! Silakan coba lagi.', 'error');
+            error: function (xhr) {
+                $btn.prop('disabled', false);
+                var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Error Internal! Silakan coba lagi.';
+                swal('Error', msg, 'error');
             }
         });
     });

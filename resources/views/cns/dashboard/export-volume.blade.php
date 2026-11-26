@@ -26,9 +26,10 @@
     /* Metric & Card Aesthetic matching reference image */
     .metric-card {
         border-radius: 10px;
-        padding: 20px 22px;
+        padding: 20px 86px 20px 22px;
         color: #ffffff;
         position: relative;
+        height: 100%;
         min-height: 125px;
         display: flex;
         flex-direction: column;
@@ -48,11 +49,14 @@
         color: rgba(255, 255, 255, 0.8);
     }
     .metric-card .metric-value {
-        font-size: 34px;
+        font-size: 32px;
         font-weight: 700;
         line-height: 1.15;
         color: #ffffff;
         margin-top: 6px;
+    }
+    .metric-card .metric-value-currency {
+        font-size: 24px;
     }
     .metric-card .metric-link {
         font-size: 11.5px;
@@ -144,10 +148,10 @@
 </style>
 
 @include('cns.partials.page-header', [
-    'title' => 'Dashboard Export Volume',
+    'title' => 'Dashboard Export Performance',
     'breadcrumbs' => [
         ['label' => 'Dashboard'],
-        ['label' => 'Export Volume'],
+        ['label' => 'Export Performance'],
     ],
 ])
 
@@ -185,46 +189,49 @@
         </div>
     </div>
 
-    <!-- Card 3: Total Kontainer (Warm Orange) -->
+    <!-- Card 3: Total Value USD (Warm Orange) -->
     <div class="col-xl-3 col-lg-6 col-md-6 col-12">
         <div class="metric-card bg-card-orange">
             <div>
-                <div class="metric-header">TOTAL KONTAINER (BOX)</div>
-                <div class="metric-value" id="kpi_containers">{{ number_format($kpis['total_containers']) }}</div>
+                <div class="metric-header">TOTAL VALUE (USD)</div>
+                <div class="metric-value metric-value-currency" id="kpi_value">$ {{ number_format($kpis['total_value_usd'] ?? 0, 2, '.', ',') }}</div>
             </div>
             <div>
                 <a class="metric-link" onclick="scrollToTable()">Lihat detail</a>
             </div>
             <div class="metric-icon-box">
-                <i class="fe fe-package"></i>
+                <i class="fe fe-dollar-sign"></i>
             </div>
         </div>
     </div>
 
-    <!-- Card 4: Total Pending / Draft (Coral Red) -->
+    <!-- Card 4: Total Margin USD & % (Coral Red) -->
     <div class="col-xl-3 col-lg-6 col-md-6 col-12">
         <div class="metric-card bg-card-coral">
             <div>
-                <div class="metric-header">TOTAL DRAFT / PENDING</div>
-                <div class="metric-value" id="kpi_pending">{{ number_format($kpis['total_pending'] ?? 0) }}</div>
+                <div class="metric-header">TOTAL MARGIN (USD &amp; %)</div>
+                <div class="metric-value metric-value-currency">
+                    <span id="kpi_margin">$ {{ number_format($kpis['total_margin_usd'] ?? 0, 2, '.', ',') }}</span>
+                    <span id="kpi_margin_pct" style="font-size: 14px; font-weight: 600; opacity: 0.92;">({{ number_format($kpis['avg_margin_pct'] ?? 0, 1, '.', ',') }}%)</span>
+                </div>
             </div>
             <div>
                 <a class="metric-link" onclick="scrollToTable()">Lihat detail</a>
             </div>
             <div class="metric-icon-box">
-                <i class="fe fe-alert-triangle"></i>
+                <i class="fe fe-bar-chart-2"></i>
             </div>
         </div>
     </div>
 </div>
 
-<!-- 2. Second Row: Aktivitas Hari Ini (Horizontal Summary Strip) -->
+<!-- 2. Second Row: Ringkasan & Aktivitas Hari Ini (Horizontal Summary Strip) -->
 <div class="card cns-card mb-4">
     <div class="card-header">
         <div class="d-flex align-items-center flex-wrap gap-2">
             <i class="fe fe-trending-up text-dark me-2" style="font-size: 15px;"></i>
-            <h6 class="card-title">Aktivitas Hari Ini</h6>
-            <span class="badge rounded-pillrounded-pill bg-success ms-2 px-2 py-1" style="font-size: 11px; font-weight: 500;">
+            <h6 class="card-title">Ringkasan &amp; Aktivitas Hari Ini</h6>
+            <span class="badge rounded-pill bg-success ms-2 px-2 py-1" style="font-size: 11px; font-weight: 500;">
                 Last Update: <span id="todayLastUpdate">{{ $todayStats['last_update'] ?? date('H:i:s') }}</span>
             </span>
         </div>
@@ -239,35 +246,51 @@
     </div>
     <div class="card-body py-4">
         <div class="row text-center align-items-center">
+            <!-- Total Kontainer (Box) -->
+            <div class="col-lg-2 col-md-4 col-6 border-end mb-3 mb-lg-0">
+                <h2 class="fw-bold mb-1" id="kpi_containers" style="color: #f5a834; font-size: 26px;">
+                    {{ number_format($kpis['total_containers']) }}
+                </h2>
+                <div class="text-muted small">Total Kontainer (Box)</div>
+            </div>
+
+            <!-- Total Draft / Pending -->
+            <div class="col-lg-2 col-md-4 col-6 border-end mb-3 mb-lg-0">
+                <h2 class="fw-bold mb-1" id="kpi_pending" style="color: #ef533c; font-size: 26px;">
+                    {{ number_format($kpis['total_pending'] ?? 0) }}
+                </h2>
+                <div class="text-muted small">Total Draft / Pending</div>
+            </div>
+
             <!-- Total Kirim Hari Ini -->
-            <div class="col-md-3 col-6 border-end mb-2 mb-md-0">
-                <h2 class="fw-bold mb-1" id="today_shipments" style="color: #3e4f7a; font-size: 32px;">
+            <div class="col-lg-2 col-md-4 col-6 border-end mb-3 mb-lg-0">
+                <h2 class="fw-bold mb-1" id="today_shipments" style="color: #3e4f7a; font-size: 26px;">
                     {{ $todayStats['shipments'] ?? 0 }}
                 </h2>
                 <div class="text-muted small">Total Kirim Hari Ini</div>
             </div>
 
             <!-- Kontainer Hari Ini -->
-            <div class="col-md-3 col-6 border-end mb-2 mb-md-0">
-                <h2 class="fw-bold mb-1" id="today_containers" style="color: #11a38f; font-size: 32px;">
+            <div class="col-lg-2 col-md-4 col-6 border-end mb-2 mb-md-0">
+                <h2 class="fw-bold mb-1" id="today_containers" style="color: #11a38f; font-size: 26px;">
                     {{ $todayStats['containers'] ?? 0 }}
                 </h2>
                 <div class="text-muted small">Kontainer Hari Ini</div>
             </div>
 
             <!-- Total Volume MT Hari Ini -->
-            <div class="col-md-3 col-6 border-end">
-                <h2 class="fw-bold mb-1" id="today_volume" style="color: #f5a834; font-size: 32px;">
+            <div class="col-lg-2 col-md-4 col-6 border-end mb-2 mb-md-0">
+                <h2 class="fw-bold mb-1" id="today_volume" style="color: #d97706; font-size: 26px;">
                     {{ number_format($todayStats['volume_mt'] ?? 0, 2, '.', ',') }}
                 </h2>
                 <div class="text-muted small">
-                    Total Volume (MT) Hari Ini <i class="fe fe-info text-muted ms-1" style="font-size: 11px;" title="Volume Netto MT"></i>
+                    Volume Hari Ini (MT) <i class="fe fe-info text-muted ms-1" style="font-size: 11px;" title="Volume Netto MT"></i>
                 </div>
             </div>
 
             <!-- Dokumen Siap / Approved -->
-            <div class="col-md-3 col-6">
-                <h2 class="fw-bold mb-1" id="today_approved" style="color: #3b82f6; font-size: 32px;">
+            <div class="col-lg-2 col-md-4 col-6">
+                <h2 class="fw-bold mb-1" id="today_approved" style="color: #3b82f6; font-size: 26px;">
                     {{ $todayStats['approved'] ?? 0 }}
                 </h2>
                 <div class="text-muted small">SI Siap / Approved</div>
@@ -284,7 +307,7 @@
             <div class="card-header">
                 <div class="d-flex align-items-center">
                     <i class="fe fe-activity text-dark me-2"></i>
-                    <h6 class="card-title">Tren Volume Ekspor (MT & Kontainer)</h6>
+                    <h6 class="card-title">Tren Volume &amp; Kinerja Ekspor (MT, Kontainer, Value &amp; Margin)</h6>
                 </div>
                 <span class="badge bg-light text-muted border" id="chartYearBadge">
                     {{ $selectedYear !== 'all' ? 'Tahun ' . $selectedYear : 'Semua Tahun' }}
@@ -342,7 +365,7 @@
                 <!-- Tahun -->
                 <div class="col-md-2 col-sm-6">
                     <label for="filter_year" class="form-label font-weight-bold text-muted small">Tahun</label>
-                    <select class="form-control form-select select2-basic" id="filter_year" name="year">
+                    <select class="text-black form-control form-select select2-basic" id="filter_year" name="year">
                         <option value="all" {{ $selectedYear === 'all' ? 'selected' : '' }}>-- Semua Tahun --</option>
                         @foreach ($availableYears as $yr)
                             <option value="{{ $yr }}" {{ (string)$selectedYear === (string)$yr ? 'selected' : '' }}>{{ $yr }}</option>
@@ -360,7 +383,7 @@
                             9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
                         ];
                     @endphp
-                    <select class="form-control form-select select2-basic" id="filter_month" name="month">
+                    <select class="text-black form-control form-select select2-basic" id="filter_month" name="month">
                         <option value="all" {{ $selectedMonth === 'all' ? 'selected' : '' }}>-- Semua Bulan --</option>
                         @foreach ($months as $num => $name)
                             <option value="{{ $num }}" {{ (string)$selectedMonth === (string)$num ? 'selected' : '' }}>{{ $name }}</option>
@@ -369,9 +392,9 @@
                 </div>
 
                 <!-- Consignee -->
-                <div class="col-md-3 col-sm-6">
+                <div class="col-md-2 col-sm-6">
                     <label for="filter_consignee" class="form-label font-weight-bold text-muted small">Consignee</label>
-                    <select class="form-control form-select select2-basic" id="filter_consignee" name="consignee">
+                    <select class="text-black form-control form-select select2-basic" id="filter_consignee" name="consignee">
                         <option value="all" {{ $selectedConsignee === 'all' ? 'selected' : '' }}>-- Semua Consignee --</option>
                         @foreach ($availableConsignees as $code => $name)
                             <option value="{{ $code }}" {{ (string)$selectedConsignee === (string)$code ? 'selected' : '' }}>{{ $name }}</option>
@@ -380,9 +403,9 @@
                 </div>
 
                 <!-- Country / Port -->
-                <div class="col-md-3 col-sm-6">
+                <div class="col-md-2 col-sm-6">
                     <label for="filter_country" class="form-label font-weight-bold text-muted small">Negara / Pelabuhan Tujuan</label>
-                    <select class="form-control form-select select2-basic" id="filter_country" name="country">
+                    <select class="text-black form-control form-select select2-basic" id="filter_country" name="country">
                         <option value="all" {{ $selectedCountry === 'all' ? 'selected' : '' }}>-- Semua Negara/POD --</option>
                         @foreach ($availableCountries as $cnt)
                             <option value="{{ $cnt }}" {{ (string)$selectedCountry === (string)$cnt ? 'selected' : '' }}>{{ $cnt }}</option>
@@ -393,11 +416,21 @@
                 <!-- Incoterm -->
                 <div class="col-md-2 col-sm-6">
                     <label for="filter_incoterm" class="form-label font-weight-bold text-muted small">Incoterm</label>
-                    <select class="form-control form-select select2-basic" id="filter_incoterm" name="incoterm">
+                    <select class="text-black form-control form-select select2-basic" id="filter_incoterm" name="incoterm">
                         <option value="all" {{ $selectedIncoterm === 'all' ? 'selected' : '' }}>-- Semua Incoterm --</option>
                         @foreach ($availableIncoterms as $inco)
                             <option value="{{ $inco }}" {{ (string)$selectedIncoterm === (string)$inco ? 'selected' : '' }}>{{ $inco }}</option>
                         @endforeach
+                    </select>
+                </div>
+
+                <!-- Status Checklist -->
+                <div class="col-md-2 col-sm-6">
+                    <label for="filter_status" class="form-label font-weight-bold text-muted small">Status Checklist</label>
+                    <select class="text-black form-control form-select select2-basic" id="filter_status" name="status">
+                        <option value="all" {{ ($selectedStatus ?? 'all') === 'all' ? 'selected' : '' }}>All</option>
+                        <option value="completed" {{ ($selectedStatus ?? 'all') === 'completed' ? 'selected' : '' }}>Completed 100%</option>
+                        <option value="in_progress" {{ ($selectedStatus ?? 'all') === 'in_progress' ? 'selected' : '' }}>In Progress</option>
                     </select>
                 </div>
             </div>
@@ -432,7 +465,7 @@
                     <option value="100">100</option>
                 </select>
             </div>
-            <input type="text" id="tableSearchInput" class="form-control form-control-sm" placeholder="Cari SI / Consignee / Negara..." style="max-width: 230px; font-size: 12px;">
+            <input type="text" id="tableSearchInput" class="text-black form-control form-control-sm" placeholder="Cari SI / Consignee / Negara..." style="max-width: 230px; font-size: 12px;">
         </div>
     </div>
     <div class="card-body p-0">
@@ -451,6 +484,10 @@
                         <th class="text-end">Volume (MT)</th>
                         <th class="text-center">Kontainer</th>
                         <th class="text-center">Status</th>
+                        <th class="text-center">Checklist</th>
+                        <th class="text-end">Value (USD)</th>
+                        <th class="text-end">Cost (USD)</th>
+                        <th class="text-end">Margin (USD &amp; %)</th>
                     </tr>
                 </thead>
                 <tbody id="shipmentsTableBody">
@@ -484,7 +521,7 @@
         var incotermData = @json($incotermChart);
         var statusData = @json($statusChart);
 
-        // 1. Multi-line Trend Chart (Teal for Containers, Warm Orange for Volume MT, with circles)
+        // 1. Multi-line Trend Chart (Teal for Containers, Warm Orange for Volume MT, Navy for Value USD, Emerald for Margin USD)
         var monthlyOptions = {
             series: [{
                 name: 'Kontainer (Box)',
@@ -492,6 +529,12 @@
             }, {
                 name: 'Volume Ekspor (MT)',
                 data: monthlyTrendData.volume
+            }, {
+                name: 'Value (USD)',
+                data: monthlyTrendData.value_usd || []
+            }, {
+                name: 'Margin (USD)',
+                data: monthlyTrendData.margin_usd || []
             }],
             chart: {
                 height: 380,
@@ -500,7 +543,7 @@
                 zoom: { enabled: false }
             },
             stroke: {
-                width: [2.5, 2.5],
+                width: [2.5, 2.5, 2.5, 2.5],
                 curve: 'smooth'
             },
             markers: {
@@ -509,7 +552,7 @@
                 strokeWidth: 2,
                 hover: { size: 7 }
             },
-            colors: ['#14b8a6', '#f59e0b'],
+            colors: ['#14b8a6', '#f59e0b', '#3e4f7a', '#10b981'],
             xaxis: {
                 categories: monthlyTrendData.categories,
                 labels: {
@@ -517,18 +560,31 @@
                 }
             },
             yaxis: [{
+                seriesName: 'Kontainer (Box)',
                 title: { text: 'Kontainer (Box)', style: { fontSize: '11px', color: '#14b8a6' } },
                 labels: {
                     formatter: function (val) { return Math.round(val); },
                     style: { colors: '#64748b' }
                 }
             }, {
+                seriesName: 'Volume Ekspor (MT)',
                 opposite: true,
                 title: { text: 'Volume (MT)', style: { fontSize: '11px', color: '#f59e0b' } },
                 labels: {
                     formatter: function (val) { return (val ? val.toLocaleString() : 0); },
                     style: { colors: '#64748b' }
                 }
+            }, {
+                seriesName: 'Value (USD)',
+                opposite: true,
+                title: { text: 'Value & Margin (USD)', style: { fontSize: '11px', color: '#3e4f7a' } },
+                labels: {
+                    formatter: function (val) { return '$ ' + (val ? Number(val).toLocaleString() : 0); },
+                    style: { colors: '#64748b' }
+                }
+            }, {
+                seriesName: 'Value (USD)',
+                show: false
             }],
             grid: {
                 borderColor: '#f1f5f9',
@@ -546,7 +602,8 @@
                 y: {
                     formatter: function (y, { seriesIndex }) {
                         if (seriesIndex === 0) return (y ? Math.round(y) : 0) + ' Box';
-                        return (y ? y.toLocaleString() : 0) + ' MT';
+                        if (seriesIndex === 1) return (y ? y.toLocaleString() : 0) + ' MT';
+                        return '$ ' + Number(y || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
                     }
                 }
             }
@@ -623,6 +680,21 @@
         var btnRefresh = document.getElementById('btnRefresh');
         var btnExportExcel = document.getElementById('btnExportExcel');
 
+        function escHtml(val) {
+            return String(val == null ? '' : val)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        function fmtNum(val, decimals) {
+            return Number(val || 0).toLocaleString('en-US', {
+                minimumFractionDigits: decimals,
+                maximumFractionDigits: decimals
+            });
+        }
+
         function fetchAjaxData() {
             var formData = new FormData(filterForm);
             var params = new URLSearchParams(formData).toString();
@@ -642,7 +714,11 @@
             .then(function (data) {
                 // 1. Update Top Metric Cards
                 document.getElementById('kpi_shipments').textContent = (data.kpis.total_shipments || 0).toLocaleString();
-                document.getElementById('kpi_volume').textContent = (data.kpis.total_volume_mt || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                document.getElementById('kpi_volume').textContent = fmtNum(data.kpis.total_volume_mt || 0, 2);
+                document.getElementById('kpi_value').textContent = '$ ' + fmtNum(data.kpis.total_value_usd || 0, 2);
+                document.getElementById('kpi_margin').textContent = '$ ' + fmtNum(data.kpis.total_margin_usd || 0, 2);
+                document.getElementById('kpi_margin_pct').textContent = '(' + fmtNum(data.kpis.avg_margin_pct || 0, 1) + '%)';
+                document.getElementById('kpi_cost').textContent = '$ ' + fmtNum(data.kpis.total_cost_usd || 0, 2);
                 document.getElementById('kpi_containers').textContent = (data.kpis.total_containers || 0).toLocaleString();
                 document.getElementById('kpi_pending').textContent = (data.kpis.total_pending || 0).toLocaleString();
 
@@ -650,7 +726,7 @@
                 if (data.todayStats) {
                     document.getElementById('today_shipments').textContent = data.todayStats.shipments || 0;
                     document.getElementById('today_containers').textContent = data.todayStats.containers || 0;
-                    document.getElementById('today_volume').textContent = (data.todayStats.volume_mt || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                    document.getElementById('today_volume').textContent = fmtNum(data.todayStats.volume_mt || 0, 2);
                     document.getElementById('today_approved').textContent = data.todayStats.approved || 0;
                     document.getElementById('todayLastUpdate').textContent = data.todayStats.last_update || '';
                 }
@@ -665,6 +741,12 @@
                 }, {
                     name: 'Volume Ekspor (MT)',
                     data: data.monthlyTrend.volume
+                }, {
+                    name: 'Value (USD)',
+                    data: data.monthlyTrend.value_usd || []
+                }, {
+                    name: 'Margin (USD)',
+                    data: data.monthlyTrend.margin_usd || []
                 }]);
 
                 incotermChartInst.updateOptions({
@@ -704,13 +786,20 @@
                     s.si_no,
                     s.final_si_no,
                     s.bl_no,
+                    s.bc_no,
+                    s.contract_no,
                     s.consignee_name,
                     s.destination,
                     s.incoterm,
-                    s.status
+                    s.status,
+                    s.checklist_status
                 ].join(' ').toLowerCase();
                 return searchTarget.indexOf(currentSearchTerm) !== -1;
             });
+        }
+
+        function renderTable() {
+            renderPaginatedTable();
         }
 
         function renderPaginatedTable() {
@@ -733,7 +822,7 @@
             tbody.innerHTML = '';
 
             if (totalItems === 0) {
-                tbody.innerHTML = '<tr id="emptyTableRow"><td colspan="11" class="text-center py-4 text-muted"><i class="fe fe-inbox fs-3 d-block mb-1"></i>Tidak ada data pengapalan sesuai kriteria.</td></tr>';
+                tbody.innerHTML = '<tr id="emptyTableRow"><td colspan="15" class="text-center py-4 text-muted"><i class="fe fe-inbox fs-3 d-block mb-1"></i>Tidak ada data pengapalan sesuai kriteria.</td></tr>';
                 document.getElementById('paginationInfo').textContent = 'Menampilkan 0 sampai 0 dari 0 pengapalan';
                 renderPaginationButtons(1);
                 return;
@@ -748,18 +837,31 @@
 
                 var incoClass = (s.incoterm === 'CIF') ? 'bg-info' : 'bg-secondary';
 
+                var checklistHtml = '<span class="text-muted">-</span>';
+                if (s.checklist_status === 'completed') {
+                    checklistHtml = '<span class="badge bg-success">Completed (' + escHtml(s.completed_stages) + '/' + escHtml(s.total_stages) + ')</span>';
+                } else if (s.checklist_status === 'in_progress') {
+                    checklistHtml = '<span class="badge bg-warning text-dark">In Progress (' + escHtml(s.completed_stages) + '/' + escHtml(s.total_stages) + ')</span>';
+                }
+
+                var marginClass = Number(s.margin_usd || 0) < 0 ? 'text-danger' : 'text-success';
+
                 var rowHtml = '<tr>' +
                     '<td class="text-center text-muted">' + (startIndex + idx + 1) + '</td>' +
-                    '<td class="font-weight-bold text-primary">' + (s.si_no || '-') + '</td>' +
-                    '<td>' + (s.final_si_no || '-') + '</td>' +
-                    '<td>' + (s.bl_no || '-') + '</td>' +
-                    '<td>' + (s.export_date_fmt || '-') + '</td>' +
-                    '<td class="font-weight-bold text-dark">' + (s.consignee_name || '-') + '</td>' +
-                    '<td><span class="badge bg-light text-dark border"><i class="fe fe-map-pin me-1 text-muted"></i>' + (s.destination || '-') + '</span></td>' +
-                    '<td class="text-center"><span class="badge ' + incoClass + '">' + (s.incoterm || '-') + '</span></td>' +
-                    '<td class="text-end font-weight-bold text-dark">' + (s.volume_mt || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) + '</td>' +
-                    '<td class="text-center font-weight-bold text-dark">' + (s.containers || 0) + ' Box</td>' +
-                    '<td class="text-center"><span class="badge ' + stClass + '">' + st + '</span></td>' +
+                    '<td class="font-weight-bold text-primary">' + escHtml(s.si_no || '-') + '</td>' +
+                    '<td>' + escHtml(s.final_si_no || '-') + '</td>' +
+                    '<td>' + escHtml(s.bl_no || '-') + '</td>' +
+                    '<td>' + escHtml(s.export_date_fmt || '-') + '</td>' +
+                    '<td class="font-weight-bold text-dark">' + escHtml(s.consignee_name || '-') + '</td>' +
+                    '<td><span class="badge bg-light text-dark border"><i class="fe fe-map-pin me-1 text-muted"></i>' + escHtml(s.destination || '-') + '</span></td>' +
+                    '<td class="text-center"><span class="badge ' + incoClass + '">' + escHtml(s.incoterm || '-') + '</span></td>' +
+                    '<td class="text-end font-weight-bold text-dark">' + fmtNum(s.volume_mt || 0, 2) + '</td>' +
+                    '<td class="text-center font-weight-bold text-dark">' + escHtml(s.containers || 0) + ' Box</td>' +
+                    '<td class="text-center"><span class="badge ' + stClass + '">' + escHtml(st) + '</span></td>' +
+                    '<td class="text-center">' + checklistHtml + '</td>' +
+                    '<td class="text-end">$ ' + fmtNum(s.value_usd || 0, 2) + '</td>' +
+                    '<td class="text-end">$ ' + fmtNum(s.cost_usd || 0, 2) + '</td>' +
+                    '<td class="text-end font-weight-bold ' + marginClass + '">$ ' + fmtNum(s.margin_usd || 0, 2) + ' (' + fmtNum(s.margin_pct || 0, 1) + '%)</td>' +
                     '</tr>';
                 tbody.insertAdjacentHTML('beforeend', rowHtml);
             });
@@ -880,11 +982,36 @@
             });
         }
 
+        function applyFilters() {
+            fetchAjaxData();
+        }
+
+        function resetFilters() {
+            document.getElementById('filter_year').value = '{{ date("Y") }}';
+            document.getElementById('filter_month').value = '{{ date("n") }}';
+            document.getElementById('filter_consignee').value = 'all';
+            document.getElementById('filter_country').value = 'all';
+            document.getElementById('filter_incoterm').value = 'all';
+            document.getElementById('filter_status').value = 'all';
+
+            if (window.jQuery && jQuery.fn.select2) {
+                $('#filterForm select').trigger('change.select2');
+            }
+
+            if (tableSearchInput) {
+                tableSearchInput.value = '';
+            }
+            currentSearchTerm = '';
+            currentPage = 1;
+
+            fetchAjaxData();
+        }
+
         // Submit filter
         if (filterForm) {
             filterForm.addEventListener('submit', function (e) {
                 e.preventDefault();
-                fetchAjaxData();
+                applyFilters();
             });
         }
 
@@ -899,23 +1026,7 @@
         var btnResetFilter = document.getElementById('btnResetFilter');
         if (btnResetFilter) {
             btnResetFilter.addEventListener('click', function () {
-                document.getElementById('filter_year').value = '{{ date("Y") }}';
-                document.getElementById('filter_month').value = '{{ date("n") }}';
-                document.getElementById('filter_consignee').value = 'all';
-                document.getElementById('filter_country').value = 'all';
-                document.getElementById('filter_incoterm').value = 'all';
-
-                if (window.jQuery && jQuery.fn.select2) {
-                    $('#filterForm select').trigger('change.select2');
-                }
-
-                if (tableSearchInput) {
-                    tableSearchInput.value = '';
-                }
-                currentSearchTerm = '';
-                currentPage = 1;
-
-                fetchAjaxData();
+                resetFilters();
             });
         }
     });

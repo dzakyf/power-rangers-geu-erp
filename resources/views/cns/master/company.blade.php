@@ -23,7 +23,7 @@
 		<div class="cns-filter-bar">
 			<div>
 				<label for="filter_type" class="d-block mb-1"><small>Pilih Jenis</small></label>
-				<select id="filter_type" class="form-control form-control-sm" style="width:auto;">
+				<select id="filter_type" class="text-black form-control form-control-sm" style="width:auto;">
 					<option value="">All</option>
 					<option value="CONSIGNEE">Consignee / Buyer</option>
 					<option value="SUPPLIER">Vendor / Supplier</option>
@@ -45,7 +45,7 @@
 		<div class="modal-content">
 			<div class="modal-header">
 				<h5 class="modal-title">Import Master Company (Excel)</h5>
-				<button type="button" class="close" data-bs-dismiss="modal" data-dismiss="modal" aria-label="Close" onclick="$('#ImportCompanyModal').modal('hide');">
+				<button type="button" class="close" data-bs-dismiss="modal" data-dismiss="modal" aria-label="Close" onclick="closeImportCompanyModal();">
 					<span aria-hidden="true">&times;</span>
 				</button>
 			</div>
@@ -56,12 +56,12 @@
 				</div>
 				<div class="form-group">
 					<label for="ImportCompanyFile">Pilih File Excel (.xlsx, .xls, .csv)</label>
-					<input type="file" id="ImportCompanyFile" class="form-control-file" accept=".xlsx,.xls,.csv" />
+					<input type="file" id="ImportCompanyFile" class="text-black form-control-file" accept=".xlsx,.xls,.csv" />
 				</div>
 				<div id="ImportCompanyResult" class="mt-3" style="display:none;"></div>
 			</div>
 			<div class="modal-footer">
-				<button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-dismiss="modal" onclick="$('#ImportCompanyModal').modal('hide');">Tutup</button>
+				<button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-dismiss="modal" onclick="closeImportCompanyModal();">Tutup</button>
 				<button type="button" class="btn btn-primary" id="SubmitImportCompanyBtn" onclick="submitImportCompany();">Upload &amp; Import</button>
 			</div>
 		</div>
@@ -89,6 +89,17 @@
 
 	function escapeImportHtml(str) {
 		return String(str).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
+	}
+
+	function closeImportCompanyModal() {
+		const fileInput = document.getElementById('ImportCompanyFile');
+		const resultBox = document.getElementById('ImportCompanyResult');
+		if (fileInput) fileInput.value = '';
+		if (resultBox) {
+			resultBox.innerHTML = '';
+			resultBox.style.display = 'none';
+		}
+		$('#ImportCompanyModal').modal('hide');
 	}
 
 	function submitImportCompany() {
@@ -125,8 +136,14 @@
 				}
 				resultBox.innerHTML = html;
 				resultBox.style.display = 'block';
+				fileInput.value = '';
 				if (res.imported > 0) {
 					refreshdata();
+					const hasIssues = (res.skipped && res.skipped.length) || (res.errors && res.errors.length);
+					if (!hasIssues) {
+						closeImportCompanyModal();
+					}
+					swal('Berhasil', `Berhasil import ${Number(res.imported)} company.`, 'success');
 				}
 			},
 			error: function (xhr) {

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\CNS;
 
+use App\Http\Controllers\CNS\Concerns\HandlesCompanyExcelImport;
 use App\Http\Controllers\Controller;
 use App\Support\DhtmlxGridPagination;
 use Illuminate\Http\Request;
@@ -10,6 +11,7 @@ use Illuminate\Support\Facades\DB;
 
 class MasterConsigneeController extends Controller
 {
+    use HandlesCompanyExcelImport;
     public function indexMasterConsignee()
     {
         return view('cns.master.consignee');
@@ -248,5 +250,19 @@ class MasterConsigneeController extends Controller
 
         $arr['Email'] = $primary;
         $arr['Emails'] = count($emails) > 0 ? json_encode($emails) : null;
+    }
+
+    public function downloadImportTemplate()
+    {
+        return $this->downloadSupplierTableTemplate('master-consignee-import-template.xlsx', 'Yes', 'No');
+    }
+
+    public function importMasterConsignee(Request $request)
+    {
+        return $this->importSupplierTableRows($request, [
+            'Is_Consignee' => 1,
+            'Is_Supplier'  => 0,
+            'Is_Company'   => 1,
+        ]);
     }
 }

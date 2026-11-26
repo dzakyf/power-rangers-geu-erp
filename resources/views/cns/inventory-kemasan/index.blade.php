@@ -112,11 +112,6 @@
 <div class="card cns-card">
     <div class="card-header">
         <h5 class="card-title">Inventory Kemasan (Mutasi Stok Kemasan)</h5>
-        <div id="kemasanMonitoringActions" class="{{ $activeTab === 'monitoring' ? 'd-flex' : 'd-none' }} align-items-center flex-wrap" style="gap: 0.5rem;">
-            <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#modalManualMutation" data-toggle="modal" data-target="#modalManualMutation" onclick="$('#modalManualMutation').modal('show');">
-                Catat Mutasi Stok Kemasan
-            </button>
-        </div>
         <div id="kemasanReportActions" class="{{ $activeTab === 'report' ? 'd-flex' : 'd-none' }} align-items-center flex-wrap" style="gap: 0.5rem;">
             <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalSiteLimits" data-toggle="modal" data-target="#modalSiteLimits" onclick="$('#modalSiteLimits').modal('show');">
                 Atur Max Stok Site
@@ -143,15 +138,15 @@
                 <div class="cns-filter-bar">
                     <div>
                         <label class="d-block mb-1"><small>Dari Tanggal</small></label>
-                        <input type="date" id="filterStartDate" class="form-control form-control-sm" style="width:140px;" />
+                        <input type="date" id="filterStartDate" class="text-black form-control form-control-sm" style="width:140px;" />
                     </div>
                     <div>
                         <label class="d-block mb-1"><small>Sampai Tanggal</small></label>
-                        <input type="date" id="filterEndDate" class="form-control form-control-sm" style="width:140px;" />
+                        <input type="date" id="filterEndDate" class="text-black form-control form-control-sm" style="width:140px;" />
                     </div>
                     <div>
                         <label class="d-block mb-1"><small>Site</small></label>
-                        <select id="filterSite" class="form-control form-control-sm" style="width:150px;" onchange="applyFilters()">
+                        <select id="filterSite" class="text-black form-control form-control-sm" style="width:150px;" onchange="applyFilters()">
                             <option value="">Semua Site</option>
                             @foreach($sites as $siteId => $siteName)
                                 <option value="{{ $siteId }}">{{ $siteName }}</option>
@@ -160,7 +155,7 @@
                     </div>
                     <div>
                         <label class="d-block mb-1"><small>Nama Kemasan</small></label>
-                        <select id="filterItemName" class="form-control form-control-sm" style="width:220px;" onchange="applyFilters()">
+                        <select id="filterItemName" class="text-black form-control form-control-sm" style="width:220px;" onchange="applyFilters()">
                             <option value="">Semua Kemasan</option>
                             @foreach($masterPackagings as $mp)
                                 @php
@@ -276,97 +271,6 @@
     </div>
 </div>
 
-<!-- Modal Catat Mutasi Manual Kemasan -->
-<div class="modal fade" id="modalManualMutation" tabindex="-1" role="dialog" aria-labelledby="modalManualMutationLabel" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <form action="{{ route('cns-inventory-kemasan.manual-mutation') }}" method="POST">
-            @csrf
-            <div class="modal-content">
-                <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title" id="modalManualMutationLabel"><i class="fa fa-pencil-square-o mr-1"></i> Catat Mutasi Stok Kemasan</h5>
-                    <button type="button" class="close text-white" data-dismiss="modal" data-bs-dismiss="modal" aria-label="Close" onclick="$('#modalManualMutation').modal('hide');">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <div class="form-row">
-                        <div class="form-group col-md-6">
-                            <label class="font-weight-bold">Tanggal Transaksi <span class="text-danger">*</span></label>
-                            <input type="date" name="transaction_date" class="form-control form-control-sm" value="{{ date('Y-m-d') }}" required />
-                        </div>
-                        <div class="form-group col-md-6">
-                            <label class="font-weight-bold">Site <span class="text-danger">*</span></label>
-                            <select name="site_id" class="form-control form-control-sm" required>
-                                <option value="">-- Pilih Site --</option>
-                                @foreach($sites as $siteId => $siteName)
-                                    <option value="{{ $siteId }}">{{ $siteName }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="font-weight-bold">Pilih Dari Master Kemasan</label>
-                        <select id="selectMasterPackaging" class="form-control form-control-sm" onchange="onSelectMasterPackaging(this)">
-                            <option value="">-- Pilih dari Master Kemasan (Opsional) --</option>
-                            @foreach($masterPackagings as $pkg)
-                                @php
-                                    $volText = \App\Services\CNS\KemasanInventoryService::formatVolume($pkg->Volume);
-                                @endphp
-                                <option value="{{ $pkg->Kemasan_ID }}" data-name="{{ $pkg->Name }}" data-unit="PCS">
-                                    {{ $pkg->Name }} ({{ $volText }} L)
-                                </option>
-                            @endforeach
-                            <option value="custom">-- Ketik Manual / Lainnya --</option>
-                        </select>
-                        <input type="hidden" name="packaging_id" id="inputPackagingId" value="" />
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group col-md-8">
-                            <label class="font-weight-bold">Nama Kemasan <span class="text-danger">*</span></label>
-                            <input type="text" name="item_name" id="inputItemName" class="form-control form-control-sm" placeholder="Contoh: Flexibag 24KL / Jerigen 18L" required />
-                        </div>
-                        <div class="form-group col-md-4">
-                            <label class="font-weight-bold">Satuan <span class="text-danger">*</span></label>
-                            <input type="text" name="unit" id="inputUnit" class="form-control form-control-sm text-center" value="PCS" required />
-                        </div>
-                    </div>
-
-                    <input type="hidden" name="type" value="OUT" />
-                    <div class="form-row">
-                        <div class="form-group col-md-6" id="groupOutType">
-                            <label class="font-weight-bold">Tipe OUT <span class="text-danger">*</span></label>
-                            <select name="out_type" id="selectOutType" class="form-control form-control-sm" required>
-                                <option value="DROP">Drop (Kurangi Qty)</option>
-                                <option value="PENJUALAN">Penjualan (Kurangi Excess)</option>
-                            </select>
-                        </div>
-                        <div class="form-group col-md-6">
-                            <label class="font-weight-bold">Kuantiti <span class="text-danger">*</span></label>
-                            <input type="text" inputmode="decimal" name="qty" class="form-control form-control-sm font-weight-bold text-right cns-decimal" required />
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="font-weight-bold">No. Referensi / No. Surat Jalan / No. Dokumen <span class="text-danger">*</span></label>
-                        <input type="text" name="reference_no" class="form-control form-control-sm" placeholder="Contoh: SJ-KMS-2026-001" required />
-                    </div>
-
-                    <div class="form-group">
-                        <label class="font-weight-bold">Keterangan / Catatan</label>
-                        <textarea name="notes" class="form-control form-control-sm" rows="2" placeholder="Catatan penerimaan, pemakaian, atau penyesuaian..."></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal" data-bs-dismiss="modal" onclick="$('#modalManualMutation').modal('hide');">Batal</button>
-                    <button type="submit" class="btn btn-primary font-weight-bold">Simpan Mutasi</button>
-                </div>
-            </div>
-        </form>
-    </div>
-</div>
-
 <!-- Modal Atur Max Stok Per Site -->
 <div class="modal fade" id="modalSiteLimits" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog modal-xl" style="max-width: 92vw;" role="document">
@@ -415,7 +319,7 @@
                                             <td style="min-width: 140px;">
                                                 <input type="text" inputmode="decimal"
                                                     name="limits[{{ $mk->Kemasan_ID }}][{{ $siteId }}]"
-                                                    class="form-control form-control-sm text-end text-right cns-decimal"
+                                                    class="text-black form-control form-control-sm text-end text-right cns-decimal"
                                                     style="min-width: 115px;"
                                                     value="{{ $overrideVal !== '' ? number_format((float) $overrideVal, 2, '.', ',') : '' }}"
                                                     placeholder="{{ $defaultPlaceholder }}" />
@@ -455,7 +359,6 @@
             $('#tab-report-link').addClass('active').attr('aria-selected', 'true');
             $('#tab-monitoring').removeClass('show active').css('display', 'none');
             $('#tab-report').addClass('show active').css('display', 'block');
-            $('#kemasanMonitoringActions').removeClass('d-flex').addClass('d-none');
             $('#kemasanReportActions').removeClass('d-none').addClass('d-flex');
         } else {
             $('#tab-report-link').removeClass('active').attr('aria-selected', 'false');
@@ -463,7 +366,6 @@
             $('#tab-report').removeClass('show active').css('display', 'none');
             $('#tab-monitoring').addClass('show active').css('display', 'block');
             $('#kemasanReportActions').removeClass('d-flex').addClass('d-none');
-            $('#kemasanMonitoringActions').removeClass('d-none').addClass('d-flex');
 
             setTimeout(function() {
                 if (KemasanGrid) {
@@ -474,21 +376,6 @@
                     }
                 }
             }, 60);
-        }
-    }
-
-    function onSelectMasterPackaging(select) {
-        var opt = select.options[select.selectedIndex];
-        var val = select.value;
-        if (val && val !== 'custom') {
-            $('#inputPackagingId').val(val);
-            $('#inputItemName').val(opt.getAttribute('data-name'));
-            $('#inputUnit').val(opt.getAttribute('data-unit') || 'PCS');
-        } else {
-            $('#inputPackagingId').val('');
-            if (val === 'custom') {
-                $('#inputItemName').val('').focus();
-            }
         }
     }
 

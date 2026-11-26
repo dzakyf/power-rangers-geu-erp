@@ -34,9 +34,9 @@
                         <div class="form-group">
                             <label>Vendor</label>
                             @if($isEdit)
-                                <input type="text" class="form-control shadow-sm" value="{{ $supplier->Company_Name }}" readonly />
+                                <input type="text" class="text-black form-control shadow-sm" value="{{ $supplier->Company_Name }}" readonly />
                             @else
-                                <select name="Vendor_ID" id="Vendor_ID" class="form-control shadow-sm" required>
+                                <select name="Vendor_ID" id="Vendor_ID" class="text-black form-control shadow-sm" required>
                                     <option value="">-- Pilih Vendor --</option>
                                 </select>
                             @endif
@@ -57,25 +57,25 @@
                     <div class="col-md-6">
                         <div class="form-group">
                             <label>Nomor Telepon</label>
-                            <input type="text" id="{{ $fieldPrefix }}Phone" class="form-control shadow-sm" value="{{ $supplier->Phone ?? '' }}" readonly />
+                            <input type="text" id="{{ $fieldPrefix }}Phone" class="text-black form-control shadow-sm" value="{{ $supplier->Phone ?? '' }}" readonly />
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="form-group">
                             <label>Alamat Email</label>
-                            <input type="text" id="{{ $fieldPrefix }}Emails" class="form-control shadow-sm" value="{{ $emailText }}" readonly />
+                            <input type="text" id="{{ $fieldPrefix }}Emails" class="text-black form-control shadow-sm" value="{{ $emailText }}" readonly />
                         </div>
                     </div>
                 </div>
 
                 <div class="form-group">
                     <label>Alamat</label>
-                    <textarea id="{{ $fieldPrefix }}Address" rows="2" class="form-control shadow-sm" readonly>{{ $supplier->Address ?? '' }}</textarea>
+                    <textarea id="{{ $fieldPrefix }}Address" rows="2" class="text-black form-control shadow-sm" readonly>{{ $supplier->Address ?? '' }}</textarea>
                 </div>
 
                 <div class="form-group">
                     <label>Kategori Supplier</label>
-                    <select name="Supply_Category" id="{{ $fieldPrefix }}SupplyCategory" class="form-control shadow-sm" required>
+                    <select name="Supply_Category" id="{{ $fieldPrefix }}SupplyCategory" class="text-black form-control shadow-sm" required>
                         <option value="">-- Pilih Kategori --</option>
                         @foreach($categories as $category)
                             <option value="{{ $category }}" {{ old('Supply_Category', $supplier->Supply_Category ?? '') === $category ? 'selected' : '' }}>{{ $category }}</option>

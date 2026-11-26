@@ -412,7 +412,8 @@ class SupplierContractTest extends TestCase
             ->assertOk();
 
         $xml = $this->xmlContent();
-        $this->assertStringContainsString('/cns-procurement-buyer-contract-file?ID=' . $contractId . '^Lihat^_blank', $xml);
+        $this->assertStringContainsString('/cns-procurement-buyer-contract-file?ID=' . $contractId . '^' . basename($contractFile), $xml);
+        $this->assertStringNotContainsString('^Lihat^_blank', $xml);
     }
 
     private function contractPayload(string $contractNo): array

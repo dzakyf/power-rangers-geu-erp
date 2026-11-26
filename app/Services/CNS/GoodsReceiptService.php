@@ -44,7 +44,7 @@ class GoodsReceiptService
     /**
      * Create draft Goods Receipt.
      */
-    public function createDraft(array $data, ?UploadedFile $attachment = null, ?string $actor = null): CnsGoodsReceipt
+    public function createDraft(array $data, ?UploadedFile $attachment = null, ?string $actor = null, array $itemFiles = []): CnsGoodsReceipt
     {
         $user = $actor ?: (auth()->check() ? auth()->user()->username : 'admin');
         $grNo = $this->generateGrNo($data['receipt_date'] ?? null);
@@ -60,7 +60,7 @@ class GoodsReceiptService
             $attachmentPath = 'uploads/goods-receipt/' . $filename;
         }
 
-        return DB::transaction(function () use ($data, $grNo, $attachmentPath, $user) {
+        return DB::transaction(function () use ($data, $grNo, $attachmentPath, $user, $itemFiles) {
             $gr = CnsGoodsReceipt::create([
                 'gr_no'            => $grNo,
                 'po_no'            => $data['po_no'],
@@ -76,10 +76,11 @@ class GoodsReceiptService
             ]);
 
             if (!empty($data['items']) && is_array($data['items'])) {
-                foreach ($data['items'] as $item) {
+                foreach ($data['items'] as $idx => $item) {
                     $qtyReceived = (float) ($item['qty_received'] ?? 0);
                     $qtyOrdered  = (float) ($item['qty_ordered'] ?? 0);
                     $serialNumber = isset($item['serial_number']) ? trim((string) $item['serial_number']) : '';
+                    $serialPhotos = $this->resolveItemSerialPhotos($idx, $item, $itemFiles);
 
                     CnsGoodsReceiptDetail::create([
                         'goods_receipt_id' => $gr->id,
@@ -92,6 +93,7 @@ class GoodsReceiptService
                         'qty_received'     => $qtyReceived,
                         'notes'            => $item['notes'] ?? null,
                         'serial_number'    => $serialNumber !== '' ? $serialNumber : null,
+                        'serial_photos'    => $serialPhotos,
                     ]);
                 }
             }
@@ -103,7 +105,7 @@ class GoodsReceiptService
     /**
      * Update draft Goods Receipt.
      */
-    public function updateDraft(int $id, array $data, ?UploadedFile $attachment = null, ?string $actor = null): CnsGoodsReceipt
+    public function updateDraft(int $id, array $data, ?UploadedFile $attachment = null, ?string $actor = null, array $itemFiles = []): CnsGoodsReceipt
     {
         $gr = CnsGoodsReceipt::with('details')->findOrFail($id);
 
@@ -124,7 +126,7 @@ class GoodsReceiptService
             $attachmentPath = 'uploads/goods-receipt/' . $filename;
         }
 
-        return DB::transaction(function () use ($gr, $data, $attachmentPath, $user) {
+        return DB::transaction(function () use ($gr, $data, $attachmentPath, $user, $itemFiles) {
             $gr->update([
                 'receipt_date'     => $data['receipt_date'] ?? $gr->receipt_date,
                 'delivery_note_no' => $data['delivery_note_no'] ?? $gr->delivery_note_no,
@@ -138,8 +140,9 @@ class GoodsReceiptService
             if (isset($data['items']) && is_array($data['items'])) {
                 $gr->details()->delete();
 
-                foreach ($data['items'] as $item) {
+                foreach ($data['items'] as $idx => $item) {
                     $serialNumber = isset($item['serial_number']) ? trim((string) $item['serial_number']) : '';
+                    $serialPhotos = $this->resolveItemSerialPhotos($idx, $item, $itemFiles);
 
                     CnsGoodsReceiptDetail::create([
                         'goods_receipt_id' => $gr->id,
@@ -152,12 +155,77 @@ class GoodsReceiptService
                         'qty_received'     => (float) ($item['qty_received'] ?? 0),
                         'notes'            => $item['notes'] ?? null,
                         'serial_number'    => $serialNumber !== '' ? $serialNumber : null,
+                        'serial_photos'    => $serialPhotos,
                     ]);
                 }
             }
 
             return $gr->fresh('details');
         });
+    }
+
+    /**
+     * Resolve and store serial photos for a single GR detail item.
+     */
+    private function resolveItemSerialPhotos($idx, array $item, array $itemFiles): ?array
+    {
+        $rawFiles = [];
+        if (isset($itemFiles[$idx]['serial_photos']) && is_array($itemFiles[$idx]['serial_photos'])) {
+            $rawFiles = $itemFiles[$idx]['serial_photos'];
+        } elseif (isset($itemFiles[$idx]) && is_array($itemFiles[$idx])) {
+            $rawFiles = $itemFiles[$idx];
+        }
+
+        $stored = $this->storeFlexibagPhotos($rawFiles);
+        if (!empty($stored)) {
+            return $stored;
+        }
+
+        if (!empty($item['serial_photos']) && is_array($item['serial_photos'])) {
+            $existing = array_values(array_filter($item['serial_photos'], function ($path) {
+                return is_string($path) && trim($path) !== '';
+            }));
+            return !empty($existing) ? $existing : null;
+        }
+
+        return null;
+    }
+
+    /**
+     * Store uploaded per-unit flexibag photos and return ordered relative paths.
+     */
+    private function storeFlexibagPhotos(array $files): array
+    {
+        if (empty($files)) {
+            return [];
+        }
+
+        ksort($files);
+
+        $dir = public_path('uploads/goods-receipt/flexibag');
+        if (!is_dir($dir)) {
+            @mkdir($dir, 0777, true);
+        }
+
+        $paths = [];
+        foreach ($files as $pos => $file) {
+            if (!($file instanceof UploadedFile) || !$file->isValid()) {
+                continue;
+            }
+
+            $cleanName = preg_replace('/[^A-Za-z0-9_\-\.]/', '', $file->getClientOriginalName());
+            if ($cleanName === '') {
+                $ext = $file->getClientOriginalExtension() ?: 'jpg';
+                $cleanName = 'photo.' . $ext;
+            }
+
+            $uniqueToken = str_replace('.', '', uniqid('', true));
+            $filename = 'fb_' . time() . '_' . $pos . '_' . $uniqueToken . '_' . $cleanName;
+            $file->move($dir, $filename);
+            $paths[] = 'uploads/goods-receipt/flexibag/' . $filename;
+        }
+
+        return $paths;
     }
 
     /**

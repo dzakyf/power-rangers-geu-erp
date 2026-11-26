@@ -62,7 +62,7 @@ $Saya =  Auth::user()->username;
 						<div class="col-md-3 col-12">
 							<div class="form-group">
 								<label for="Packing_List_No">Packing List No</label>
-                                <select name="Packing_List_No" id="Packing_List_No" class="form-control shadow-sm" required>
+                                <select name="Packing_List_No" id="Packing_List_No" class="text-black form-control shadow-sm" required>
                                     <option value="">-- Pilih Packing List No --</option>
                                     @foreach ($pls as $pl)
                                         <option value="{{ $pl->Packing_List_No }}">{{ $pl->Packing_List_No }}</option>
@@ -73,19 +73,19 @@ $Saya =  Auth::user()->username;
 						<div class="col-md-3 col-12">
 							<div class="form-group">
 								<label for="Voyage">Vessel / Voyage</label>
-								<input type="text" name="Voyage" id="Voyage" value="" class="form-control shadow-sm">
+								<input type="text" name="Voyage" id="Voyage" value="" class="text-black form-control shadow-sm">
 							</div>
 						</div>
 						<div class="col-md-3 col-12">
 							<div class="form-group">
 								<label for="Departure_Date">Date of Departure</label>
-								<input type="text" name="Departure_Date" id="Departure_Date" value="{{ date("Y-m-d") }}" class="form-control bg-white shadow-sm" readonly>
+								<input type="text" name="Departure_Date" id="Departure_Date" value="{{ date("Y-m-d") }}" class="text-black form-control bg-white shadow-sm" readonly>
 							</div>
 						</div>
 						<div class="col-md-3 col-12">
 							<div class="form-group">
 								<label for="BL_No">B/L No.</label>
-								<input type="text" name="BL_No" id="BL_No" value="" class="form-control shadow-sm">
+								<input type="text" name="BL_No" id="BL_No" value="" class="text-black form-control shadow-sm">
 							</div>
 						</div>
                         <div class="col-12">
@@ -93,7 +93,7 @@ $Saya =  Auth::user()->username;
                                 <div class="col-md-3 col-12">
                                     <div class="form-group">
                                         <label for="Nopol1">Nopol</label>
-                                        <input type="text" id="Nopol1" class="form-control bg-white shadow-sm" value="-" readonly>
+                                        <input type="text" id="Nopol1" class="text-black form-control bg-white shadow-sm" value="-" readonly>
                                     </div>
                                 </div>
                                 <div class="col-md-9 col-12">
@@ -182,7 +182,7 @@ $Saya =  Auth::user()->username;
 							<div class="col-md-3 col-12">
 								<div class="form-group">
 									<label for="Nopol${container.ID}">Nopol</label>
-									<input type="text" id="Nopol${container.ID}" class="form-control bg-white shadow-sm" value="${container.Police_No ? container.Police_No : '-'}" readonly>
+									<input type="text" id="Nopol${container.ID}" class="text-black form-control bg-white shadow-sm" value="${container.Police_No ? container.Police_No : '-'}" readonly>
 								</div>
 							</div>
 							<div class="col-md-9 col-12">

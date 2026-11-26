@@ -135,22 +135,22 @@
                 <div class="row">
                     <div class="col-md-4 mb-2">
                         <label for="createEmail" class="font-weight-bold"><small>Email / Username <span class="text-danger">*</span></small></label>
-                        <input type="email" id="createEmail" name="email" class="form-control form-control-sm" placeholder="user@contoh.com" required>
+                        <input type="email" id="createEmail" name="email" class="text-black form-control form-control-sm" placeholder="user@contoh.com" required>
                     </div>
                     <div class="col-md-4 mb-2">
                         <label for="createName" class="font-weight-bold"><small>Nama Lengkap <span class="text-danger">*</span></small></label>
-                        <input type="text" id="createName" name="Name" class="form-control form-control-sm" placeholder="Nama pengguna" required>
+                        <input type="text" id="createName" name="Name" class="text-black form-control form-control-sm" placeholder="Nama pengguna" required>
                     </div>
                     <div class="col-md-4 mb-2">
                         <label for="createPassword" class="font-weight-bold"><small>Password</small></label>
-                        <input type="text" id="createPassword" name="password" class="form-control form-control-sm" value="12345678">
+                        <input type="text" id="createPassword" name="password" class="text-black form-control form-control-sm" value="12345678">
                         <small class="text-muted">Default: <code>12345678</code></small>
                     </div>
                 </div>
                 <div class="row">
                     <div class="col-md-3 mb-2">
                         <label for="createPosition" class="font-weight-bold"><small>Role / Posisi</small></label>
-                        <select id="createPosition" name="Position" class="form-control form-control-sm">
+                        <select id="createPosition" name="Position" class="text-black form-control form-control-sm">
                             @foreach($roles as $roleName)
                             <option value="{{ $roleName }}">{{ $roleName }}</option>
                             @endforeach
@@ -158,7 +158,7 @@
                     </div>
                     <div class="col-md-3 mb-2">
                         <label for="createLocation" class="font-weight-bold"><small>Lokasi</small></label>
-                        <select id="createLocation" name="Location" class="form-control form-control-sm">
+                        <select id="createLocation" name="Location" class="text-black form-control form-control-sm">
                             @foreach($locations as $loc)
                             <option value="{{ $loc }}">{{ $loc }}</option>
                             @endforeach
@@ -166,7 +166,7 @@
                     </div>
                     <div class="col-md-3 mb-2">
                         <label for="createSignature" class="font-weight-bold"><small>Tanda Tangan (Opsional)</small></label>
-                        <input type="file" id="createSignature" name="signature" class="form-control form-control-sm" accept="image/png,image/jpeg,image/jpg">
+                        <input type="file" id="createSignature" name="signature" class="text-black form-control form-control-sm" accept="image/png,image/jpeg,image/jpg">
                     </div>
                 </div>
                 <div class="mt-3">
@@ -194,21 +194,21 @@
                     <div class="row">
                         <div class="col-md-6 mb-2">
                             <label class="font-weight-bold"><small>Username</small></label>
-                            <input type="text" id="editUsername" class="form-control form-control-sm" readonly>
+                            <input type="text" id="editUsername" class="text-black form-control form-control-sm" readonly>
                         </div>
                         <div class="col-md-6 mb-2">
                             <label class="font-weight-bold"><small>Nama Lengkap <span class="text-danger">*</span></small></label>
-                            <input type="text" id="editName" name="name" class="form-control form-control-sm" required>
+                            <input type="text" id="editName" name="name" class="text-black form-control form-control-sm" required>
                         </div>
                     </div>
                     <div class="row">
                         <div class="col-md-6 mb-2">
                             <label class="font-weight-bold"><small>Email</small></label>
-                            <input type="email" id="editEmail" name="email" class="form-control form-control-sm">
+                            <input type="email" id="editEmail" name="email" class="text-black form-control form-control-sm">
                         </div>
                         <div class="col-md-6 mb-2">
                             <label class="font-weight-bold"><small>Lokasi</small></label>
-                            <select id="editLocation" name="location" class="form-control form-control-sm">
+                            <select id="editLocation" name="location" class="text-black form-control form-control-sm">
                                 @foreach($locations as $loc)
                                 <option value="{{ $loc }}">{{ $loc }}</option>
                                 @endforeach
@@ -218,14 +218,14 @@
                     <div class="row">
                         <div class="col-md-4 mb-2">
                             <label class="font-weight-bold"><small>Status</small></label>
-                            <select id="editStatus" name="status" class="form-control form-control-sm">
+                            <select id="editStatus" name="status" class="text-black form-control form-control-sm">
                                 <option value="ACTIVE">ACTIVE</option>
                                 <option value="INACTIVE">INACTIVE</option>
                             </select>
                         </div>
                         <div class="col-md-4 mb-2">
                             <label class="font-weight-bold"><small>Role Utama</small></label>
-                            <select id="editPrimaryRole" name="primary_role" class="form-control form-control-sm">
+                            <select id="editPrimaryRole" name="primary_role" class="text-black form-control form-control-sm">
                                 @foreach($roles as $roleName)
                                 <option value="{{ $roleName }}">{{ $roleName }}</option>
                                 @endforeach
@@ -233,7 +233,7 @@
                         </div>
                         <div class="col-md-4 mb-2">
                             <label class="font-weight-bold"><small>Ganti Password (Opsional)</small></label>
-                            <input type="password" id="editPassword" name="password" class="form-control form-control-sm" placeholder="Kosongkan jika tidak diubah">
+                            <input type="password" id="editPassword" name="password" class="text-black form-control form-control-sm" placeholder="Kosongkan jika tidak diubah">
                         </div>
                     </div>
                     <div class="row">
@@ -254,7 +254,7 @@
                     <div class="row">
                         <div class="col-12 mb-2">
                             <label class="font-weight-bold"><small>Tanda Tangan</small></label>
-                            <input type="file" id="editSignature" name="signature" class="form-control form-control-sm" accept="image/png,image/jpeg,image/jpg">
+                            <input type="file" id="editSignature" name="signature" class="text-black form-control form-control-sm" accept="image/png,image/jpeg,image/jpg">
                             <div id="editSignaturePreviewWrapper" class="mt-1" style="display:none;">
                                 <small class="text-muted d-block">Tanda Tangan Saat Ini:</small>
                                 <img id="editSignaturePreview" src="" alt="Signature" class="sig-thumb" style="max-height: 55px; max-width: 150px;">

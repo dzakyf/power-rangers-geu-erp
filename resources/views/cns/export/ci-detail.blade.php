@@ -17,7 +17,7 @@ use Illuminate\Database\Eloquent\Builder;
 							<div class="form-group">
 								<input type="hidden" name="id" id="id" value="{{ $ci->ID }}" />
 								<label for="Final_SI_No">Final SI No</label>
-                                <select name="Final_SI_No" id="Final_SI_No" class="form-control bg-white shadow-sm" required {{ $ro['select'] }}>
+                                <select name="Final_SI_No" id="Final_SI_No" class="text-black form-control bg-white shadow-sm" required {{ $ro['select'] }}>
                                     <option value="">-- Pilih Final SI --</option>
                                     @foreach ($sis as $si)
                                         <option value="{{ $si->Final_SI_No }}" {{ $ci->SI_No == $si->Final_SI_No ? 'selected' : '' }}>{{ $si->Final_SI_No }}</option>
@@ -28,19 +28,19 @@ use Illuminate\Database\Eloquent\Builder;
 						<div class="col-md-4">
 							<div class="form-group">
 								<label for="Inv_No">Inv No</label>
-                                <input type="text" name="Inv_No" id="Inv_No" value="{{ $ci->Inv_No }}" class="form-control bg-white shadow-sm" required readonly />
+                                <input type="text" name="Inv_No" id="Inv_No" value="{{ $ci->Inv_No }}" class="text-black form-control bg-white shadow-sm" required readonly />
 							</div>
 						</div>
 						<div class="col-md-4">
 							<div class="form-group">
 								<label for="Inv_Date">Inv Date</label>
-                                <input name="Inv_Date" id="Inv_Date" class="form-control bg-white shadow-sm bg-white" value="{{ date('Y-m-d', strtotime($ci->Inv_Date)) }}" required readonly />
+                                <input name="Inv_Date" id="Inv_Date" class="text-black form-control bg-white shadow-sm bg-white" value="{{ date('Y-m-d', strtotime($ci->Inv_Date)) }}" required readonly />
 							</div>
 						</div>
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Shipper">Shipper</label>
-                                <select name="Shipper" id="Shipper" class="form-control bg-white shadow-sm" disabled>
+                                <select name="Shipper" id="Shipper" class="text-black form-control bg-white shadow-sm" disabled>
                                     <option value="">-- Pilih Shipper --</option>
                                     @foreach ($companies as $shipper)
                                         <option value="{{ $shipper->Supplier_ID }}" {{ $ci->Shipper == $shipper->Supplier_ID ? 'selected' : '' }}>{{ $shipper->Company_Name }}</option>
@@ -51,7 +51,7 @@ use Illuminate\Database\Eloquent\Builder;
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Consignee">Consignee</label>
-                                <select name="Consignee" id="Consignee" class="form-control bg-white shadow-sm" required {{ $ro['select'] }}>
+                                <select name="Consignee" id="Consignee" class="text-black form-control bg-white shadow-sm" required {{ $ro['select'] }}>
                                     <option value="">-- Pilih Consignee --</option>
                                     @foreach ($companies as $consignee)
                                         <option value="{{ $consignee->Supplier_ID }}" {{ $ci->Consignee == $consignee->Supplier_ID ? 'selected' : '' }}>{{ $consignee->Company_Name }}</option>
@@ -62,43 +62,43 @@ use Illuminate\Database\Eloquent\Builder;
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Description">Description of Cargo</label>
-                                <input type="text" name="Description" id="Description" value="{{ $ci->Description }}" class="form-control bg-white shadow-sm" required {{ $ro['input'] }} />
+                                <input type="text" name="Description" id="Description" value="{{ $ci->Description }}" class="text-black form-control bg-white shadow-sm" required {{ $ro['input'] }} />
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Qty">Qty (MT)</label>
-                                <input type="text" inputmode="decimal" name="Qty" id="Qty" value="{{ number_format((float) $ci->Qty, 2, '.', ',') }}" onchange="calculateTotal()" class="form-control bg-white shadow-sm cns-decimal" required {{ $ro['input'] }} />
+                                <input type="text" inputmode="decimal" name="Qty" id="Qty" value="{{ number_format((float) $ci->Qty, 2, '.', ',') }}" onchange="calculateTotal()" class="text-black form-control bg-white shadow-sm cns-decimal" required {{ $ro['input'] }} />
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Unit_Price">Unit Price (MT)</label>
-                                <input type="text" inputmode="decimal" name="Unit_Price" id="Unit_Price" value="{{ number_format((!empty($ci->Qty) && (float)$ci->Qty != 0) ? ($ci->Amount / $ci->Qty) : 0, 2, '.', ',') }}" class="form-control bg-white shadow-sm cns-decimal" onchange="calculateTotal()" required {{ $ro['input'] }} />
+                                <input type="text" inputmode="decimal" name="Unit_Price" id="Unit_Price" value="{{ number_format((!empty($ci->Qty) && (float)$ci->Qty != 0) ? ($ci->Amount / $ci->Qty) : 0, 2, '.', ',') }}" class="text-black form-control bg-white shadow-sm cns-decimal" onchange="calculateTotal()" required {{ $ro['input'] }} />
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Amount">Amount</label>
-                                <input type="text" name="Amount" id="Amount" value="{{ number_format((float) $ci->Amount, 2, '.', ',') }}" class="form-control bg-white shadow-sm" onchange="calculateTotal()" required readonly />
+                                <input type="text" name="Amount" id="Amount" value="{{ number_format((float) $ci->Amount, 2, '.', ',') }}" class="text-black form-control bg-white shadow-sm" onchange="calculateTotal()" required readonly />
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Advance_Payment">Advance Payment</label>
-                                <input type="text" inputmode="decimal" name="Advance_Payment" id="Advance_Payment" value="{{ number_format((float) $ci->Advance_Payment, 2, '.', ',') }}" class="form-control bg-white shadow-sm cns-decimal" onchange="calculateTotal()" required {{ $ro['input'] }} />
+                                <input type="text" inputmode="decimal" name="Advance_Payment" id="Advance_Payment" value="{{ number_format((float) $ci->Advance_Payment, 2, '.', ',') }}" class="text-black form-control bg-white shadow-sm cns-decimal" onchange="calculateTotal()" required {{ $ro['input'] }} />
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Other">Other</label>
-                                <input type="text" inputmode="decimal" name="Other" id="Other" value="{{ number_format((float) $ci->Other, 2, '.', ',') }}" class="form-control bg-white shadow-sm cns-decimal" onchange="calculateTotal()" required {{ $ro['input'] }} />
+                                <input type="text" inputmode="decimal" name="Other" id="Other" value="{{ number_format((float) $ci->Other, 2, '.', ',') }}" class="text-black form-control bg-white shadow-sm cns-decimal" onchange="calculateTotal()" required {{ $ro['input'] }} />
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Total">Total</label>
-                                <input type="text" name="Total" id="Total" value="{{ number_format((float) $ci->Total, 2, '.', ',') }}" class="form-control bg-white shadow-sm" onchange="calculateTotal()" required readonly/>
+                                <input type="text" name="Total" id="Total" value="{{ number_format((float) $ci->Total, 2, '.', ',') }}" class="text-black form-control bg-white shadow-sm" onchange="calculateTotal()" required readonly/>
                             </div>
                         </div>
 					</div>

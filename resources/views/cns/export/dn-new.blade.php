@@ -39,6 +39,23 @@ $Saya = Auth::user()->username ?? '';
                         </div>
                         <div class="col-md-4">
                             <div class="form-group">
+                                <label for="BC_No">Booking Confirmation (BC No)</label>
+                                <select name="BC_No" id="BC_No" class="text-black form-control shadow-sm" required>
+                                    <option value="">-- Pilih BC No --</option>
+                                    @foreach (($bookingConfirmations ?? []) as $bc)
+                                        <option value="{{ $bc->BC_No }}"
+                                            data-contract="{{ $bc->Contract_No ?? '' }}"
+                                            data-consignee="{{ $bc->Consignee_Code ?? '' }}"
+                                            data-consignee-address="{{ $bc->Buyer_Address ?: ($bc->Supplier_Address ?? '') }}"
+                                            data-tonnage="{{ $bc->Quantity_MT ?? '' }}">
+                                            {{ $bc->BC_No }}{{ !empty($bc->Contract_No) ? ' - ' . $bc->Contract_No : '' }}{{ !empty($bc->Buyer_Name) ? ' (' . $bc->Buyer_Name . ')' : '' }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
                                 <label for="Contract_No">Contract Number</label>
                                 <select name="Contract_No" id="Contract_No" class="text-black form-control shadow-sm">
                                     <option value="">-- Pilih Contract Number --</option>
@@ -176,7 +193,42 @@ $Saya = Auth::user()->username ?? '';
         }
     }
 
+    function applyBcToDnForm() {
+        var selected = $('#BC_No').find('option:selected');
+        if (!selected.val()) {
+            return;
+        }
+        var contractNo = selected.data('contract') || '';
+        var consignee = selected.data('consignee') || '';
+        var consigneeAddress = selected.data('consignee-address') || '';
+        var tonnage = selected.data('tonnage');
+
+        if (contractNo) {
+            if ($('#Contract_No option[value="' + contractNo + '"]').length === 0) {
+                $('#Contract_No').append($('<option>', { value: contractNo, text: contractNo }));
+            }
+            $('#Contract_No').val(contractNo).trigger('change.select2');
+        }
+        if (consignee) {
+            $('#Consignee').val(consignee).trigger('change');
+        }
+        if (consigneeAddress) {
+            $('#Consignee_Address').val(consigneeAddress);
+        }
+        if (tonnage !== undefined && tonnage !== '') {
+            var formatted = typeof cnsFormatNumber === 'function'
+                ? cnsFormatNumber(tonnage, 2)
+                : parseFloat(tonnage).toFixed(2);
+            $('#Total_Tonnage').val(formatted);
+        }
+    }
+
     if ($.fn.select2) {
+        $('#BC_No').select2({
+            width: '100%',
+            placeholder: '-- Pilih BC No --',
+            allowClear: true
+        });
         $('#Contract_No').select2({
             width: '100%',
             placeholder: '-- Pilih Contract Number --',
@@ -194,11 +246,25 @@ $Saya = Auth::user()->username ?? '';
         $('#signatory_title').val(pos);
     });
 
+    $('#BC_No').on('change', function () {
+        applyBcToDnForm();
+    });
+
     $('#Contract_No').on('change', function () {
         applyContractToDnForm();
     });
 
     $('#SubmitDN').click(function () {
+        var $btn = $(this);
+        if ($btn.prop('disabled')) {
+            return;
+        }
+        if (!$('#BC_No').val()) {
+            swal('Perhatian', 'Booking Confirmation (BC No) wajib dipilih.', 'warning');
+            return;
+        }
+
+        $btn.prop('disabled', true);
         gettingVars = getAllValues();
 
         $.ajax({
@@ -207,16 +273,19 @@ $Saya = Auth::user()->username ?? '';
             type: "POST",
             data: gettingVars,
             success: function (data) {
-                if (data.indexOf("success") !== -1) {
+                if (typeof data === 'string' && data.indexOf("success") !== -1) {
                     swal('Berhasil!', 'Delivery Note berhasil disimpan!', 'success');
                     refreshdata();
                     $('#divlistOpportunity').html('');
                 } else {
-                    swal('Error', 'Gagal menyimpan Delivery Note!', 'error');
+                    $btn.prop('disabled', false);
+                    swal('Error', (data && data.message) ? data.message : 'Gagal menyimpan Delivery Note!', 'error');
                 }
             },
-            error: function () {
-                swal('Error', 'Error Internal! Silakan coba lagi.', 'error');
+            error: function (xhr) {
+                $btn.prop('disabled', false);
+                var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Error Internal! Silakan coba lagi.';
+                swal('Error', msg, 'error');
             }
         });
     });

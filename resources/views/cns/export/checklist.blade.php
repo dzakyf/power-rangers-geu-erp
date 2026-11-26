@@ -33,11 +33,11 @@
 		<div class="cns-filter-bar">
 			<div>
 				<label for="tgl1" class="d-block mb-1"><small>Dari Tanggal</small></label>
-				<input type="date" id="tgl1" name="tgl1" value="" class="form-control form-control-sm" style="width:auto;" />
+				<input type="date" id="tgl1" name="tgl1" value="" class="text-black form-control form-control-sm" style="width:auto;" />
 			</div>
 			<div>
 				<label for="tgl2" class="d-block mb-1"><small>Sampai Tanggal</small></label>
-				<input type="date" id="tgl2" name="tgl2" value="" class="form-control form-control-sm" style="width:auto;" />
+				<input type="date" id="tgl2" name="tgl2" value="" class="text-black form-control form-control-sm" style="width:auto;" />
 			</div>
 			<div>
 				<button type="button" onclick="refreshdata()" class="btn btn-sm btn-primary">Filter</button>
@@ -65,7 +65,7 @@
 	ExportChecklistGrid.setImagePath("./dhtmlx/imgs/");
 	ExportChecklistGrid.setHeader("No,Contract No,Booking Confirmation,Created Date,Timeline,Progress (%),Verified,Catatan");
 	ExportChecklistGrid.attachHeader("#rspan,#text_filter,#text_filter,#text_filter,#rspan,#text_filter,#select_filter,#text_filter");
-	ExportChecklistGrid.setInitWidths("45,150,160,110,600,95,80,*");
+	ExportChecklistGrid.setInitWidths("45,150,160,110,920,95,80,*");
 	ExportChecklistGrid.setColAlign("center,left,left,left,center,center,center,left");
 	ExportChecklistGrid.setColSorting("int,str,str,str,na,str,str,str");
 	ExportChecklistGrid.setColTypes("ron,ro,ro,ro,ro,ro,cns_badge,ro");

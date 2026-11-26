@@ -23,7 +23,8 @@ class ExportInvoicingController extends Controller
 
     public function indexXml(Request $request)
     {
-        $query = VesselSchedule::where('Checklist_Get_In_CY', 1);
+        $approvedOrderNos = $this->approvedPackingListOrderNos();
+        $query = VesselSchedule::whereIn('Order_No', !empty($approvedOrderNos) ? $approvedOrderNos : ['__none__']);
 
         if ($request->filled('tgl1') && $request->filled('tgl2')) {
             $query->whereBetween('Stuffing', [$request->input('tgl1'), $request->input('tgl2')]);
@@ -165,6 +166,8 @@ class ExportInvoicingController extends Controller
                 'packing_list_file_name' => $req->packing_list_file_name,
                 'contract_file_url' => url("finance-export-invoicing-file/{$req->id}/contract"),
                 'packing_list_file_url' => url("finance-export-invoicing-file/{$req->id}/packing_list"),
+                'transfer_proof_name' => $req->transfer_proof_name,
+                'transfer_proof_url' => $req->transfer_proof_path ? url("finance-export-invoicing-file/{$req->id}/transfer_proof") : null,
                 'cns_notes' => $req->cns_notes,
                 'submitted_by' => $req->submitted_by,
                 'submitted_at' => $req->submitted_at ? $req->submitted_at->format('d M Y H:i') : null,
@@ -186,10 +189,10 @@ class ExportInvoicingController extends Controller
         ]);
 
         $vs = VesselSchedule::findOrFail($validated['vessel_schedule_id']);
-        if ((int) $vs->Checklist_Get_In_CY !== 1) {
+        if (!$this->hasApprovedPackingList($vs)) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Stuffing belum menyelesaikan tahap Get In CY.',
+                'message' => 'Packing List untuk Booking Confirmation ini belum berstatus APPROVED.',
             ], 422);
         }
 
@@ -259,11 +262,18 @@ class ExportInvoicingController extends Controller
     {
         $validated = $request->validate([
             'finance_notes' => 'nullable|string|max:2000',
+            'transfer_proof' => 'required|file|mimes:pdf,jpg,jpeg,png|max:10240',
         ]);
 
         $username = Auth::check() ? (Auth::user()->username ?? Auth::user()->name ?? 'Finance') : 'Finance';
 
-        return $this->processApprove($id, $username, $validated['finance_notes'] ?? null, $notifications);
+        return $this->processApprove(
+            $id,
+            $username,
+            $validated['finance_notes'] ?? null,
+            $notifications,
+            $request->file('transfer_proof')
+        );
     }
 
     public function reject(Request $request, $id, NotificationService $notifications)
@@ -332,13 +342,15 @@ class ExportInvoicingController extends Controller
         $validated = $request->validate([
             'reviewed_by' => 'nullable|string|max:100',
             'finance_notes' => 'nullable|string|max:2000',
+            'transfer_proof' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
         ]);
 
         return $this->processApprove(
             $id,
             $validated['reviewed_by'] ?? 'FAT',
             $validated['finance_notes'] ?? null,
-            $notifications
+            $notifications,
+            $request->file('transfer_proof')
         );
     }
 
@@ -378,7 +390,7 @@ class ExportInvoicingController extends Controller
         return null;
     }
 
-    private function processApprove($id, string $username, ?string $financeNotes, NotificationService $notifications)
+    private function processApprove($id, string $username, ?string $financeNotes, NotificationService $notifications, $transferProofFile = null)
     {
         $record = ExportInvoicingRequest::findOrFail($id);
         if ($record->status !== ExportInvoicingRequest::STATUS_PENDING_FAT) {
@@ -388,13 +400,23 @@ class ExportInvoicingController extends Controller
             ], 422);
         }
 
-        $record->update([
+        $updateData = [
             'status' => ExportInvoicingRequest::STATUS_APPROVED,
             'reviewed_by' => $username,
             'reviewed_at' => now(),
             'finance_notes' => $financeNotes,
             'rejection_reason' => null,
-        ]);
+        ];
+
+        if ($transferProofFile) {
+            $dir = 'export-invoicing/' . $record->vessel_schedule_id;
+            $updateData['transfer_proof_path'] = $transferProofFile->store($dir, 'public');
+            $updateData['transfer_proof_name'] = $transferProofFile->getClientOriginalName();
+        }
+
+        $record->update($updateData);
+
+        $this->markBookingFinanceVerified($record, $username);
 
         $notifications->makeNotification(
             'Export Invoicing: Approved',
@@ -463,6 +485,8 @@ class ExportInvoicingController extends Controller
             'contract_file_url' => url("api/finance/export-invoicing/{$item->id}/file/contract"),
             'packing_list_file_name' => $item->packing_list_file_name,
             'packing_list_file_url' => url("api/finance/export-invoicing/{$item->id}/file/packing_list"),
+            'transfer_proof_name' => $item->transfer_proof_name,
+            'transfer_proof_url' => $item->transfer_proof_path ? url("api/finance/export-invoicing/{$item->id}/file/transfer_proof") : null,
             'cns_notes' => $item->cns_notes,
             'submitted_by' => $item->submitted_by,
             'submitted_at' => $item->submitted_at ? $item->submitted_at->toIso8601String() : null,
@@ -482,12 +506,21 @@ class ExportInvoicingController extends Controller
         } elseif ($type === 'packing_list') {
             $path = $record->packing_list_file_path;
             $name = $record->packing_list_file_name;
+        } elseif ($type === 'transfer_proof') {
+            $path = $record->transfer_proof_path;
+            $name = $record->transfer_proof_name;
         } else {
             abort(404);
         }
 
         if (!$path || !Storage::disk('public')->exists($path)) {
             abort(404, 'File tidak ditemukan.');
+        }
+
+        if ($type === 'transfer_proof') {
+            return response()->file(Storage::disk('public')->path($path), [
+                'Content-Disposition' => 'inline; filename="' . ($name ?: basename($path)) . '"',
+            ]);
         }
 
         return Storage::disk('public')->download($path, $name ?: basename($path));
@@ -512,10 +545,17 @@ class ExportInvoicingController extends Controller
             $sis->pluck('Final_SI_No')->filter()->all()
         )));
 
-        $pls = !empty($siRefs)
-            ? PackingList::where(function ($q) use ($siRefs) {
-                $q->whereIn('SI_No', $siRefs)->orWhereIn('Final_SI_No', $siRefs);
-            })->get(['Packing_List_No', 'SI_No', 'Final_SI_No'])
+        $pls = (!empty($orderNos) || !empty($siRefs))
+            ? PackingList::where('Status', 'APPROVED')
+                ->where(function ($q) use ($orderNos, $siRefs) {
+                    if (!empty($orderNos)) {
+                        $q->whereIn('Order_No', $orderNos);
+                    }
+                    if (!empty($siRefs)) {
+                        $method = !empty($orderNos) ? 'orWhereIn' : 'whereIn';
+                        $q->{$method}('SI_No', $siRefs)->orWhereIn('Final_SI_No', $siRefs);
+                    }
+                })->get(['Packing_List_No', 'Order_No', 'SI_No', 'Final_SI_No'])
             : collect();
 
         $result = [];
@@ -523,17 +563,17 @@ class ExportInvoicingController extends Controller
             $booking = $bookings->get($vs->Booking_No) ?: $bookings->get($vs->Order_No);
             $contract = $booking ? $booking->contract : null;
 
-            $matchingSi = $sis->firstWhere('Order_No', $vs->Order_No);
-            $plNo = '-';
-            if ($matchingSi) {
-                $pl = $pls->first(function ($item) use ($matchingSi) {
-                    return ($matchingSi->SI_No && $item->SI_No === $matchingSi->SI_No)
-                        || ($matchingSi->Final_SI_No && $item->Final_SI_No === $matchingSi->Final_SI_No);
-                });
-                if ($pl && $pl->Packing_List_No) {
-                    $plNo = $pl->Packing_List_No;
-                }
-            }
+            $matchingSis = $sis->where('Order_No', $vs->Order_No);
+            $vsSiNos = $matchingSis->pluck('SI_No')->filter()->all();
+            $vsFinalSiNos = $matchingSis->pluck('Final_SI_No')->filter()->all();
+
+            $plNos = $pls->filter(function ($item) use ($vs, $vsSiNos, $vsFinalSiNos) {
+                return ($vs->Order_No && $item->Order_No === $vs->Order_No)
+                    || ($item->SI_No && in_array($item->SI_No, $vsSiNos, true))
+                    || ($item->Final_SI_No && in_array($item->Final_SI_No, $vsFinalSiNos, true));
+            })->pluck('Packing_List_No')->filter()->unique()->values()->all();
+
+            $plNo = !empty($plNos) ? implode(', ', $plNos) : '-';
 
             $buyerName = '-';
             if ($contract) {
@@ -548,5 +588,75 @@ class ExportInvoicingController extends Controller
         }
 
         return $result;
+    }
+
+    private function approvedPackingListOrderNos(): array
+    {
+        $approvedPls = PackingList::where('Status', 'APPROVED')->get(['Order_No', 'SI_No', 'Final_SI_No']);
+        if ($approvedPls->isEmpty()) {
+            return [];
+        }
+
+        $directOrderNos = $approvedPls->pluck('Order_No')->filter()->all();
+        $siRefs = array_values(array_unique(array_filter(array_merge(
+            $approvedPls->pluck('SI_No')->all(),
+            $approvedPls->pluck('Final_SI_No')->all()
+        ))));
+
+        $siOrderNos = !empty($siRefs)
+            ? ShippingInstruction::whereIn('SI_No', $siRefs)
+                ->orWhereIn('Final_SI_No', $siRefs)
+                ->pluck('Order_No')
+                ->filter()
+                ->all()
+            : [];
+
+        return array_values(array_unique(array_merge($directOrderNos, $siOrderNos)));
+    }
+
+    private function hasApprovedPackingList(VesselSchedule $vs): bool
+    {
+        if (empty($vs->Order_No)) {
+            return false;
+        }
+
+        $sis = ShippingInstruction::where('Order_No', $vs->Order_No)->get(['SI_No', 'Final_SI_No']);
+        $siRefs = array_values(array_unique(array_filter(array_merge(
+            $sis->pluck('SI_No')->all(),
+            $sis->pluck('Final_SI_No')->all()
+        ))));
+
+        return PackingList::where('Status', 'APPROVED')
+            ->where(function ($q) use ($vs, $siRefs) {
+                $q->where('Order_No', $vs->Order_No);
+                if (!empty($siRefs)) {
+                    $q->orWhereIn('SI_No', $siRefs)->orWhereIn('Final_SI_No', $siRefs);
+                }
+            })
+            ->exists();
+    }
+
+    private function markBookingFinanceVerified(ExportInvoicingRequest $record, string $username): void
+    {
+        $vs = $record->vesselSchedule;
+        $refs = array_values(array_unique(array_filter([
+            $vs ? $vs->Booking_No : null,
+            $vs ? $vs->Order_No : null,
+            $record->order_no,
+        ])));
+
+        if (empty($refs)) {
+            return;
+        }
+
+        $bookings = BuyerContractBooking::whereIn('Booking_No', $refs)->get();
+        foreach ($bookings as $booking) {
+            if (empty($booking->Finance_Payment_Verified)) {
+                $booking->Finance_Payment_Verified = 1;
+                $booking->Finance_Payment_Date = $booking->Finance_Payment_Date ?: now();
+                $booking->Finance_Payment_By = $username;
+                $booking->save();
+            }
+        }
     }
 }

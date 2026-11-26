@@ -9,13 +9,13 @@
                     <div class="col-md-6">
                         <div class="form-group">
                             <label>Nama Vendor</label>
-                            <input type="text" name="Company_Name" id="Company_Name" class="form-control shadow-sm" required />
+                            <input type="text" name="Company_Name" id="Company_Name" class="text-black form-control shadow-sm" required />
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="form-group">
                             <label>Nomor Telepon</label>
-                            <input type="text" name="Phone" id="Phone" class="form-control shadow-sm" required />
+                            <input type="text" name="Phone" id="Phone" class="text-black form-control shadow-sm" required />
                         </div>
                     </div>
                 </div>
@@ -24,7 +24,7 @@
                     <label>Alamat Email (maksimal 10)</label>
                     <div id="EmailRows">
                         <div class="input-group mb-2 email-row">
-                            <input type="email" name="Emails[]" class="form-control shadow-sm" placeholder="nama@domain.com" />
+                            <input type="email" name="Emails[]" class="text-black form-control shadow-sm" placeholder="nama@domain.com" />
                             <div class="input-group-append">
                                 <button type="button" class="btn btn-outline-danger remove-email">Hapus</button>
                             </div>
@@ -36,7 +36,7 @@
 
                 <div class="form-group">
                     <label>Kategori Supplier</label>
-                    <select name="Supply_Category" id="Supply_Category" class="form-control shadow-sm" required>
+                    <select name="Supply_Category" id="Supply_Category" class="text-black form-control shadow-sm" required>
                         <option value="">-- Pilih Kategori --</option>
                         @foreach($categories as $category)
                             <option value="{{ $category }}">{{ $category }}</option>
@@ -57,7 +57,7 @@
             return;
         }
         var row = $('<div class="input-group mb-2 email-row">' +
-            '<input type="email" name="Emails[]" class="form-control shadow-sm" placeholder="nama@domain.com" />' +
+            '<input type="email" name="Emails[]" class="text-black form-control shadow-sm" placeholder="nama@domain.com" />' +
             '<div class="input-group-append"><button type="button" class="btn btn-outline-danger remove-email">Hapus</button></div>' +
             '</div>');
         row.find('input').val(value || '');

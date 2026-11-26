@@ -64,7 +64,7 @@ $InvNo = sprintf('%03d',$counter + 1) . "/INV-GEU/" . getRomawi(date("n")) . "/"
 						<div class="col-md-4">
 							<div class="form-group">
 								<label for="Final_SI_No">Final SI No</label>
-                                <select name="Final_SI_No" id="Final_SI_No" class="form-control shadow-sm" required>
+                                <select name="Final_SI_No" id="Final_SI_No" class="text-black form-control shadow-sm" required>
                                     <option value="">-- Pilih Final SI --</option>
                                     @foreach ($sis as $si)
                                         <option value="{{ $si->Final_SI_No }}">{{ $si->Final_SI_No }}</option>
@@ -75,19 +75,19 @@ $InvNo = sprintf('%03d',$counter + 1) . "/INV-GEU/" . getRomawi(date("n")) . "/"
 						<div class="col-md-4">
 							<div class="form-group">
 								<label for="Inv_No">Inv No</label>
-                                <input type="text" name="Inv_No" id="Inv_No" value="{{ $InvNo }}" class="form-control shadow-sm" required readonly />
+                                <input type="text" name="Inv_No" id="Inv_No" value="{{ $InvNo }}" class="text-black form-control shadow-sm" required readonly />
 							</div>
 						</div>
 						<div class="col-md-4">
 							<div class="form-group">
 								<label for="Inv_Date">Inv Date</label>
-                                <input name="Inv_Date" id="Inv_Date" class="form-control shadow-sm" value="{{ date('Y-m-d') }}" required />
+                                <input name="Inv_Date" id="Inv_Date" class="text-black form-control shadow-sm" value="{{ date('Y-m-d') }}" required />
 							</div>
 						</div>
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Shipper">Shipper</label>
-                                <select name="Shipper" id="Shipper" class="form-control bg-white shadow-sm" disabled>
+                                <select name="Shipper" id="Shipper" class="text-black form-control bg-white shadow-sm" disabled>
                                     <option value="">-- Pilih Shipper --</option>
                                     @foreach ($companies as $shipper)
                                         <option value="{{ $shipper->Supplier_ID }}">{{ $shipper->Company_Name }}</option>
@@ -98,7 +98,7 @@ $InvNo = sprintf('%03d',$counter + 1) . "/INV-GEU/" . getRomawi(date("n")) . "/"
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Consignee">Consignee</label>
-                                <select name="Consignee" id="Consignee" class="form-control shadow-sm" required>
+                                <select name="Consignee" id="Consignee" class="text-black form-control shadow-sm" required>
                                     <option value="">-- Pilih Consignee --</option>
                                     @foreach ($companies as $consignee)
                                         <option value="{{ $consignee->Supplier_ID }}">{{ $consignee->Company_Name }}</option>
@@ -109,43 +109,43 @@ $InvNo = sprintf('%03d',$counter + 1) . "/INV-GEU/" . getRomawi(date("n")) . "/"
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Description">Description of Cargo</label>
-                                <input type="text" name="Description" id="Description" value="" class="form-control shadow-sm" required />
+                                <input type="text" name="Description" id="Description" value="" class="text-black form-control shadow-sm" required />
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Qty">Qty (MT)</label>
-                                <input type="text" inputmode="decimal" name="Qty" id="Qty" value="0.00" onchange="calculateTotal()" class="form-control shadow-sm cns-decimal" required />
+                                <input type="text" inputmode="decimal" name="Qty" id="Qty" value="0.00" onchange="calculateTotal()" class="text-black form-control shadow-sm cns-decimal" required />
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Unit_Price">Unit Price (MT)</label>
-                                <input type="text" inputmode="decimal" name="Unit_Price" id="Unit_Price" value="0.00" class="form-control shadow-sm cns-decimal" onchange="calculateTotal()" required />
+                                <input type="text" inputmode="decimal" name="Unit_Price" id="Unit_Price" value="0.00" class="text-black form-control shadow-sm cns-decimal" onchange="calculateTotal()" required />
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Amount">Amount</label>
-                                <input type="text" name="Amount" id="Amount" value="0.00" class="form-control shadow-sm" onchange="calculateTotal()" required readonly />
+                                <input type="text" name="Amount" id="Amount" value="0.00" class="text-black form-control shadow-sm" onchange="calculateTotal()" required readonly />
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Advance_Payment">Advance Payment</label>
-                                <input type="text" inputmode="decimal" name="Advance_Payment" id="Advance_Payment" value="0.00" class="form-control shadow-sm cns-decimal" onchange="calculateTotal()" required />
+                                <input type="text" inputmode="decimal" name="Advance_Payment" id="Advance_Payment" value="0.00" class="text-black form-control shadow-sm cns-decimal" onchange="calculateTotal()" required />
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Other">Other</label>
-                                <input type="text" inputmode="decimal" name="Other" id="Other" value="0.00" class="form-control shadow-sm cns-decimal" onchange="calculateTotal()" required />
+                                <input type="text" inputmode="decimal" name="Other" id="Other" value="0.00" class="text-black form-control shadow-sm cns-decimal" onchange="calculateTotal()" required />
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="Total">Total</label>
-                                <input type="text" name="Total" id="Total" value="0.00" class="form-control shadow-sm" onchange="calculateTotal()" required readonly />
+                                <input type="text" name="Total" id="Total" value="0.00" class="text-black form-control shadow-sm" onchange="calculateTotal()" required readonly />
                             </div>
                         </div>
 					</div>

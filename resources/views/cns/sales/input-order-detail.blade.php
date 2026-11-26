@@ -491,11 +491,11 @@ $Saya =  Auth::user()->username;
               </span>
               <div class="d-flex align-items-center">
                 <label class="form-label mb-0 mr-2" style="white-space:nowrap;">DATE</label>
-                <input type="date" id="soDate" class="form-control form-control-sm" style="width:150px;" value="{{ $salesOrder->so_date }}" />
+                <input type="date" id="soDate" class="text-black form-control form-control-sm" style="width:150px;" value="{{ $salesOrder->so_date }}" />
               </div>
               <div class="d-flex align-items-center ml-3">
                 <label class="form-label mb-0 mr-2" style="white-space:nowrap;">SO CODE</label>
-                <input type="text" id="soCode" class="form-control form-control-sm" style="width:160px;" value="{{ $salesOrder->so_no }}" />
+                <input type="text" id="soCode" class="text-black form-control form-control-sm" style="width:160px;" value="{{ $salesOrder->so_no }}" />
               </div>
             </div>
           </div>
@@ -571,25 +571,25 @@ $Saya =  Auth::user()->username;
                 <div class="section-body">
                   <div class="form-group mb-2">
                     <label class="form-label">PIC</label>
-                    <input type="text" class="form-control" id="buyerPic" placeholder="Nama PIC" value="{{ $salesOrder->buyer_pic }}" />
+                    <input type="text" class="text-black form-control" id="buyerPic" placeholder="Nama PIC" value="{{ $salesOrder->buyer_pic }}" />
                   </div>
                   <div class="form-group mb-2">
                     <label class="form-label">Kota</label>
-                    <input type="text" class="form-control" id="buyerKota" placeholder="Kota" value="{{ $salesOrder->buyer_city }}" />
+                    <input type="text" class="text-black form-control" id="buyerKota" placeholder="Kota" value="{{ $salesOrder->buyer_city }}" />
                   </div>
                   <div class="form-group mb-2">
                     <label class="form-label">Provinsi</label>
-                    <input type="text" class="form-control" id="buyerProvinsi" placeholder="Provinsi" value="{{ $salesOrder->buyer_province }}" />
+                    <input type="text" class="text-black form-control" id="buyerProvinsi" placeholder="Provinsi" value="{{ $salesOrder->buyer_province }}" />
                   </div>
                   <div class="form-group mb-2">
                     <label class="form-label">Phone</label>
-                    <input type="text" class="form-control" id="buyerPhone" placeholder="+62 xxx-xxxx-xxxx" value="{{ $salesOrder->buyer_phone }}" />
+                    <input type="text" class="text-black form-control" id="buyerPhone" placeholder="+62 xxx-xxxx-xxxx" value="{{ $salesOrder->buyer_phone }}" />
                   </div>
                   <div id="buyerPaymentTermSlot">
                     @if($isSludgeSo)
                       <div class="form-group mb-0" id="paymentTermGroup">
                         <label class="form-label">Payment Term</label>
-                        <input type="text" id="paymentTerm" class="form-control" value="{{ $salesOrder->payment_term }}">
+                        <input type="text" id="paymentTerm" class="text-black form-control" value="{{ $salesOrder->payment_term }}">
                       </div>
                     @endif
                   </div>
@@ -603,7 +603,7 @@ $Saya =  Auth::user()->username;
                   <div class="form-group mb-2">
                     <label class="form-label">Site</label>
                     <input type="hidden" id="site_id" name="site_id" value="{{ $salesOrder->site_id }}" />
-                    <select class="form-control" id="site" name="site" value="{{ $salesOrder->site }}" style="width: 100%;" data-selected="{{ $salesOrder->site }}">
+                    <select class="text-black form-control" id="site" name="site" value="{{ $salesOrder->site }}" style="width: 100%;" data-selected="{{ $salesOrder->site }}">
                       <option value="" {{ empty($salesOrder->site) ? 'selected' : '' }}>-- Pilih Site --</option>
                       @if(!empty($salesOrder->site))
                         <option value="{{ $salesOrder->site }}" selected>{{ $salesOrder->site }}</option>
@@ -612,15 +612,15 @@ $Saya =  Auth::user()->username;
                   </div>
                   <div class="form-group mb-2">
                     <label class="form-label">Site Address</label>
-                    <textarea class="form-control" id="siteAddress" rows="3" placeholder="Alamat lengkap site">{{ $salesOrder->site_address }}</textarea>
+                    <textarea class="text-black form-control" id="siteAddress" rows="3" placeholder="Alamat lengkap site">{{ $salesOrder->site_address }}</textarea>
                   </div>
                   @if(!$isSludgeSo)
                     <div class="form-group mb-0" id="paymentTermGroup">
                       <label class="form-label">Payment Term</label>
-                      {{-- <select class="form-control" id="paymentTerm">
+                      {{-- <select class="text-black form-control" id="paymentTerm">
                         <option value="Transfer" {{ $salesOrder->payment_term == 'Transfer' ? 'selected' : '' }}>Transfer</option>
                       </select> --}}
-                      <input type="text" id="paymentTerm" class="form-control" value="{{ $salesOrder->payment_term }}">
+                      <input type="text" id="paymentTerm" class="text-black form-control" value="{{ $salesOrder->payment_term }}">
                     </div>
                   @endif
                 </div>
@@ -682,19 +682,19 @@ $Saya =  Auth::user()->username;
                       <tr>
                         <td colspan="6" class="text-right">TAX</td>
                         <td class="text-right total-col">
-                          <input type="text" inputmode="decimal" class="form-control form-control-sm text-right cns-decimal" id="taxAmount" value="{{ number_format((float) $salesOrder->tax, 2, '.', ',') }}" onchange="recalc()" style="width:110px;margin-left:auto;" />
+                          <input type="text" inputmode="decimal" class="text-black form-control form-control-sm text-right cns-decimal" id="taxAmount" value="{{ number_format((float) $salesOrder->tax, 2, '.', ',') }}" onchange="recalc()" style="width:110px;margin-left:auto;" />
                         </td>
                       </tr>
                       <tr>
                         <td colspan="6" class="text-right">SHIPPING</td>
                         <td class="text-right total-col">
-                          <input type="text" inputmode="decimal" class="form-control form-control-sm text-right cns-decimal" id="shippingAmount" value="{{ number_format((float) $salesOrder->shipping, 2, '.', ',') }}" onchange="recalc()" style="width:110px;margin-left:auto;" />
+                          <input type="text" inputmode="decimal" class="text-black form-control form-control-sm text-right cns-decimal" id="shippingAmount" value="{{ number_format((float) $salesOrder->shipping, 2, '.', ',') }}" onchange="recalc()" style="width:110px;margin-left:auto;" />
                         </td>
                       </tr>
                       <tr>
                         <td colspan="6" class="text-right">OTHER</td>
                         <td class="text-right total-col">
-                          <input type="text" inputmode="decimal" class="form-control form-control-sm text-right cns-decimal" id="otherAmount" value="{{ number_format((float) $salesOrder->other, 2, '.', ',') }}" onchange="recalc()" style="width:110px;margin-left:auto;" />
+                          <input type="text" inputmode="decimal" class="text-black form-control form-control-sm text-right cns-decimal" id="otherAmount" value="{{ number_format((float) $salesOrder->other, 2, '.', ',') }}" onchange="recalc()" style="width:110px;margin-left:auto;" />
                         </td>
                       </tr>
                       <tr class="total-row">
@@ -712,7 +712,7 @@ $Saya =  Auth::user()->username;
             <div class="mb-4">
               <div class="section-header">Remarks</div>
               <div class="section-body">
-                <textarea class="form-control" id="remarks" rows="3" placeholder="Catatan tambahan...">{{ $salesOrder->remarks }}</textarea>
+                <textarea class="text-black form-control" id="remarks" rows="3" placeholder="Catatan tambahan...">{{ $salesOrder->remarks }}</textarea>
               </div>
             </div>
 
@@ -779,7 +779,7 @@ $Saya =  Auth::user()->username;
         <div class="modal-body">
           <div class="form-group">
             <label for="buyerSignedByInput">Nama Penerima / Buyer (Opsional)</label>
-            <input type="text" id="buyerSignedByInput" class="form-control" placeholder="Kosongkan untuk pakai PIC Buyer di SO" />
+            <input type="text" id="buyerSignedByInput" class="text-black form-control" placeholder="Kosongkan untuk pakai PIC Buyer di SO" />
           </div>
           <div class="form-group mb-0">
             <label>Tanda Tangan di sini:</label>

@@ -40,7 +40,7 @@
           <tr>
             <td class="desc-col">
               <input type="hidden" id="sludgeDrainingCode" name="sludgeDrainingCode" value="{{ $currentSludgeCode }}">
-              <select class="form-control form-control-sm" id="sludgeDrainingId" name="sludgeDrainingId" style="width:100%;">
+              <select class="text-black form-control form-control-sm" id="sludgeDrainingId" name="sludgeDrainingId" style="width:100%;">
                 <option value="">-- Pilih Kode Draining / Moving --</option>
                 @foreach($sludgeDrainings as $draining)
                   @php
@@ -71,21 +71,21 @@
                      inputmode="decimal"
                      id="sludgeQty"
                      name="sludgeQty"
-                     class="form-control form-control-sm text-center cns-decimal"
+                     class="text-black form-control form-control-sm text-center cns-decimal"
                      data-max-qty="{{ $currentSludgeMax }}"
                      value="{{ number_format((float) $currentSludgeQty, 2, '.', ',') }}"
                      oninput="validateSludgeQty(); recalc();"
                      onchange="validateSludgeQty(); recalc();" />
             </td>
             <td class="unit-col">
-              <input type="text" id="sludgeUnit" class="form-control form-control-sm text-center" value="KG" readonly />
+              <input type="text" id="sludgeUnit" class="text-black form-control form-control-sm text-center" value="KG" readonly />
             </td>
             <td class="price-col">
               <input type="text"
                      inputmode="decimal"
                      id="sludgePrice"
                      name="sludgePrice"
-                     class="form-control form-control-sm text-right cns-decimal"
+                     class="text-black form-control form-control-sm text-right cns-decimal"
                      value="{{ number_format((float) $currentSludgePrice, 2, '.', ',') }}"
                      oninput="recalc()"
                      onchange="recalc()"

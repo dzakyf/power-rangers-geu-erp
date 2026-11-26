@@ -105,7 +105,7 @@
                 <div class="row align-items-end">
                     <div class="col-md-2 col-sm-6 mb-2 mb-md-0">
                         <label class="small font-weight-bold mb-1">Status Kontrak</label>
-                        <select id="filter_status" class="form-control form-control-sm">
+                        <select id="filter_status" class="text-black form-control form-control-sm">
                             <option value="all">Semua Status</option>
                             @foreach($statuses as $key => $label)
                                 <option value="{{ $key }}" {{ ($filters['status'] ?? 'all') === $key ? 'selected' : '' }}>{{ $label }}</option>
@@ -114,7 +114,7 @@
                     </div>
                     <div class="col-md-3 col-sm-6 mb-2 mb-md-0">
                         <label class="small font-weight-bold mb-1">Buyer</label>
-                        <select id="filter_buyer" class="form-control form-control-sm">
+                        <select id="filter_buyer" class="text-black form-control form-control-sm">
                             <option value="all">Semua Buyer</option>
                             @foreach($filter_options['buyers'] as $buyer)
                                 <option value="{{ $buyer }}" {{ ($filters['buyer'] ?? 'all') === $buyer ? 'selected' : '' }}>{{ $buyer }}</option>
@@ -123,11 +123,11 @@
                     </div>
                     <div class="col-md-2 col-sm-6 mb-2 mb-md-0">
                         <label class="small font-weight-bold mb-1">Periode (Bulan)</label>
-                        <input type="month" id="filter_period" class="form-control form-control-sm" value="{{ $filters['period'] ?? '' }}">
+                        <input type="month" id="filter_period" class="text-black form-control form-control-sm" value="{{ $filters['period'] ?? '' }}">
                     </div>
                     <div class="col-md-2 col-sm-6 mb-2 mb-md-0">
                         <label class="small font-weight-bold mb-1">Produk</label>
-                        <select id="filter_product" class="form-control form-control-sm">
+                        <select id="filter_product" class="text-black form-control form-control-sm">
                             <option value="all">Semua Produk</option>
                             @foreach($filter_options['products'] as $product)
                                 <option value="{{ $product }}" {{ ($filters['product'] ?? 'all') === $product ? 'selected' : '' }}>{{ $product }}</option>
@@ -205,7 +205,7 @@
                 <div class="row align-items-end">
                     <div class="col-md-4 col-sm-6 mb-2 mb-md-0">
                         <label class="small font-weight-bold mb-1">Buyer</label>
-                        <select id="filter_upcoming_buyer" class="form-control form-control-sm">
+                        <select id="filter_upcoming_buyer" class="text-black form-control form-control-sm">
                             <option value="all">Semua Buyer</option>
                             @foreach($filter_options['buyers'] as $buyer)
                                 <option value="{{ $buyer }}" {{ ($filters['buyer'] ?? 'all') === $buyer ? 'selected' : '' }}>{{ $buyer }}</option>
@@ -214,7 +214,7 @@
                     </div>
                     <div class="col-md-3 col-sm-6 mb-2 mb-md-0">
                         <label class="small font-weight-bold mb-1">Periode (Bulan ETD)</label>
-                        <input type="month" id="filter_upcoming_period" class="form-control form-control-sm" value="{{ $filters['period'] ?? '' }}">
+                        <input type="month" id="filter_upcoming_period" class="text-black form-control form-control-sm" value="{{ $filters['period'] ?? '' }}">
                     </div>
                     <div class="col-md-5 d-flex justify-content-md-end flex-wrap" style="gap: 8px;">
                         <button type="button" id="btn_reset_upcoming_filter" class="btn btn-sm btn-outline-secondary">Reset</button>
@@ -285,7 +285,7 @@
                 <input type="hidden" id="alloc_id" value="">
                 <div class="form-group mb-2">
                     <label class="small font-weight-bold">Kontrak <span class="text-danger">*</span></label>
-                    <select id="alloc_contract_id" class="form-control form-control-sm" required>
+                    <select id="alloc_contract_id" class="text-black form-control form-control-sm" required>
                         <option value="">-- Pilih Kontrak --</option>
                         @foreach($contract_options as $opt)
                             <option value="{{ $opt['id'] }}">{{ $opt['contract_no'] }} — {{ $opt['buyer_name'] }} ({{ number_format($opt['quantity_mt'], 2) }} MT)</option>
@@ -295,26 +295,26 @@
                 <div class="row">
                     <div class="col-md-6 form-group mb-2">
                         <label class="small font-weight-bold">Produk / Grade <span class="text-danger">*</span></label>
-                        <input type="text" id="alloc_product_name" class="form-control form-control-sm" placeholder="Contoh: UCO, PFAD, POME" required maxlength="100">
+                        <input type="text" id="alloc_product_name" class="text-black form-control form-control-sm" placeholder="Contoh: UCO, PFAD, POME" required maxlength="100">
                     </div>
                     <div class="col-md-6 form-group mb-2">
                         <label class="small font-weight-bold">Periode (Bulan) <span class="text-danger">*</span></label>
-                        <input type="month" id="alloc_period_month" class="form-control form-control-sm" value="{{ date('Y-m') }}" required>
+                        <input type="month" id="alloc_period_month" class="text-black form-control form-control-sm" value="{{ date('Y-m') }}" required>
                     </div>
                 </div>
                 <div class="row">
                     <div class="col-md-6 form-group mb-2">
                         <label class="small font-weight-bold">Planned Volume (MT) <span class="text-danger">*</span></label>
-                        <input type="number" step="0.001" min="0" id="alloc_planned_mt" class="form-control form-control-sm" required>
+                        <input type="number" step="0.001" min="0" id="alloc_planned_mt" class="text-black form-control form-control-sm" required>
                     </div>
                     <div class="col-md-6 form-group mb-2">
                         <label class="small font-weight-bold">Planned Containers</label>
-                        <input type="number" min="0" id="alloc_planned_containers" class="form-control form-control-sm" value="0">
+                        <input type="number" min="0" id="alloc_planned_containers" class="text-black form-control form-control-sm" value="0">
                     </div>
                 </div>
                 <div class="form-group mb-0">
                     <label class="small font-weight-bold">Catatan</label>
-                    <input type="text" id="alloc_notes" class="form-control form-control-sm" maxlength="255">
+                    <input type="text" id="alloc_notes" class="text-black form-control form-control-sm" maxlength="255">
                 </div>
             </div>
             <div class="modal-footer">

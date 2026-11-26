@@ -216,4 +216,65 @@ class DeliveryNoteViewTest extends TestCase
         $this->assertStringContainsString('Puput Deni Iswara', $html);
         $this->assertStringContainsString('CMO', $html);
     }
+
+    /** @test */
+    public function new_view_renders_bc_no_dropdown_and_double_submit_guard(): void
+    {
+        $bookingConfirmations = [
+            (object) [
+                'BC_No'            => 'BC-2026-001',
+                'Contract_No'      => 'CTR-DONE-01',
+                'Buyer_Name'       => 'Global Buyer B.V.',
+                'Buyer_Address'    => 'Rotterdam, NL',
+                'Supplier_Address' => 'Rotterdam, NL',
+                'Quantity_MT'      => 40.000,
+                'Consignee_Code'   => 'SUPP-001',
+            ],
+        ];
+
+        $html = view('cns.export.dn-new', [
+            'companies'            => [],
+            'issuers'              => [],
+            'contracts'            => [],
+            'bookingConfirmations' => $bookingConfirmations,
+            'approvers'            => [],
+            'DnNo'                 => '001/DN-GEU/XI/2026',
+        ])->render();
+
+        $this->assertStringContainsString('name="BC_No"', $html);
+        $this->assertStringContainsString('id="BC_No"', $html);
+        $this->assertStringContainsString('value="BC-2026-001"', $html);
+        $this->assertStringContainsString('data-contract="CTR-DONE-01"', $html);
+        $this->assertStringContainsString('applyBcToDnForm', $html);
+        $this->assertStringContainsString("\$btn.prop('disabled', true)", $html);
+    }
+
+    /** @test */
+    public function detail_view_renders_bc_no_dropdown_with_selected_option(): void
+    {
+        $dn = (object) [
+            'DN_No'             => '001/DN-GEU/XI/2026',
+            'BC_No'             => 'BC-2026-099',
+            'Shipper'           => 'SUPP-002',
+            'Consignee'         => 'SUPP-001',
+            'Consignee_Address' => 'Jl. Custom',
+            'Delivery_Date'     => '2026-11-04',
+            'Supplier_ISCC_Ref' => '',
+            'Contract_No'       => 'CTR-001',
+            'Product'           => 'Used Cooking Oil',
+            'Total_Tonnage'     => '50.000',
+            'Country_Of_Origin' => 'Indonesia',
+            'GHG_Value'         => 'Standard',
+            'Note'              => '',
+        ];
+
+        $html = view('cns.export.dn-detail', [
+            'companies'            => [],
+            'bookingConfirmations' => [],
+            'dn'                   => $dn,
+        ])->render();
+
+        $this->assertStringContainsString('name="BC_No"', $html);
+        $this->assertStringContainsString('value="BC-2026-099" selected', $html);
+    }
 }

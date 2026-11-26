@@ -19,7 +19,7 @@ class ShipmentCostAllocationController extends Controller
             ->orderByDesc('id')
             ->get();
 
-        $siMeta = $this->getShipmentMetadataMap($allocations->pluck('si_no')->filter()->all());
+        $metaMap = $this->getAllocationMetaMap($allocations);
 
         $summary = [
             'count'            => $allocations->count(),
@@ -39,7 +39,7 @@ class ShipmentCostAllocationController extends Controller
 
         return view('cns.export.cost-allocation', [
             'allocations' => $allocations,
-            'siMeta'      => $siMeta,
+            'metaMap'     => $metaMap,
             'summary'     => $summary,
             'filters'     => [
                 'tgl1'   => $request->input('tgl1', ''),
@@ -52,27 +52,27 @@ class ShipmentCostAllocationController extends Controller
 
     public function create()
     {
-        $allocatedSiIds = CnsShipmentCostAllocation::query()
-            ->whereNotNull('si_id')
-            ->pluck('si_id')
+        $allocatedBcNos = CnsShipmentCostAllocation::query()
+            ->whereNotNull('bc_no')
+            ->where('bc_no', '!=', '')
+            ->pluck('bc_no')
             ->all();
 
-        $shipments = $this->getAvailableShipments($allocatedSiIds);
+        $bcs = $this->getAvailableBookingConfirmations($allocatedBcNos);
 
         return view('cns.export.cost-allocation-form', [
-            'allocation' => null,
-            'itemsByCat' => $this->emptyItemsByCategory(),
-            'shipments'  => $shipments,
-            'siMeta'     => $this->getShipmentMetadataMap(array_column($shipments, 'si_no')),
-            'categories' => CnsShipmentCostAllocation::CATEGORIES,
-            'readOnly'   => false,
+            'allocation'  => null,
+            'itemsByCat'  => $this->emptyItemsByCategory(),
+            'bcs'         => $bcs,
+            'currentMeta' => [],
+            'categories'  => CnsShipmentCostAllocation::CATEGORIES,
+            'readOnly'    => false,
         ]);
     }
 
     public function edit($id)
     {
         $allocation = CnsShipmentCostAllocation::with('items')->findOrFail($id);
-        $shipments = $this->getAvailableShipments([], $allocation->si_id);
 
         $itemsByCat = $this->emptyItemsByCategory();
         foreach ($allocation->items as $item) {
@@ -82,40 +82,50 @@ class ShipmentCostAllocationController extends Controller
             }
         }
 
+        $currentMeta = $this->getAllocationMetaMap(collect([$allocation]))[$allocation->id] ?? [];
+
         return view('cns.export.cost-allocation-form', [
-            'allocation' => $allocation,
-            'itemsByCat' => $itemsByCat,
-            'shipments'  => $shipments,
-            'siMeta'     => $this->getShipmentMetadataMap([$allocation->si_no]),
-            'categories' => CnsShipmentCostAllocation::CATEGORIES,
-            'readOnly'   => $allocation->isFinal() || (function_exists('cns_can') && !cns_can('cost_allocation_shipment', 'edit')),
+            'allocation'  => $allocation,
+            'itemsByCat'  => $itemsByCat,
+            'bcs'         => [],
+            'currentMeta' => $currentMeta,
+            'categories'  => CnsShipmentCostAllocation::CATEGORIES,
+            'readOnly'    => $allocation->isFinal() || (function_exists('cns_can') && !cns_can('cost_allocation_shipment', 'edit')),
         ]);
     }
 
     public function store(Request $request)
     {
         $data = $this->validatePayload($request);
+        $bcNo = trim((string) $data['bc_no']);
 
-        $si = ShippingInstruction::findOrFail($data['si_id']);
-        $existing = CnsShipmentCostAllocation::where('si_id', $si->id)->first();
+        $meta = $this->getBcMetadataMap([$bcNo])[$bcNo] ?? null;
+        if (!$meta) {
+            return redirect()
+                ->back()
+                ->withErrors(['bc_no' => 'Booking Confirmation (BC No) tidak ditemukan pada Vessel Schedule.'])
+                ->withInput();
+        }
+
+        $existing = CnsShipmentCostAllocation::where('bc_no', $bcNo)->first();
         if ($existing) {
             return redirect()
                 ->route('cns-export-cost-allocation.edit', $existing->id)
-                ->with('error', 'Cost Allocation untuk SI ini sudah ada.');
+                ->with('error', 'Cost Allocation untuk BC ini sudah ada.');
         }
 
-        $meta = $this->getShipmentMetadataMap([$si->SI_No])[$si->SI_No] ?? [];
         $username = $this->currentUsername();
 
-        $allocation = DB::transaction(function () use ($data, $si, $meta, $username) {
+        $allocation = DB::transaction(function () use ($data, $bcNo, $meta, $username) {
             $allocation = CnsShipmentCostAllocation::create([
                 'allocation_no'         => CnsShipmentCostAllocation::generateNextAllocationNo(),
-                'si_id'                 => $si->id,
-                'si_no'                 => $si->SI_No,
-                'final_si_no'           => $si->Final_SI_No,
-                'order_no'              => $si->Order_No,
+                'bc_no'                 => $bcNo,
+                'si_id'                 => $meta['si_id'] ?? null,
+                'si_no'                 => $meta['si_no'] !== '-' ? $meta['si_no'] : null,
+                'final_si_no'           => $meta['final_si_no'] !== '-' ? $meta['final_si_no'] : null,
+                'order_no'              => $meta['order_no'] !== '-' ? $meta['order_no'] : null,
                 'default_exchange_rate' => (float) ($data['default_exchange_rate'] ?? 16000),
-                'volume_mt'             => (float) ($meta['volume_mt'] ?? $this->parseNumeric($si->Qty)),
+                'volume_mt'             => (float) ($meta['volume_mt'] ?? 0),
                 'container_count'       => (int) ($meta['containers'] ?? 0),
                 'status'                => CnsShipmentCostAllocation::STATUS_DRAFT,
                 'notes'                 => $data['notes'] ?? null,
@@ -145,7 +155,7 @@ class ShipmentCostAllocationController extends Controller
         }
 
         $data = $this->validatePayload($request, false);
-        $meta = $this->getShipmentMetadataMap([$allocation->si_no])[$allocation->si_no] ?? [];
+        $meta = $this->getAllocationMetaMap(collect([$allocation]))[$allocation->id] ?? [];
 
         DB::transaction(function () use ($allocation, $data, $meta) {
             $allocation->default_exchange_rate = (float) ($data['default_exchange_rate'] ?? $allocation->default_exchange_rate);
@@ -231,18 +241,19 @@ class ShipmentCostAllocationController extends Controller
         $allocations = $this->filteredAllocationsQuery($request)
             ->orderByDesc('id')
             ->get();
-        $siMeta = $this->getShipmentMetadataMap($allocations->pluck('si_no')->filter()->all());
+        $metaMap = $this->getAllocationMetaMap($allocations);
 
         $filename = 'cost_allocation_per_shipment_' . date('Ymd_His') . '.csv';
 
-        return response()->streamDownload(function () use ($allocations, $siMeta) {
+        return response()->streamDownload(function () use ($allocations, $metaMap) {
             $handle = fopen('php://output', 'w');
             // UTF-8 BOM for Excel
             fwrite($handle, "\xEF\xBB\xBF");
             fputcsv($handle, [
                 'Allocation No',
+                'BC No',
                 'SI No',
-                'Final SI No',
+                'Order No',
                 'Consignee',
                 'Vessel',
                 'POD',
@@ -260,11 +271,12 @@ class ShipmentCostAllocationController extends Controller
             ]);
 
             foreach ($allocations as $row) {
-                $meta = $siMeta[$row->si_no] ?? [];
+                $meta = $metaMap[$row->id] ?? [];
                 fputcsv($handle, [
                     $row->allocation_no,
-                    $row->si_no,
-                    $row->final_si_no ?: '-',
+                    $row->bc_no ?: '-',
+                    $row->si_no ?: ($meta['si_no'] ?? '-'),
+                    $row->order_no ?: ($meta['order_no'] ?? '-'),
                     $meta['consignee'] ?? '-',
                     $meta['vessel_name'] ?? '-',
                     $meta['pod'] ?? '-',
@@ -307,6 +319,7 @@ class ShipmentCostAllocationController extends Controller
             $term = '%' . trim($request->input('search')) . '%';
             $query->where(function ($q) use ($term) {
                 $q->where('allocation_no', 'like', $term)
+                    ->orWhere('bc_no', 'like', $term)
                     ->orWhere('si_no', 'like', $term)
                     ->orWhere('final_si_no', 'like', $term)
                     ->orWhere('order_no', 'like', $term);
@@ -316,7 +329,7 @@ class ShipmentCostAllocationController extends Controller
         return $query;
     }
 
-    private function validatePayload(Request $request, bool $requireSi = true): array
+    private function validatePayload(Request $request, bool $requireBc = true): array
     {
         $rules = [
             'default_exchange_rate' => 'required|numeric|min:1',
@@ -332,8 +345,8 @@ class ShipmentCostAllocationController extends Controller
             'items.*.notes'         => 'nullable|string|max:255',
         ];
 
-        if ($requireSi) {
-            $rules['si_id'] = 'required|integer|exists:shipping_instructions,id';
+        if ($requireBc) {
+            $rules['bc_no'] = 'required|string|max:150';
         }
 
         return $request->validate($rules);
@@ -381,39 +394,206 @@ class ShipmentCostAllocationController extends Controller
         ];
     }
 
-    private function getAvailableShipments(array $excludeIds = [], ?int $includeId = null): array
+    private function getAllocationMetaMap($allocations): array
     {
-        $query = ShippingInstruction::query()
-            ->whereIn('Status', ['DRAFT', 'CREATED', 'APPROVED', 'FINAL', 'COMPLETED'])
-            ->orderByDesc('id');
+        $bcNos = [];
+        $legacySiNos = [];
 
-        if (!empty($excludeIds)) {
-            $query->whereNotIn('id', $excludeIds);
-        }
-        if ($includeId !== null) {
-            $query->orWhere('id', $includeId);
+        foreach ($allocations as $row) {
+            if (!empty($row->bc_no)) {
+                $bcNos[] = $row->bc_no;
+            } elseif (!empty($row->si_no)) {
+                $legacySiNos[] = $row->si_no;
+            }
         }
 
-        $sis = $query->get(['id', 'SI_No', 'Final_SI_No', 'Order_No', 'Consignee', 'POD', 'Qty', 'Status']);
-        $metaMap = $this->getShipmentMetadataMap($sis->pluck('SI_No')->all());
+        $bcMeta = $this->getBcMetadataMap($bcNos);
+        $siMeta = $this->getShipmentMetadataMap($legacySiNos);
 
         $result = [];
-        foreach ($sis as $si) {
-            $meta = $metaMap[$si->SI_No] ?? [];
+        foreach ($allocations as $row) {
+            if (!empty($row->bc_no) && isset($bcMeta[$row->bc_no])) {
+                $result[$row->id] = $bcMeta[$row->bc_no];
+            } elseif (!empty($row->si_no) && isset($siMeta[$row->si_no])) {
+                $result[$row->id] = $siMeta[$row->si_no];
+            } else {
+                $result[$row->id] = [];
+            }
+        }
+
+        return $result;
+    }
+
+    private function getAvailableBookingConfirmations(array $excludeBcNos = []): array
+    {
+        if (!Schema::hasTable('vessel_schedules') || !Schema::hasColumn('vessel_schedules', 'BC_No')) {
+            return [];
+        }
+
+        $query = DB::table('vessel_schedules')
+            ->whereNotNull('BC_No')
+            ->where('BC_No', '!=', '');
+
+        if (!empty($excludeBcNos)) {
+            $query->whereNotIn('BC_No', $excludeBcNos);
+        }
+
+        $bcNos = $query
+            ->groupBy('BC_No')
+            ->orderByDesc(DB::raw('MAX(id)'))
+            ->pluck('BC_No')
+            ->all();
+
+        $metaMap = $this->getBcMetadataMap($bcNos);
+        $result = [];
+        foreach ($bcNos as $bcNo) {
+            $meta = $metaMap[$bcNo] ?? [];
             $result[] = [
-                'id'          => $si->id,
-                'si_no'       => $si->SI_No,
-                'final_si_no' => $si->Final_SI_No ?: '-',
-                'order_no'    => $si->Order_No ?: '-',
-                'consignee'   => $meta['consignee'] ?? ($si->Consignee ?: '-'),
+                'bc_no'       => $bcNo,
+                'si_no'       => $meta['si_no'] ?? '-',
+                'order_no'    => $meta['order_no'] ?? '-',
+                'consignee'   => $meta['consignee'] ?? '-',
                 'vessel_name' => $meta['vessel_name'] ?? '-',
-                'pod'         => $meta['pod'] ?? ($si->POD ?: '-'),
-                'volume_mt'   => $meta['volume_mt'] ?? $this->parseNumeric($si->Qty),
+                'pod'         => $meta['pod'] ?? '-',
+                'volume_mt'   => $meta['volume_mt'] ?? 0.0,
                 'containers'  => $meta['containers'] ?? 0,
             ];
         }
 
         return $result;
+    }
+
+    private function getBcMetadataMap(array $bcNos): array
+    {
+        $bcNos = array_values(array_unique(array_filter($bcNos)));
+        if (empty($bcNos) || !Schema::hasTable('vessel_schedules')) {
+            return [];
+        }
+
+        $schedules = DB::table('vessel_schedules')
+            ->whereIn('BC_No', $bcNos)
+            ->orderBy('id')
+            ->get(['id', 'Task_ID', 'Order_No', 'BC_No', 'Vessel', 'POL', 'POD', 'ETD', 'ATD', 'Qty']);
+
+        if ($schedules->isEmpty()) {
+            return [];
+        }
+
+        $byBc = [];
+        $taskToBc = [];
+        $orderToBc = [];
+        $allTaskIds = [];
+        $allOrderNos = [];
+
+        foreach ($schedules as $vs) {
+            $bc = (string) $vs->BC_No;
+            $byBc[$bc][] = $vs;
+            if (!empty($vs->Task_ID)) {
+                $taskToBc[$vs->Task_ID] = $bc;
+                $allTaskIds[] = $vs->Task_ID;
+            }
+            if (!empty($vs->Order_No)) {
+                $orderToBc[$vs->Order_No] = $bc;
+                $allOrderNos[] = $vs->Order_No;
+            }
+        }
+
+        $allTaskIds = array_values(array_unique($allTaskIds));
+        $allOrderNos = array_values(array_unique($allOrderNos));
+
+        $vsdTotals = [];
+        if (Schema::hasTable('vessel_schedule_dtls') && (!empty($allTaskIds) || !empty($allOrderNos))) {
+            $vsdRows = DB::table('vessel_schedule_dtls')
+                ->where('Status', '!=', 'CANCELED')
+                ->where(function ($q) use ($allTaskIds, $allOrderNos) {
+                    if (!empty($allTaskIds)) {
+                        $q->whereIn('Task_ID', $allTaskIds);
+                    }
+                    if (!empty($allOrderNos)) {
+                        !empty($allTaskIds) ? $q->orWhereIn('Order_No', $allOrderNos) : $q->whereIn('Order_No', $allOrderNos);
+                    }
+                })
+                ->get(['Task_ID', 'Order_No', 'Container', 'Netto_MT']);
+
+            foreach ($vsdRows as $row) {
+                $bc = $taskToBc[$row->Task_ID ?? ''] ?? ($orderToBc[$row->Order_No ?? ''] ?? null);
+                if ($bc === null) {
+                    continue;
+                }
+                if (!isset($vsdTotals[$bc])) {
+                    $vsdTotals[$bc] = ['volume_mt' => 0.0, 'containers' => []];
+                }
+                $vsdTotals[$bc]['volume_mt'] += (float) ($row->Netto_MT ?? 0);
+                if (!empty($row->Container)) {
+                    $vsdTotals[$bc]['containers'][(string) $row->Container] = true;
+                }
+            }
+        }
+
+        $siByOrder = [];
+        $siTable = Schema::hasTable('shipping_instructions') ? 'shipping_instructions' : 'shipment_instructions';
+        if (Schema::hasTable($siTable) && !empty($allOrderNos)) {
+            $sis = DB::table($siTable)
+                ->whereIn('Order_No', $allOrderNos)
+                ->orderBy('id')
+                ->get(['id', 'SI_No', 'Final_SI_No', 'Order_No', 'Consignee', 'POD', 'POL', 'ETD']);
+
+            foreach ($sis as $si) {
+                if (!isset($siByOrder[$si->Order_No])) {
+                    $siByOrder[$si->Order_No] = $si;
+                }
+            }
+        }
+
+        $consigneeMap = [];
+        if (Schema::hasTable('supplier')) {
+            $suppliers = DB::table('supplier')->select('Supplier_ID', 'Company_Name', 'ID')->get();
+            foreach ($suppliers as $s) {
+                if ($s->Supplier_ID) {
+                    $consigneeMap[$s->Supplier_ID] = $s->Company_Name;
+                }
+                $consigneeMap[(string) $s->ID] = $s->Company_Name;
+            }
+        }
+
+        $map = [];
+        foreach ($byBc as $bcNo => $rows) {
+            $first = $rows[0];
+            $si = null;
+            $qtyFallback = 0.0;
+            $orderNos = [];
+
+            foreach ($rows as $r) {
+                $qtyFallback += $this->parseNumeric($r->Qty);
+                if (!empty($r->Order_No)) {
+                    $orderNos[] = $r->Order_No;
+                    if (!$si && isset($siByOrder[$r->Order_No])) {
+                        $si = $siByOrder[$r->Order_No];
+                    }
+                }
+            }
+
+            $vsd = $vsdTotals[$bcNo] ?? ['volume_mt' => 0.0, 'containers' => []];
+            $volumeMt = $vsd['volume_mt'] > 0 ? $vsd['volume_mt'] : $qtyFallback;
+            $consigneeRaw = $si->Consignee ?? '';
+            $consigneeName = $consigneeMap[$consigneeRaw] ?? ($consigneeRaw ?: '-');
+
+            $map[$bcNo] = [
+                'si_id'       => $si->id ?? null,
+                'si_no'       => $si->SI_No ?? '-',
+                'final_si_no' => $si->Final_SI_No ?? '-',
+                'order_no'    => !empty($orderNos) ? implode(', ', array_unique($orderNos)) : '-',
+                'consignee'   => $consigneeName,
+                'vessel_name' => $first->Vessel ?: '-',
+                'pol'         => $first->POL ?: ($si->POL ?? '-'),
+                'pod'         => $first->POD ?: ($si->POD ?? '-'),
+                'etd'         => $first->ATD ?: ($first->ETD ?: ($si->ETD ?? '-')),
+                'volume_mt'   => round($volumeMt, 4),
+                'containers'  => count($vsd['containers']),
+            ];
+        }
+
+        return $map;
     }
 
     private function getShipmentMetadataMap(array $siNos): array

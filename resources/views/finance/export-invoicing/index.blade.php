@@ -19,15 +19,15 @@
         <div class="row mb-3 align-items-end">
             <div class="col-md-2">
                 <label for="ei_tgl1" class="mb-1"><small>Stuffing Dari</small></label>
-                <input type="date" id="ei_tgl1" class="form-control form-control-sm" />
+                <input type="date" id="ei_tgl1" class="text-black form-control form-control-sm" />
             </div>
             <div class="col-md-2">
                 <label for="ei_tgl2" class="mb-1"><small>Stuffing Sampai</small></label>
-                <input type="date" id="ei_tgl2" class="form-control form-control-sm" />
+                <input type="date" id="ei_tgl2" class="text-black form-control form-control-sm" />
             </div>
             <div class="col-md-3">
                 <label for="ei_status" class="mb-1"><small>Status</small></label>
-                <select id="ei_status" class="form-control form-control-sm">
+                <select id="ei_status" class="text-black form-control form-control-sm">
                     <option value="">Semua Status</option>
                     <option value="Ready to Submit">Ready to Submit</option>
                     <option value="pending FAT">pending FAT</option>
@@ -71,15 +71,15 @@
                     <hr />
                     <div class="form-group">
                         <label>Upload File Kontrak <span class="text-danger">*</span> <small class="text-muted">(PDF/Excel/Image, max 10MB)</small></label>
-                        <input type="file" name="contract_file" id="ei_contract_file" class="form-control-file" required />
+                        <input type="file" name="contract_file" id="ei_contract_file" class="text-black form-control-file" required />
                     </div>
                     <div class="form-group">
                         <label>Upload File Packing List <span class="text-danger">*</span> <small class="text-muted">(PDF/Excel/Image, max 10MB)</small></label>
-                        <input type="file" name="packing_list_file" id="ei_pl_file" class="form-control-file" required />
+                        <input type="file" name="packing_list_file" id="ei_pl_file" class="text-black form-control-file" required />
                     </div>
                     <div class="form-group">
                         <label>Catatan CNS (Opsional)</label>
-                        <textarea name="cns_notes" id="ei_cns_notes" class="form-control" rows="2"></textarea>
+                        <textarea name="cns_notes" id="ei_cns_notes" class="text-black form-control" rows="2"></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -113,20 +113,25 @@
                     <strong>Dokumen Terlampir:</strong>
                     <div class="mt-1">
                         <a id="ei_rev_contract_link" href="#" target="_blank" class="btn btn-sm btn-outline-primary mr-2">Download Kontrak</a>
-                        <a id="ei_rev_pl_link" href="#" target="_blank" class="btn btn-sm btn-outline-primary">Download Packing List</a>
+                        <a id="ei_rev_pl_link" href="#" target="_blank" class="btn btn-sm btn-outline-primary mr-2">Download Packing List</a>
+                        <a id="ei_rev_transfer_proof_link" href="#" target="_blank" class="btn btn-sm btn-outline-success d-none">Lihat Bukti Transfer</a>
                     </div>
                 </div>
                 <div class="form-group">
                     <label>Catatan CNS</label>
-                    <div class="form-control-plaintext border rounded p-2 bg-light" id="ei_rev_cns_notes">-</div>
+                    <div class="text-black form-control-plaintext border rounded p-2 bg-light" id="ei_rev_cns_notes">-</div>
+                </div>
+                <div class="form-group" id="ei_rev_transfer_proof_group">
+                    <label>Upload Bukti Transfer <span class="text-danger">*</span> <small class="text-muted">(Wajib jika Approve: PDF/Image, max 10MB)</small></label>
+                    <input type="file" id="ei_rev_transfer_proof" accept=".pdf,.jpg,.jpeg,.png" class="text-black form-control-file" />
                 </div>
                 <div class="form-group">
                     <label>Catatan Finance (Opsional)</label>
-                    <textarea id="ei_rev_finance_notes" class="form-control" rows="2"></textarea>
+                    <textarea id="ei_rev_finance_notes" class="text-black form-control" rows="2"></textarea>
                 </div>
                 <div class="form-group" id="ei_rev_reject_group">
                     <label>Alasan Reject <small class="text-muted">(Wajib diisi jika Reject)</small></label>
-                    <textarea id="ei_rev_rejection_reason" class="form-control" rows="2"></textarea>
+                    <textarea id="ei_rev_rejection_reason" class="text-black form-control" rows="2"></textarea>
                 </div>
             </div>
             <div class="modal-footer">
@@ -244,12 +249,22 @@
                 $('#ei_rev_submitted').text((req.submitted_by || '-') + (req.submitted_at ? ' (' + req.submitted_at + ')' : ''));
                 $('#ei_rev_contract_link').attr('href', req.contract_file_url).text('Kontrak: ' + req.contract_file_name);
                 $('#ei_rev_pl_link').attr('href', req.packing_list_file_url).text('Packing List: ' + req.packing_list_file_name);
+                if (req.transfer_proof_url) {
+                    $('#ei_rev_transfer_proof_link')
+                        .attr('href', req.transfer_proof_url)
+                        .text('Bukti Transfer: ' + (req.transfer_proof_name || 'Lihat'))
+                        .removeClass('d-none');
+                } else {
+                    $('#ei_rev_transfer_proof_link').attr('href', '#').addClass('d-none');
+                }
+                $('#ei_rev_transfer_proof').val('');
                 $('#ei_rev_cns_notes').text(req.cns_notes || '-');
                 $('#ei_rev_finance_notes').val(req.finance_notes || '');
                 $('#ei_rev_rejection_reason').val(req.rejection_reason || '');
 
                 var isPending = req.status === 'pending FAT';
-                $('#ei_btn_approve, #ei_btn_reject').prop('disabled', !isPending);
+                $('#ei_rev_transfer_proof_group').toggleClass('d-none', !isPending);
+                $('#ei_btn_approve, #ei_btn_reject').toggleClass('d-none', !isPending).prop('disabled', !isPending);
                 $('#eiReviewModal').modal('show');
             }
         });
@@ -284,17 +299,36 @@
             ? "{{ url('finance-export-invoicing-approve') }}/" + reqId
             : "{{ url('finance-export-invoicing-reject') }}/" + reqId;
 
-        $.post(url, {
-            _token: $('input[name="_token"]').val(),
-            finance_notes: $('#ei_rev_finance_notes').val(),
-            rejection_reason: $('#ei_rev_rejection_reason').val()
-        }).done(function (res) {
-            $('#eiReviewModal').modal('hide');
-            swal('Berhasil', res.message, 'success');
-            refreshExportInvoicingGrid();
-        }).fail(function (xhr) {
-            var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Gagal memproses keputusan.';
-            swal('Error', msg, 'error');
+        var formData = new FormData();
+        formData.append('_token', $('input[name="_token"]').val());
+        formData.append('finance_notes', $('#ei_rev_finance_notes').val());
+
+        if (action === 'approve') {
+            var transferFile = $('#ei_rev_transfer_proof')[0].files[0];
+            if (!transferFile) {
+                swal('Perhatian', 'Upload bukti transfer terlebih dahulu sebelum Approve.', 'warning');
+                return;
+            }
+            formData.append('transfer_proof', transferFile);
+        } else {
+            formData.append('rejection_reason', $('#ei_rev_rejection_reason').val());
+        }
+
+        $.ajax({
+            url: url,
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function (res) {
+                $('#eiReviewModal').modal('hide');
+                swal('Berhasil', res.message, 'success');
+                refreshExportInvoicingGrid();
+            },
+            error: function (xhr) {
+                var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Gagal memproses keputusan.';
+                swal('Error', msg, 'error');
+            }
         });
     }
 

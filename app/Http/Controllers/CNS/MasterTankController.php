@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\CNS;
 
+use App\Http\Controllers\CNS\Concerns\HandlesCompanyExcelImport;
 use App\Http\Controllers\Controller;
 use App\MasterTank;
 use App\MasterTankLog;
@@ -15,6 +16,7 @@ use Exception;
 
 class MasterTankController extends Controller
 {
+    use HandlesCompanyExcelImport;
     public function index()
     {
         return view('cns.master.tank');
@@ -329,5 +331,112 @@ class MasterTankController extends Controller
         return (float) UCOStoragePelindo::approved()->where('Nama_Tangki', $tankName)
             ->selectRaw("SUM(CASE WHEN Type = 'inbound' THEN Quantity ELSE -Quantity END) as balance")
             ->value('balance') ?: 0;
+    }
+
+    public function downloadImportTemplate()
+    {
+        return $this->streamExcelTemplate(
+            ['name', 'capacity', 'notes', 'status'],
+            ['Tangki UCO 01', 50000, 'Tangki utama', 'ACTIVE'],
+            'master-tank-import-template.xlsx',
+            ['name', 'capacity', 'status'],
+            [
+                'status' => [
+                    'comment' => 'Pilihan status: ACTIVE atau INACTIVE',
+                    'options' => ['ACTIVE', 'INACTIVE'],
+                ],
+            ]
+        );
+    }
+
+    public function importMasterTank(Request $request)
+    {
+        $parsed = $this->readExcelRows($request);
+        if (!is_array($parsed)) {
+            return $parsed;
+        }
+        [$colMap, $rows] = $parsed;
+
+        if (!isset($colMap['name']) || !isset($colMap['capacity'])) {
+            return response()->json(['message' => 'Header wajib name dan capacity tidak ditemukan.'], 422);
+        }
+
+        $existingNames = MasterTank::pluck('name')
+            ->map(fn($n) => strtolower(trim((string) $n)))
+            ->filter()
+            ->flip()
+            ->all();
+
+        $userName = Auth::check() ? (Auth::user()->name ?? Auth::user()->username) : 'System';
+        $imported = 0;
+        $skipped = [];
+        $errors = [];
+
+        foreach ($rows as $i => $row) {
+            $rowNum = $i + 2;
+            if (count(array_filter($row, fn($v) => trim((string) $v) !== '')) === 0) {
+                continue;
+            }
+
+            $get = fn(string $col) => isset($colMap[strtolower($col)])
+                ? trim((string) ($row[$colMap[strtolower($col)]] ?? ''))
+                : '';
+
+            $name = $get('name');
+            if ($name === '') {
+                $errors[] = ['row' => $rowNum, 'name' => '', 'reason' => 'name wajib diisi.'];
+                continue;
+            }
+            if (strlen($name) > 100) {
+                $errors[] = ['row' => $rowNum, 'name' => $name, 'reason' => 'name maksimal 100 karakter.'];
+                continue;
+            }
+
+            $normName = strtolower($name);
+            if (isset($existingNames[$normName])) {
+                $skipped[] = ['row' => $rowNum, 'name' => $name, 'reason' => 'Nama tangki sudah terdaftar.'];
+                continue;
+            }
+
+            $capRaw = $get('capacity');
+            if ($capRaw === '' || !is_numeric($capRaw) || (float) $capRaw < 0) {
+                $errors[] = ['row' => $rowNum, 'name' => $name, 'reason' => 'capacity harus berupa angka >= 0.'];
+                continue;
+            }
+
+            $status = strtoupper($get('status') ?: 'ACTIVE');
+            if (!in_array($status, ['ACTIVE', 'INACTIVE'], true)) {
+                $errors[] = ['row' => $rowNum, 'name' => $name, 'reason' => 'status harus ACTIVE atau INACTIVE.'];
+                continue;
+            }
+
+            $tank = MasterTank::create([
+                'name'       => $name,
+                'capacity'   => (float) $capRaw,
+                'notes'      => $get('notes') !== '' ? $get('notes') : null,
+                'status'     => $status,
+                'created_by' => $userName,
+            ]);
+
+            MasterTankLog::create([
+                'tank_id'      => $tank->id,
+                'tank_name'    => $tank->name,
+                'action'       => 'CREATE',
+                'details'      => "Menambahkan tangki {$tank->name} dengan kapasitas " . number_format((float) $tank->capacity, 2, '.', ',') . " KG",
+                'old_values'   => null,
+                'new_values'   => $tank->toArray(),
+                'performed_by' => $userName,
+                'created_at'   => Carbon::now(),
+            ]);
+
+            $existingNames[$normName] = true;
+            $imported++;
+        }
+
+        return response()->json([
+            'imported' => $imported,
+            'skipped'  => $skipped,
+            'errors'   => $errors,
+        ]);
     }
 }

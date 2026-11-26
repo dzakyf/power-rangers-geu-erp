@@ -85,7 +85,7 @@ class SalesOrderSiteSelectAndStockTest extends TestCase
             'kemasans' => $kemasans,
         ])->render();
 
-        $this->assertStringContainsString('<select class="form-control" id="site"', $newHtml);
+        $this->assertStringContainsString('<select class="text-black form-control" id="site"', $newHtml);
         $this->assertStringContainsString('value=""', $newHtml);
         $this->assertStringContainsString('<option value="" selected>-- Pilih Site --</option>', $newHtml);
         $this->assertStringContainsString('<th class="stock-col text-center">Stok</th>', $newHtml);
@@ -135,7 +135,7 @@ class SalesOrderSiteSelectAndStockTest extends TestCase
             'kemasans'   => $kemasans,
         ])->render();
 
-        $this->assertStringContainsString('<select class="form-control" id="site"', $detailHtml);
+        $this->assertStringContainsString('<select class="text-black form-control" id="site"', $detailHtml);
         $this->assertStringContainsString('value="18"', $detailHtml);
         $this->assertStringContainsString('PENDING', $detailHtml);
 

@@ -304,7 +304,7 @@ class StuffingMonitoringTest extends TestCase
         $this->assertStringContainsString('12.00', $content);
         $this->assertStringContainsString('14000.00', $content);
         $this->assertStringContainsString('14.00', $content);
-        $this->assertStringContainsString('Ada', $content);
+        $this->assertStringContainsString('cns-stuffing-detail-note?Order_No=' . urlencode($orderNo) . '^note.pdf', $content);
     }
 
     /** @test */

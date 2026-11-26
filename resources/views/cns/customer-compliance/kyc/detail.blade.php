@@ -29,22 +29,9 @@
             </a>
             @if(!$kyc->isApproved())
                 <a href="{{ route('cns-customer-compliance-kyc.edit', ['id' => $kyc->id]) }}" class="btn btn-warning">
-                    <i class="fa fa-edit"></i> Edit Data
+                    <i class="fa fa-edit"></i> {{ $kyc->isRejected() ? 'Revisi KYC' : 'Edit Data' }}
                 </a>
             @endif
-            @can('cns.customer_compliance_kyc.approve')
-                @if(!$kyc->isApproved())
-                    <form action="{{ route('cns-customer-compliance-kyc.approve', ['id' => $kyc->id]) }}" method="POST" class="d-inline" onsubmit="var f=this; if(f.dataset.confirmed==='1'){return true;} swal({title:'Konfirmasi Approval',text:'Approve form KYC ini?',icon:'info',buttons:['Batal','Approve']}).then(function(ok){if(ok){f.dataset.confirmed='1';f.submit();}}); return false;">
-                        @csrf
-                        <button type="submit" class="btn btn-success">
-                            <i class="fa fa-check"></i> Approve
-                        </button>
-                    </form>
-                    <button type="button" class="btn btn-outline-danger" data-toggle="modal" data-target="#rejectKycModal">
-                        <i class="fa fa-times"></i> Reject
-                    </button>
-                @endif
-            @endcan
         </div>
         @if(!$kyc->isApproved())
             <form action="{{ route('cns-customer-compliance-kyc.delete', ['id' => $kyc->id]) }}" method="POST" onsubmit="var f=this; if(f.dataset.confirmed==='1'){return true;} swal({title:'Konfirmasi',text:'Yakin ingin menghapus form KYC ini?',icon:'warning',buttons:['Batal','Ya'],dangerMode:true}).then(function(ok){if(ok){f.dataset.confirmed='1';f.submit();}}); return false;">
@@ -109,34 +96,6 @@
         @endif
     </div>
 </div>
-
-@can('cns.customer_compliance_kyc.approve')
-    @if(!$kyc->isApproved())
-        <div class="modal fade" id="rejectKycModal" tabindex="-1" role="dialog" aria-hidden="true">
-            <div class="modal-dialog" role="document">
-                <form action="{{ route('cns-customer-compliance-kyc.reject', ['id' => $kyc->id]) }}" method="POST" class="modal-content">
-                    @csrf
-                    <div class="modal-header">
-                        <h5 class="modal-title">Reject Form KYC</h5>
-                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="form-group mb-0">
-                            <label for="rejection_reason">Alasan Penolakan <span class="text-danger">*</span></label>
-                            <textarea name="rejection_reason" id="rejection_reason" rows="3" class="form-control" required maxlength="1000" placeholder="Tuliskan alasan penolakan..."></textarea>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
-                        <button type="submit" class="btn btn-danger">Reject KYC</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    @endif
-@endcan
 
 <!-- General Company Information Card -->
 <div class="card cns-card mb-3">

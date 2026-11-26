@@ -1,6 +1,7 @@
 @php
     $contracts = $contracts ?? collect();
     $tanks = $tanks ?? collect();
+    $bookings = $bookings ?? collect();
     $category = $category ?? 'EXTERNAL';
 @endphp
 <div id="FormEditQualityControl" class="card cns-card" style="display:none;">
@@ -15,29 +16,30 @@
                     <div class="col-md-3">
                         <div class="form-group">
                             <label for="edit_Kode_QC" class="font-weight-bold">Kode QC</label>
-                            <input type="text" name="Kode_QC" id="edit_Kode_QC" class="form-control" readonly />
+                            <input type="text" name="Kode_QC" id="edit_Kode_QC" class="text-black form-control" readonly />
                         </div>
                     </div>
                     <div class="col-md-3">
                         <div class="form-group">
                             <label for="edit_Created_At" class="font-weight-bold">Tanggal Pemeriksaan <span style="color:red;">*</span></label>
-                            <input type="date" name="Created_At" id="edit_Created_At" class="form-control" required readonly />
+                            <input type="date" name="Created_At" id="edit_Created_At" class="text-black form-control" required readonly />
                         </div>
                     </div>
                     <div class="col-md-3">
                         <div class="form-group">
                             <label for="edit_QC_Type" class="font-weight-bold">Jenis Quality Control <span style="color:red;">*</span></label>
-                            <select name="QC_Type" id="edit_QC_Type" class="form-control" required onchange="onEditQcTypeChange(this.value)">
+                            <select name="QC_Type" id="edit_QC_Type" class="text-black form-control" required onchange="onEditQcTypeChange(this.value)">
                                 <option value="INBOUND">Inbound (Barang Masuk)</option>
                                 <option value="OUTBOUND">Outbound (Barang Keluar)</option>
                                 <option value="DAILY_QC">Daily QC</option>
+                                <option value="SURVEYOR">Surveyor (COA Surveyor)</option>
                             </select>
                         </div>
                     </div>
                     <div class="col-md-3">
                         <div class="form-group">
                             <label for="edit_QC_Category" class="font-weight-bold">Pelaksana Lab</label>
-                            <input type="text" name="QC_Category" id="edit_QC_Category" class="form-control" readonly />
+                            <input type="text" name="QC_Category" id="edit_QC_Category" class="text-black form-control" readonly />
                         </div>
                     </div>
                 </div>
@@ -46,7 +48,7 @@
                     <div class="col-md-6">
                         <div class="form-group">
                             <label for="edit_Contract_ID" class="font-weight-bold">Nomor Kontrak</label>
-                            <select name="Contract_ID" id="edit_Contract_ID" class="form-control">
+                            <select name="Contract_ID" id="edit_Contract_ID" class="text-black form-control">
                                 <option value="">-- Pilih Kontrak --</option>
                                 @foreach($contracts as $contract)
                                     <option value="{{ $contract->ID }}">{{ $contract->Contract_No }}{{ !empty($contract->Buyer_Name) ? ' - ' . $contract->Buyer_Name : '' }}</option>
@@ -57,7 +59,7 @@
                     <div class="col-md-6">
                         <div class="form-group">
                             <label for="edit_Booking_ID" class="font-weight-bold">Nomor Booking Confirmation</label>
-                            <select name="Booking_ID" id="edit_Booking_ID" class="form-control">
+                            <select name="Booking_ID" id="edit_Booking_ID" class="text-black form-control">
                                 <option value="">-- Pilih Booking Confirmation --</option>
                             </select>
                         </div>
@@ -68,12 +70,43 @@
                     <div class="col-md-6">
                         <div class="form-group">
                             <label for="edit_Tank_ID" class="font-weight-bold">Nama Tangki <span style="color:red;">*</span></label>
-                            <select name="Tank_ID" id="edit_Tank_ID" class="form-control">
+                            <select name="Tank_ID" id="edit_Tank_ID" class="text-black form-control">
                                 <option value="">-- Pilih Tangki --</option>
                                 @foreach($tanks as $tank)
                                     <option value="{{ $tank->id }}">{{ $tank->name }}</option>
                                 @endforeach
                             </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mb-3 surveyor-bc-group edit-surveyor-bc-group" style="display:none;">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="edit_Surveyor_Booking_ID" class="font-weight-bold">Nomor Booking Confirmation <span style="color:red;">*</span></label>
+                            <select name="Booking_ID" id="edit_Surveyor_Booking_ID" class="text-black form-control" disabled>
+                                <option value="">-- Pilih Booking Confirmation --</option>
+                                @foreach($bookings as $booking)
+                                    <option value="{{ $booking->ID }}" data-contract-id="{{ $booking->Contract_ID }}">
+                                        {{ $booking->Booking_No }}{{ !empty($booking->Label) ? ' (' . $booking->Label . ')' : '' }} — {{ $booking->Contract_No }}{{ !empty($booking->Buyer_Name) ? ' - ' . $booking->Buyer_Name : '' }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="edit_QC_Method" class="font-weight-bold">Metode QC</label>
+                            <input type="text" name="QC_Method" id="edit_QC_Method" class="text-black form-control" placeholder="Contoh: AOCS / ISO / ASTM" disabled />
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="edit_Attachment" id="edit_Attachment_Label" class="font-weight-bold">Upload File COA Surveyor (Opsional)</label>
+                            <input type="file" name="Attachment" id="edit_Attachment" class="text-black form-control" accept=".pdf,.jpg,.jpeg,.png" />
+                            <small class="form-text text-muted" id="edit_current_attachment_wrap" style="display:none;">
+                                File saat ini: <a href="#" id="edit_current_attachment_link" target="_blank" rel="noopener">Lihat File COA</a>
+                            </small>
                         </div>
                     </div>
                 </div>
@@ -103,9 +136,9 @@
                         <thead class="thead-light">
                             <tr>
                                 <th style="width:36%;text-align:left;vertical-align:middle;">Parameter QC</th>
-                                <th style="width:16%;vertical-align:middle;">TOP</th>
-                                <th style="width:16%;vertical-align:middle;">MIDDLE</th>
-                                <th style="width:16%;vertical-align:middle;">BOTTOM</th>
+                                <th class="qc-level-col" style="width:16%;vertical-align:middle;">TOP</th>
+                                <th class="qc-level-col" style="width:16%;vertical-align:middle;">MIDDLE</th>
+                                <th class="qc-level-col" style="width:16%;vertical-align:middle;">BOTTOM</th>
                                 <th style="width:16%;vertical-align:middle;background-color:#e8f4f8;">AVERAGE</th>
                             </tr>
                         </thead>
@@ -115,20 +148,21 @@
                                 <td class="text-left font-weight-bold" style="vertical-align:middle;">
                                     {{ $param['label'] }} <span class="badge badge-light text-secondary border ml-1">{{ $param['unit'] }}</span>
                                 </td>
-                                <td>
+                                <td class="qc-level-col">
                                     <input type="text" inputmode="decimal" name="top_{{ $param['key'] }}" id="edit_top_{{ $param['key'] }}"
-                                           class="form-control text-right cns-decimal" oninput="calcQcAverage('{{ $param['key'] }}', 'edit')" />
+                                           class="text-black form-control text-right cns-decimal" oninput="calcQcAverage('{{ $param['key'] }}', 'edit')" />
                                 </td>
-                                <td>
+                                <td class="qc-level-col">
                                     <input type="text" inputmode="decimal" name="middle_{{ $param['key'] }}" id="edit_middle_{{ $param['key'] }}"
-                                           class="form-control text-right cns-decimal" oninput="calcQcAverage('{{ $param['key'] }}', 'edit')" />
+                                           class="text-black form-control text-right cns-decimal" oninput="calcQcAverage('{{ $param['key'] }}', 'edit')" />
                                 </td>
-                                <td>
+                                <td class="qc-level-col">
                                     <input type="text" inputmode="decimal" name="bottom_{{ $param['key'] }}" id="edit_bottom_{{ $param['key'] }}"
-                                           class="form-control text-right cns-decimal" oninput="calcQcAverage('{{ $param['key'] }}', 'edit')" />
+                                           class="text-black form-control text-right cns-decimal" oninput="calcQcAverage('{{ $param['key'] }}', 'edit')" />
                                 </td>
                                 <td>
-                                    <input type="text" id="edit_avg_{{ $param['key'] }}" class="form-control text-right font-weight-bold"
+                                    <input type="text" inputmode="decimal" name="avg_{{ $param['key'] }}" id="edit_avg_{{ $param['key'] }}"
+                                           class="text-black form-control text-right font-weight-bold qc-avg-input"
                                            readonly style="background-color:#f0f8ff;" placeholder="-" />
                                 </td>
                             </tr>
@@ -187,22 +221,62 @@
         return String(val).replace('%', '').trim();
     }
 
+    function setEditSurveyorMode(isSurveyor) {
+        var $avgInputs = $('#FormEditQualityControl .qc-avg-input');
+        if (isSurveyor) {
+            $('#FormEditQualityControl .qc-level-col').hide();
+            $('#edit_QC_Category').val('EXTERNAL');
+            $avgInputs.prop('readonly', false).addClass('cns-decimal').css('background-color', '#fff');
+            $avgInputs.each(function() {
+                if ($(this).val() === '-') $(this).val('');
+            });
+        } else {
+            $('#FormEditQualityControl .qc-level-col').show();
+            var origCat = $('#edit_QC_Category').data('orig-category');
+            if (origCat) {
+                $('#edit_QC_Category').val(origCat);
+            }
+            $avgInputs.prop('readonly', true).removeClass('cns-decimal').css('background-color', '#f0f8ff');
+            if (typeof recalculateAllAverages === 'function') {
+                recalculateAllAverages('edit');
+            }
+        }
+    }
+
     function onEditQcTypeChange(val) {
         if (val === 'OUTBOUND') {
             $('.edit-outbound-contract-group').show();
-            $('.edit-daily-tank-group').hide();
+            $('.edit-daily-tank-group, .edit-surveyor-bc-group').hide();
+            $('#edit_Booking_ID').prop('disabled', false);
+            $('#edit_Surveyor_Booking_ID').prop('disabled', true).val('');
+            $('#edit_QC_Method').prop('disabled', true).val('');
             $('#edit_Tank_ID').val('');
+            setEditSurveyorMode(false);
         } else if (val === 'DAILY_QC') {
             $('.edit-daily-tank-group').show();
-            $('.edit-outbound-contract-group').hide();
+            $('.edit-outbound-contract-group, .edit-surveyor-bc-group').hide();
+            $('#edit_Booking_ID').prop('disabled', false).empty().append('<option value="">-- Pilih Booking Confirmation --</option>');
+            $('#edit_Surveyor_Booking_ID').prop('disabled', true).val('');
+            $('#edit_QC_Method').prop('disabled', true).val('');
             $('#edit_Contract_ID').val('');
-            $('#edit_Booking_ID').empty().append('<option value="">-- Pilih Booking Confirmation --</option>');
-        } else {
-            $('.edit-outbound-contract-group').hide();
-            $('.edit-daily-tank-group').hide();
+            setEditSurveyorMode(false);
+        } else if (val === 'SURVEYOR') {
+            $('.edit-surveyor-bc-group').show();
+            $('.edit-outbound-contract-group, .edit-daily-tank-group').hide();
+            $('#edit_Booking_ID').prop('disabled', true).empty().append('<option value="">-- Pilih Booking Confirmation --</option>');
+            $('#edit_Surveyor_Booking_ID').prop('disabled', false);
+            $('#edit_QC_Method').prop('disabled', false);
             $('#edit_Contract_ID').val('');
-            $('#edit_Booking_ID').empty().append('<option value="">-- Pilih Booking Confirmation --</option>');
             $('#edit_Tank_ID').val('');
+            setEditSurveyorMode(true);
+        } else {
+            $('.edit-outbound-contract-group, .edit-daily-tank-group, .edit-surveyor-bc-group').hide();
+            $('#edit_Booking_ID').prop('disabled', false).empty().append('<option value="">-- Pilih Booking Confirmation --</option>');
+            $('#edit_Surveyor_Booking_ID').prop('disabled', true).val('');
+            $('#edit_QC_Method').prop('disabled', true).val('');
+            $('#edit_Contract_ID').val('');
+            $('#edit_Tank_ID').val('');
+            setEditSurveyorMode(false);
         }
     }
 
@@ -210,7 +284,11 @@
         $('#FormEditQualityControl').hide();
         $('#QualityControlEditForm')[0].reset();
         $('#edit_Booking_ID').empty().append('<option value="">-- Pilih Booking Confirmation --</option>');
+        $('#edit_Surveyor_Booking_ID').val('');
         $('#edit_Tank_ID').val('');
+        $('#edit_Attachment').val('');
+        $('#edit_current_attachment_wrap').hide();
+        $('#edit_QC_Category').removeData('orig-category');
         qcParamKeys.forEach(function(key) {
             $('#edit_avg_' + key).val('-');
         });
@@ -235,40 +313,67 @@
         document.getElementById('edit_QC_Type').value = qcType;
 
         var qcCat = grid.cells(rowId, 4).getValue() || 'EXTERNAL';
-        document.getElementById('edit_QC_Category').value = qcCat;
+        $('#edit_QC_Category').data('orig-category', qcCat).val(qcCat);
+
+        $('#edit_Attachment').val('');
+        var attachmentUrl = '';
+        try {
+            attachmentUrl = grid.cells(rowId, 46) ? grid.cells(rowId, 46).getValue() : '';
+        } catch (e) {}
+        if (attachmentUrl && attachmentUrl !== '-') {
+            $('#edit_current_attachment_link').attr('href', attachmentUrl);
+            $('#edit_current_attachment_wrap').show();
+        } else {
+            $('#edit_current_attachment_wrap').hide();
+        }
 
         onEditQcTypeChange(qcType);
 
         var contractId = '';
         var bookingId = '';
         var tankId = '';
+        var qcMethod = '';
         try {
             contractId = grid.cells(rowId, 47) ? grid.cells(rowId, 47).getValue() : '';
             bookingId  = grid.cells(rowId, 48) ? grid.cells(rowId, 48).getValue() : '';
             tankId     = grid.cells(rowId, 50) ? grid.cells(rowId, 50).getValue() : '';
+            qcMethod   = grid.cells(rowId, 51) ? grid.cells(rowId, 51).getValue() : '';
         } catch (e) {}
 
-        $('#edit_Contract_ID').val(contractId);
-        if (contractId && typeof loadQualityBookings === 'function') {
-            loadQualityBookings(contractId, '#edit_Booking_ID', bookingId);
-        } else {
+        if (qcType === 'SURVEYOR') {
+            $('#edit_Surveyor_Booking_ID').val(bookingId ? String(bookingId) : '');
+            $('#edit_QC_Method').val(qcMethod && qcMethod !== '-' ? String(qcMethod) : '');
+            $('#edit_Contract_ID').val('');
             $('#edit_Booking_ID').empty().append('<option value="">-- Pilih Booking Confirmation --</option>');
+        } else {
+            $('#edit_Surveyor_Booking_ID').val('');
+            $('#edit_Contract_ID').val(contractId);
+            if (contractId && typeof loadQualityBookings === 'function') {
+                loadQualityBookings(contractId, '#edit_Booking_ID', bookingId);
+            } else {
+                $('#edit_Booking_ID').empty().append('<option value="">-- Pilih Booking Confirmation --</option>');
+            }
         }
 
         $('#edit_Tank_ID').val(tankId);
 
-        // TOP indices: 6..15, MIDDLE: 16..25, BOTTOM: 26..35
+        // TOP indices: 6..15, MIDDLE: 16..25, BOTTOM: 26..35, AVERAGE: 36..45
         // Keys: FFA_As_Palmitic(6), FFA_As_Oleic(7), Moisture(8), Impurities(9), Unsaponifiables(10), Sulphur(11), IV(12), Total_Chlorides(13), Phosphorus(14), Total_Metals(15)
         qcParamKeys.forEach(function(key, idx) {
             var topVal = cleanCell(grid.cells(rowId, 6 + idx).getValue());
             var midVal = cleanCell(grid.cells(rowId, 16 + idx).getValue());
             var botVal = cleanCell(grid.cells(rowId, 26 + idx).getValue());
+            var avgVal = cleanCell(grid.cells(rowId, 36 + idx).getValue());
 
             $('#edit_top_' + key).val(topVal !== '' ? cnsFormatNumber(topVal, 2) : '');
             $('#edit_middle_' + key).val(midVal !== '' ? cnsFormatNumber(midVal, 2) : '');
             $('#edit_bottom_' + key).val(botVal !== '' ? cnsFormatNumber(botVal, 2) : '');
 
-            calcQcAverage(key, 'edit');
+            if (qcType === 'SURVEYOR') {
+                $('#edit_avg_' + key).val(avgVal !== '' ? cnsFormatNumber(avgVal, 2) : '');
+            } else {
+                calcQcAverage(key, 'edit');
+            }
         });
 
         $('#FormEditQualityControl').show();
@@ -291,7 +396,28 @@
             return;
         }
 
+        if (qcType === 'SURVEYOR') {
+            var surveyorBookingId = $('#edit_Surveyor_Booking_ID').val();
+            if (!surveyorBookingId) {
+                swal('Perhatian', 'Nomor Booking Confirmation wajib dipilih untuk QC Surveyor', 'warning');
+                return;
+            }
+            var mandatoryParams = ['FFA_As_Palmitic', 'FFA_As_Oleic', 'Moisture', 'Impurities'];
+            for (var k = 0; k < mandatoryParams.length; k++) {
+                var sKey = mandatoryParams[k];
+                var sVal = $('#edit_avg_' + sKey).val();
+                if (sVal === '' || sVal === null || isNaN(cnsParseNumber(sVal, NaN))) {
+                    swal('Perhatian', 'Parameter ' + sKey.replace(/_/g, ' ') + ' pada kolom AVERAGE wajib diisi.', 'warning');
+                    return;
+                }
+            }
+        }
+
         var formData = new FormData(form);
+        if (qcType === 'SURVEYOR') {
+            formData.set('Booking_ID', $('#edit_Surveyor_Booking_ID').val());
+            formData.set('QC_Category', 'EXTERNAL');
+        }
         $(form).find('input.cns-decimal').each(function() {
             var name = $(this).attr('name');
             if (name && $.trim($(this).val()) !== '') {

@@ -434,11 +434,11 @@ $Saya =  Auth::user()->username;
             <div class="d-flex align-items-center gap-3 flex-wrap" style="gap:16px;">
               <div class="d-flex align-items-center">
                 <label class="form-label mb-0 mr-2" style="white-space:nowrap;">DATE</label>
-                <input type="date" id="soDate" class="form-control form-control-sm" style="width:150px;" value="{{ date("Y-m-d") }}" />
+                <input type="date" id="soDate" class="text-black form-control form-control-sm" style="width:150px;" value="{{ date("Y-m-d") }}" />
               </div>
               <div class="d-flex align-items-center ml-3">
                 <label class="form-label mb-0 mr-2" style="white-space:nowrap;">SO CODE</label>
-                <input type="text" id="soCode" class="form-control form-control-sm" style="width:160px;" value="{{ $socode }}" />
+                <input type="text" id="soCode" class="text-black form-control form-control-sm" style="width:160px;" value="{{ $socode }}" />
               </div>
             </div>
           </div>
@@ -453,19 +453,19 @@ $Saya =  Auth::user()->username;
                 <div class="section-body">
                   <div class="form-group mb-2">
                     <label class="form-label">PIC</label>
-                    <input type="text" class="form-control" id="buyerPic" placeholder="Nama PIC" />
+                    <input type="text" class="text-black form-control" id="buyerPic" placeholder="Nama PIC" />
                   </div>
                   <div class="form-group mb-2">
                     <label class="form-label">Kota</label>
-                    <input type="text" class="form-control" id="buyerKota" placeholder="Kota" />
+                    <input type="text" class="text-black form-control" id="buyerKota" placeholder="Kota" />
                   </div>
                   <div class="form-group mb-2">
                     <label class="form-label">Provinsi</label>
-                    <input type="text" class="form-control" id="buyerProvinsi" placeholder="Provinsi" />
+                    <input type="text" class="text-black form-control" id="buyerProvinsi" placeholder="Provinsi" />
                   </div>
                   <div class="form-group mb-2">
                     <label class="form-label">Phone</label>
-                    <input type="text" class="form-control" id="buyerPhone" placeholder="+62 xxx-xxxx-xxxx" />
+                    <input type="text" class="text-black form-control" id="buyerPhone" placeholder="+62 xxx-xxxx-xxxx" />
                   </div>
                   <div id="buyerPaymentTermSlot"></div>
                 </div>
@@ -478,24 +478,24 @@ $Saya =  Auth::user()->username;
                   <div class="form-group mb-2">
                     <label class="form-label">Site</label>
                     <input type="hidden" id="site_id" name="site_id" value="" />
-                    <select class="form-control" id="site" name="site" value="" style="width: 100%;">
+                    <select class="text-black form-control" id="site" name="site" value="" style="width: 100%;">
                       <option value="" selected>-- Pilih Site --</option>
                     </select>
                   </div>
                   <div class="form-group mb-2">
                     <label class="form-label">Site Address</label>
-                    <textarea class="form-control" id="siteAddress" rows="3" placeholder="Alamat lengkap site"></textarea>
+                    <textarea class="text-black form-control" id="siteAddress" rows="3" placeholder="Alamat lengkap site"></textarea>
                   </div>
                   <div class="form-group mb-0" id="paymentTermGroup">
                     <label class="form-label">Payment Term</label>
-                    {{-- <select class="form-control" id="paymentTerm">
+                    {{-- <select class="text-black form-control" id="paymentTerm">
                       <option value="Transfer" selected>Transfer</option>
                       <!-- <option value="COD">COD</option> -->
                       <!-- <option value="Credit 30">Credit 30 Hari</option>
                         <option value="Credit 60">Credit 60 Hari</option> -->
                       <!-- <option value="Net 30">Net 30</option> -->
                     </select> --}}
-                    <input type="text" id="paymentTerm" class="form-control" value="Transfer">
+                    <input type="text" id="paymentTerm" class="text-black form-control" value="Transfer">
                   </div>
                 </div>
               </div>
@@ -548,19 +548,19 @@ $Saya =  Auth::user()->username;
                       <tr>
                         <td colspan="6" class="text-right">TAX</td>
                         <td class="text-right total-col">
-                          <input type="text" inputmode="decimal" class="form-control form-control-sm text-right cns-decimal" id="taxAmount" value="0.00" onchange="recalc()" style="width:110px;margin-left:auto;" />
+                          <input type="text" inputmode="decimal" class="text-black form-control form-control-sm text-right cns-decimal" id="taxAmount" value="0.00" onchange="recalc()" style="width:110px;margin-left:auto;" />
                         </td>
                       </tr>
                       <tr>
                         <td colspan="6" class="text-right">SHIPPING</td>
                         <td class="text-right total-col">
-                          <input type="text" inputmode="decimal" class="form-control form-control-sm text-right cns-decimal" id="shippingAmount" value="0.00" onchange="recalc()" style="width:110px;margin-left:auto;" />
+                          <input type="text" inputmode="decimal" class="text-black form-control form-control-sm text-right cns-decimal" id="shippingAmount" value="0.00" onchange="recalc()" style="width:110px;margin-left:auto;" />
                         </td>
                       </tr>
                       <tr>
                         <td colspan="6" class="text-right">OTHER</td>
                         <td class="text-right total-col">
-                          <input type="text" inputmode="decimal" class="form-control form-control-sm text-right cns-decimal" id="otherAmount" value="0.00" onchange="recalc()" style="width:110px;margin-left:auto;" />
+                          <input type="text" inputmode="decimal" class="text-black form-control form-control-sm text-right cns-decimal" id="otherAmount" value="0.00" onchange="recalc()" style="width:110px;margin-left:auto;" />
                         </td>
                       </tr>
                       <tr class="total-row">
@@ -578,7 +578,7 @@ $Saya =  Auth::user()->username;
             <div class="mb-4">
               <div class="section-header">Remarks</div>
               <div class="section-body">
-                <textarea class="form-control" id="remarks" rows="3" placeholder="Catatan tambahan..."></textarea>
+                <textarea class="text-black form-control" id="remarks" rows="3" placeholder="Catatan tambahan..."></textarea>
               </div>
             </div>
 

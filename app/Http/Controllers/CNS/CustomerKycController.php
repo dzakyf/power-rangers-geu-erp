@@ -288,7 +288,8 @@ class CustomerKycController extends Controller
                 'updated_by'               => Auth::user()->username ?? Auth::user()->name ?? 'system',
             ];
 
-            if ($kyc->isRejected()) {
+            $wasRejected = $kyc->isRejected();
+            if ($wasRejected) {
                 $updatePayload['approval_status'] = CnsCustomerKyc::STATUS_PENDING;
                 $updatePayload['approved_by'] = null;
                 $updatePayload['approved_at'] = null;
@@ -299,9 +300,13 @@ class CustomerKycController extends Controller
 
             DB::commit();
 
+            $successMessage = $wasRejected
+                ? 'Revisi Form KYC ' . $kyc->kyc_no . ' berhasil dikirim (status: PENDING).'
+                : 'Form KYC ' . $kyc->kyc_no . ' berhasil diperbarui.';
+
             return redirect()
                 ->route('cns-customer-compliance-kyc.detail', ['id' => $kyc->id])
-                ->with('success', 'Form KYC ' . $kyc->kyc_no . ' berhasil diperbarui.');
+                ->with('success', $successMessage);
         } catch (\Throwable $e) {
             DB::rollBack();
             Log::error('CNS Customer KYC update failed: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
@@ -345,8 +350,8 @@ class CustomerKycController extends Controller
                 ->with('error', 'Form KYC tidak ditemukan.');
         }
 
-        if ($kyc->isApproved()) {
-            return back()->with('error', 'KYC sudah di-approve sebelumnya.');
+        if (!$kyc->isPending()) {
+            return back()->with('error', 'Hanya KYC berstatus PENDING yang dapat di-approve.');
         }
 
         $actor = Auth::user()->username ?? Auth::user()->name ?? 'system';
@@ -364,9 +369,7 @@ class CustomerKycController extends Controller
             ]);
         });
 
-        return redirect()
-            ->route('cns-customer-compliance-kyc.detail', ['id' => $kyc->id])
-            ->with('success', 'Form KYC ' . $kyc->kyc_no . ' berhasil di-approve dan tersimpan di Master Company.');
+        return back()->with('success', 'Form KYC ' . $kyc->kyc_no . ' berhasil di-approve dan tersimpan di Master Company.');
     }
 
     protected function syncToMasterCompany(CnsCustomerKyc $kyc, string $actor): int
@@ -420,8 +423,8 @@ class CustomerKycController extends Controller
                 ->with('error', 'Form KYC tidak ditemukan.');
         }
 
-        if ($kyc->isApproved()) {
-            return back()->with('error', 'KYC yang sudah APPROVED tidak dapat ditolak.');
+        if (!$kyc->isPending()) {
+            return back()->with('error', 'Hanya KYC berstatus PENDING yang dapat ditolak.');
         }
 
         $validated = $request->validate([
@@ -438,9 +441,7 @@ class CustomerKycController extends Controller
             'updated_by'       => $actor,
         ]);
 
-        return redirect()
-            ->route('cns-customer-compliance-kyc.detail', ['id' => $kyc->id])
-            ->with('success', 'Form KYC ' . $kyc->kyc_no . ' ditolak (REJECTED).');
+        return back()->with('success', 'Form KYC ' . $kyc->kyc_no . ' ditolak (REJECTED).');
     }
 
     public function downloadDoc($id, $type)
