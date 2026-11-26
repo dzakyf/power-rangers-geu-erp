@@ -19,9 +19,10 @@
             border: 1px solid #444;
             padding: 5px 6px;
         }
-        .header-green {
-            background-color: #2e7d32;
-            color: #ffffff;
+        .header-green,
+        .header-green th {
+            background-color: #e8f5e9;
+            color: #1b5e20;
             font-weight: bold;
             text-align: center;
         }

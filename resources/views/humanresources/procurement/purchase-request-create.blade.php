@@ -95,19 +95,22 @@
                     </div>
                 </div>
 
+                
                 <!-- URGENSI, HOPE DATE, & COST CENTER -->
                 <div class="row mb-3" style="font-size: 12px;">
                     <div class="col-md-4">
                         <label class="font-weight-bold">Tingkat Urgensi PR:</label>
-                        <select class="form-control form-control-sm" name="urgency" required>
+                        <select class="form-control form-control-sm" id="urgency" name="urgency" required>
                             @foreach(['Normal', 'Emergency', 'Urgent', 'Planned', 'Project'] as $urg)
                                 <option value="{{ $urg }}" {{ old('urgency', 'Normal') == $urg ? 'selected' : '' }}>{{ $urg }}</option>
                             @endforeach
                         </select>
+                        <small id="leadtime_info" class="text-muted d-block mt-1"></small>
                     </div>
                     <div class="col-md-4">
                         <label class="font-weight-bold">Hope Date (Target Kedatangan):</label>
-                        <input type="date" class="form-control form-control-sm" name="hope_date" value="{{ old('hope_date', date('Y-m-d', strtotime('+7 days'))) }}">
+                        <input type="date" class="form-control form-control-sm" id="hope_date" name="hope_date" value="{{ old('hope_date', date('Y-m-d', strtotime('+7 days'))) }}">
+                        <small id="leadtime_calc_note" class="text-info d-block mt-1"></small>
                     </div>
                     <div class="col-md-4">
                         <label class="font-weight-bold">Cost Center:</label>
@@ -370,5 +373,140 @@
             }
         });
     });
+
+
+function addBusinessDays(dateStr, daysToAdd) {
+    if (!dateStr) return '';
+    var parts = dateStr.split('-'); // YYYY-MM-DD
+    if (parts.length !== 3) return '';
+
+    var date = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+    var remaining = parseInt(daysToAdd, 10) || 0;
+    var step = remaining >= 0 ? 1 : -1;
+    remaining = Math.abs(remaining);
+
+    while (remaining > 0) {
+        date.setDate(date.getDate() + step);
+        var dayOfWeek = date.getDay(); // 0 = Minggu, 6 = Sabtu
+        if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+            remaining--;
+        }
+    }
+
+    var yyyy = date.getFullYear();
+    var mm   = String(date.getMonth() + 1).padStart(2, '0');
+    var dd   = String(date.getDate()).padStart(2, '0');
+    return yyyy + '-' + mm + '-' + dd;
+}
+
+function countBusinessDaysBetween(startStr, endStr) {
+    if (!startStr || !endStr) return 0;
+    var sParts = startStr.split('-');
+    var eParts = endStr.split('-');
+    var start = new Date(sParts[0], sParts[1] - 1, sParts[2]);
+    var end   = new Date(eParts[0], eParts[1] - 1, eParts[2]);
+    if (end <= start) return 0;
+
+    var cur = new Date(start.getTime());
+    var count = 0;
+    while (cur < end) {
+        cur.setDate(cur.getDate() + 1);
+        var d = cur.getDay();
+        if (d !== 0 && d !== 6) count++;
+    }
+    return count;
+}
+
+function syncLeadTimeWithUrgency(autoSetHopeDate) {
+    var prDate  = $('input[name="pr_date"]').val();
+    var urgency = $('#urgency').val();
+
+    // Mapping aturan lead time (hari kerja, tanpa Sabtu & Minggu)
+    var ruleMap = {
+        'Emergency': { days: 1, label: 'Lead time ≤ 1 hari kerja (Kritis / Darurat)', mode: 'max' },
+        'Urgent':    { days: 3, label: 'Lead time ≤ 3 hari kerja (Mendesak)', mode: 'max' },
+        'Normal':    { days: 5, label: 'Lead time ≤ 5 hari kerja (Pengadaan rutin)', mode: 'max' },
+        'Planned':   { days: 7, label: 'Lead time ≥ 7 hari kerja (Terencana)', mode: 'min' },
+        'Project':   { days: 7, label: 'Sesuai jadwal pelaksanaan proyek', mode: 'free' }
+    };
+
+    var rule = ruleMap[urgency] || ruleMap['Normal'];
+    $('#leadtime_info').text(rule.label);
+
+    if (prDate && autoSetHopeDate && rule.mode !== 'free') {
+        var targetDate = addBusinessDays(prDate, rule.days);
+        $('#hope_date').val(targetDate);
+    }
+
+    var hopeVal = $('#hope_date').val();
+    if (prDate && hopeVal) {
+        var bizDays = countBusinessDaysBetween(prDate, hopeVal);
+        $('#leadtime_calc_note').text('Estimasi durasi dari Tanggal PR: ' + bizDays + ' hari kerja (Sabtu & Minggu tidak dihitung)');
+    }
+}
+
+$(document).ready(function() {
+    // Saat pertama kali buka form, sinkronkan info tanpa menimpa old('hope_date') jika ada
+    syncLeadTimeWithUrgency(false);
+
+    // Saat Urgensi atau Tanggal PR berubah, otomatis hitung ulang Hope Date sesuai hari kerja
+    $('#urgency, input[name="pr_date"]').on('change', function() {
+        syncLeadTimeWithUrgency(true);
+    });
+
+    // Saat Hope Date diubah manual, perbarui informasi jumlah hari kerja
+    $('#hope_date').on('change', function() {
+        syncLeadTimeWithUrgency(false);
+    });
+});
+
+function validateLeadTime(showAlert) {
+    var prDate  = $('input[name="pr_date"]').val();
+    var hopeVal = $('#hope_date').val();
+    var urgency = $('#urgency').val();
+
+    if (!prDate || !hopeVal) {
+        return true;
+    }
+
+    // Jika Hope Date lebih awal dari Tanggal PR
+    if (hopeVal < prDate) {
+        var msgBefore = 'Hope Date tidak boleh lebih awal dari Tanggal PR (' + prDate + ').';
+        $('#leadtime_calc_note').removeClass('text-info').addClass('text-danger').text(msgBefore);
+        if (showAlert) alert(msgBefore);
+        return false;
+    }
+
+    var bizDays = countBusinessDaysBetween(prDate, hopeVal);
+    var isValid = true;
+    var msg = 'Estimasi durasi dari Tanggal PR: ' + bizDays + ' hari kerja (Sabtu & Minggu tidak dihitung)';
+    var errorMsg = '';
+
+    if (urgency === 'Emergency' && bizDays > 1) {
+        isValid = false;
+        errorMsg = 'Untuk urgensi Emergency, lead time maksimal 1 hari kerja (saat ini: ' + bizDays + ' hari kerja).';
+    } else if (urgency === 'Urgent' && bizDays > 3) {
+        isValid = false;
+        errorMsg = 'Untuk urgensi Urgent, lead time maksimal 3 hari kerja (saat ini: ' + bizDays + ' hari kerja).';
+    } else if (urgency === 'Normal' && bizDays > 5) {
+        isValid = false;
+        errorMsg = 'Untuk urgensi Normal, lead time maksimal 5 hari kerja (saat ini: ' + bizDays + ' hari kerja).';
+    } else if (urgency === 'Planned' && bizDays < 7) {
+        isValid = false;
+        errorMsg = 'Untuk urgensi Planned, lead time minimal 7 hari kerja (saat ini: ' + bizDays + ' hari kerja).';
+    }
+
+    if (!isValid) {
+        $('#leadtime_calc_note').removeClass('text-info').addClass('text-danger').text(errorMsg);
+        if (showAlert) {
+            alert(errorMsg);
+        }
+        return false;
+    }
+
+    $('#leadtime_calc_note').removeClass('text-danger').addClass('text-info').text(msg);
+    return true;
+}
+
     </script>
 @endsection

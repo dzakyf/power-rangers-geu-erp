@@ -57,7 +57,6 @@ use App\Http\Controllers\CNS\FlexibagInventoryController as CNSFlexibagInventory
 use App\Http\Controllers\CNS\GoodsReceiptController;
 use App\Http\Controllers\CNS\NonUcoInventoryController;
 use App\Http\Controllers\CNS\ExportChecklistController as CNSExportChecklistController;
-use App\Http\Controllers\CNS\CustomsClearanceController as CNSCustomsClearanceController;
 use App\Http\Controllers\CNS\ShipmentCostAllocationController as CNSShipmentCostAllocationController;
 use App\Http\Controllers\CNS\ProductAllocationController;
 use App\Http\Controllers\CNS\SalesForecastController;
@@ -2711,6 +2710,50 @@ Route::group(['middleware' => 'log.access'], function () {
     });
     Route::get('/xml-purchasing-order-rfq', function () {
         return view('humanresources.procurement.xml.purchasing-order-rfq');
+    });
+    Route::get('/purchasing-order-rfq-created', [ProcurementController::class, 'createRFQForm']);
+
+    Route::get('/rfq-approved-pr-list', [ProcurementController::class, 'getApprovedPRForRFQ']);
+
+    Route::get('/rfq-edit-panel', [ProcurementController::class, 'getRFQEditPanel']);
+
+Route::post('/rfq-update', [ProcurementController::class, 'updateRFQData']);
+
+Route::get('/rfq-preview', [ProcurementController::class, 'previewRFQ']);
+Route::get('/rfq-print', [ProcurementController::class, 'printRFQ']);
+Route::post('/rfq-send-wa', [ProcurementController::class, 'sendRFQWhatsApp']);
+Route::post('/rfq-send-email', [ProcurementController::class, 'sendRFQEmail']);
+
+// Create PO Emergency (Bypass PR / RFQ / QTN)
+Route::get('/po-emergency-form', [ProcurementController::class, 'createEmergencyPOForm'])->name('po.emergency.form');
+Route::post('/po-emergency-store', [ProcurementController::class, 'storeEmergencyPO'])->name('po.emergency.store');
+
+
+// Halaman & XML Purchase Order List (Single-Click via Button)
+Route::get('/purchase-order-list', [ProcurementController::class, 'purchaseOrderListIndex'])->name('po.list');
+Route::get('/xml-purchase-order-list', [ProcurementController::class, 'xmlPurchaseOrderList'])->name('po.xml.list');
+
+// Detail, Edit & Update PO
+Route::get('/po-detail', [ProcurementController::class, 'detailPO'])->name('po.detail');
+Route::get('/po-edit-form', [ProcurementController::class, 'editPOForm'])->name('po.edit.form');
+Route::post('/po-update', [ProcurementController::class, 'updatePO'])->name('po.update');
+
+// Approve, Cancel & Print PO
+Route::post('/po-approve', [ProcurementController::class, 'approvePO'])->name('po.approve');
+Route::post('/po-cancel', [ProcurementController::class, 'cancelPO'])->name('po.cancel');
+Route::get('/po-print', [ProcurementController::class, 'printPO'])->name('po.print');
+
+// Kirim PO Otomatis via WhatsApp & Email
+Route::post('/po-send-whatsapp', [ProcurementController::class, 'sendPOWhatsApp'])->name('po.send.wa');
+Route::post('/po-send-email', [ProcurementController::class, 'sendPOEmail'])->name('po.send.email');
+
+
+
+    Route::get('/purchasing-quotation', function () {
+        return view('humanresources.procurement.purchasing-quotation');
+    });
+    Route::get('/xml-purchasing-quotation', function () {
+        return view('humanresources.procurement.xml.purchasing-quotation');
     });
 
     // Route::get('/qtn-create-detail', function () {
@@ -5527,8 +5570,6 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::post("$masterSupplierPref-new-submit", [MasterSupplierController::class, "newMasterSupplierSubmit"]);
     Route::get("$masterSupplierPref-detail", [MasterSupplierController::class, "detailMasterSupplier"]);
     Route::post("$masterSupplierPref-detail-submit", [MasterSupplierController::class, "detailMasterSupplierSubmit"]);
-    Route::get("$masterSupplierPref-import-template", [MasterSupplierController::class, "downloadImportTemplate"])->middleware('can:cns.master_supplier.view');
-    Route::post("$masterSupplierPref-import", [MasterSupplierController::class, "importMasterSupplier"])->middleware('can:cns.master_supplier.create');
 
     $masterConsigneePref = "cns-master-consignee";
     Route::get("$masterConsigneePref", [MasterConsigneeController::class, "indexMasterConsignee"]);
@@ -5537,8 +5578,6 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::post("$masterConsigneePref-new-submit", [MasterConsigneeController::class, "newMasterConsigneeSubmit"]);
     Route::get("$masterConsigneePref-detail", [MasterConsigneeController::class, "detailMasterConsignee"]);
     Route::post("$masterConsigneePref-detail-submit", [MasterConsigneeController::class, "detailMasterConsigneeSubmit"]);
-    Route::get("$masterConsigneePref-import-template", [MasterConsigneeController::class, "downloadImportTemplate"])->middleware('can:cns.master_consignee.view');
-    Route::post("$masterConsigneePref-import", [MasterConsigneeController::class, "importMasterConsignee"])->middleware('can:cns.master_consignee.create');
 
     Route::get("cns-master-warehouses", [MasterDataController::class, 'getCnsMasterWarehouses'])->name('cns-master-warehouses');
 
@@ -5554,15 +5593,11 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$masterTankPref-options", [MasterTankController::class, 'options'])->name($masterTankPref . '.options');
     Route::get("$masterTankPref-balances", [MasterTankController::class, 'tankBalances'])->name($masterTankPref . '.balances');
     Route::get("$masterTankPref-logs/{id}", [MasterTankController::class, 'logs'])->name($masterTankPref . '.logs');
-    Route::get("$masterTankPref-import-template", [MasterTankController::class, 'downloadImportTemplate'])->name($masterTankPref . '.import-template')->middleware('can:cns.master_tank.view');
-    Route::post("$masterTankPref-import", [MasterTankController::class, 'importMasterTank'])->name($masterTankPref . '.import')->middleware('can:cns.master_tank.create');
 
     $masterKemasanPref = "cns-master-kemasan";
     Route::get("$masterKemasanPref", [MasterKemasanController::class, 'index'])->name($masterKemasanPref . '.index');
     Route::get("xml-$masterKemasanPref", [MasterKemasanController::class, 'xmlData'])->name($masterKemasanPref . '.xml');
-    Route::get("$masterKemasanPref-import-template", [MasterKemasanController::class, 'downloadImportTemplate'])->name($masterKemasanPref . '.import-template')->middleware('can:cns.master_kemasan.view');
-    Route::post("$masterKemasanPref-store", [MasterKemasanController::class, 'store'])->name($masterKemasanPref . '.store')->middleware('can:cns.master_kemasan.create');
-    Route::post("$masterKemasanPref-import", [MasterKemasanController::class, 'importMasterKemasan'])->name($masterKemasanPref . '.import')->middleware('can:cns.master_kemasan.create');
+    Route::post("$masterKemasanPref-store", [MasterKemasanController::class, 'store'])->name($masterKemasanPref . '.store');
     Route::post("$masterKemasanPref-update/{id}", [MasterKemasanController::class, 'update'])->name($masterKemasanPref . '.update');
     Route::post("$masterKemasanPref-delete/{id}", [MasterKemasanController::class, 'destroy'])->name($masterKemasanPref . '.delete');
 
@@ -5672,7 +5707,6 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::post("$sdPref-new-submit", [CNSSustainabilityDeclarationController::class, 'newSustainabilityDeclarationSubmit']);
     Route::get("$sdPref-detail", [CNSSustainabilityDeclarationController::class, 'detailSustainabilityDeclaration']);
     Route::post("$sdPref-detail-submit", [CNSSustainabilityDeclarationController::class, 'detailSustainabilityDeclarationSubmit']);
-    Route::post("$sdPref-approve", [CNSSustainabilityDeclarationController::class, 'approve'])->middleware('can:cns.sustainability_declaration.edit');
 
     $dnPref = "cns-export-delivery-note";
     Route::get("$dnPref", [CNSDeliveryNoteController::class, 'indexDeliveryNote']);
@@ -5721,6 +5755,7 @@ Route::group(['middleware' => 'log.access'], function () {
         Route::get("$cnsKemasanPref-balance", [KemasanInventoryController::class, 'balanceJson'])->name($cnsKemasanPref . '.balance');
     });
     Route::group(['middleware' => 'can:cns.inventory_kemasan.edit'], function () use ($cnsKemasanPref) {
+        Route::post("$cnsKemasanPref-manual-mutation", [KemasanInventoryController::class, 'manualMutation'])->name($cnsKemasanPref . '.manual-mutation');
         Route::post("$cnsKemasanPref-site-limits", [KemasanInventoryController::class, 'saveSiteLimits'])->name($cnsKemasanPref . '.site-limits');
     });
 
@@ -5894,9 +5929,7 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get("$exportAnnexPref-new", [CNSAnnexVIIController::class, 'newAnnex']);
     Route::post("$exportAnnexPref-new-submit", [CNSAnnexVIIController::class, 'store']);
     Route::get("$exportAnnexPref-data", [CNSAnnexVIIController::class, 'getAnnexData']);
-    Route::get("$exportAnnexPref-detail", [CNSAnnexVIIController::class, 'detailAnnex'])->middleware('can:cns.annex_vii.view');
     Route::post("$exportAnnexPref-get-si", [CNSAnnexVIIController::class, 'getSI']);
-    Route::post("$exportAnnexPref-approve", [CNSAnnexVIIController::class, 'approve'])->middleware('can:cns.annex_vii.edit');
     Route::get("$exportAnnexPref-print", [CNSAnnexVIIController::class, 'printAnnex']);
     Route::get("$exportAnnexPref-print-sample", [CNSAnnexVIIController::class, 'printAnnexSample']);
 
@@ -6003,18 +6036,6 @@ Route::group(['middleware' => 'log.access'], function () {
         Route::post("$exportChecklistPref-approve-payment", [CNSExportChecklistController::class, 'approvePayment']);
     });
 
-    // Customs Clearance
-    $customsClearancePref = "cns-export-customs-clearance";
-    Route::group(['middleware' => 'can:cns.customs_clearance.view'], function () use ($customsClearancePref) {
-        Route::get("$customsClearancePref", [CNSCustomsClearanceController::class, 'index']);
-        Route::get("xml-$customsClearancePref", [CNSCustomsClearanceController::class, 'indexXml']);
-        Route::get("$customsClearancePref-detail", [CNSCustomsClearanceController::class, 'detail']);
-        Route::get("$customsClearancePref-file/{id}/{docType}", [CNSCustomsClearanceController::class, 'file'])->name("$customsClearancePref.file");
-    });
-    Route::group(['middleware' => 'can:cns.customs_clearance.edit'], function () use ($customsClearancePref) {
-        Route::post("$customsClearancePref-save", [CNSCustomsClearanceController::class, 'save']);
-    });
-
     // Cost Allocation per Shipment
     $costAllocPref = "cns-export-cost-allocation";
     Route::group(['middleware' => 'can:cns.cost_allocation_shipment.view'], function () use ($costAllocPref) {
@@ -6086,7 +6107,7 @@ Route::group(['middleware' => 'log.access'], function () {
         Route::post("$exportInvoicingPref-reject/{id}", [ExportInvoicingController::class, 'reject'])->name($exportInvoicingPref . '-reject');
     });
 
-    // Dashboard Export Performance (SI01150)
+    // Dashboard Export Volume
     $dashboardExportPref = "cns-dashboard-export-volume";
     Route::group(['middleware' => 'can:cns.export_volume.view'], function () use ($dashboardExportPref) {
         Route::get("$dashboardExportPref", [ExportVolumeDashboardController::class, 'index'])->name($dashboardExportPref . '.index');

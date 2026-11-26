@@ -466,6 +466,10 @@ class ProcurementController extends Controller
         }
     }
 
+
+
+
+
     // Menampilkan Detail PR (Mode Read-Only)
     public function detailPR(Request $request) {
         $prNo = $request->query('PR_No');
@@ -786,6 +790,70 @@ class ProcurementController extends Controller
         'Created_By'   => $username,
     ]);
 
+
+    $prDetails = DB::table('purchase_request_dtl')
+    ->where('PR_No', $prNo)
+    ->orderBy('ID', 'ASC')
+    ->get();
+
+$sampleDtl = DB::table('rfq_dtl')->first();
+$dtlCols = $sampleDtl ? array_keys((array) $sampleDtl) : [];
+
+foreach ($prDetails as $item) {
+    $itemArr = (array) $item;
+    $prodCode = (string) $this->pickRowValue($itemArr, ['Product_Code', 'product_code'], '');
+    $prodDesc = (string) $this->pickRowValue($itemArr, ['Product_Desc', 'product_desc', 'Description'], '');
+    $spec     = (string) $this->pickRowValue($itemArr, ['Specification', 'specification', 'Spec'], '');
+    $qty      = (float)  $this->pickRowValue($itemArr, ['Qty', 'qty'], 1);
+    $unit     = (string) $this->pickRowValue($itemArr, ['Unit', 'unit'], 'PCS');
+    $price    = (float)  $this->pickRowValue($itemArr, ['Default_Price', 'Price', 'price', 'Est_Price'], 0);
+    $subtotal = $qty * $price;
+
+    $insertDtl = [];
+    if (!empty($dtlCols)) {
+        foreach ($dtlCols as $col) {
+            if (strtolower($col) === 'id') {
+                continue;
+            }
+            $lc = strtolower($col);
+            if ($lc === 'rfq_no') {
+                $insertDtl[$col] = $rfqNo;
+            } elseif ($lc === 'pr_no') {
+                $insertDtl[$col] = $prNo;
+            } elseif ($lc === 'product_code') {
+                $insertDtl[$col] = $prodCode;
+            } elseif (in_array($lc, ['product_desc', 'description'], true)) {
+                $insertDtl[$col] = $prodDesc;
+            } elseif (in_array($lc, ['specification', 'spec'], true)) {
+                $insertDtl[$col] = $spec;
+            } elseif ($lc === 'qty') {
+                $insertDtl[$col] = $qty;
+            } elseif ($lc === 'unit') {
+                $insertDtl[$col] = $unit;
+            } elseif (in_array($lc, ['price', 'est_price', 'default_price'], true)) {
+                $insertDtl[$col] = $price;
+            } elseif (in_array($lc, ['subtotal', 'total', 'amount'], true)) {
+                $insertDtl[$col] = $subtotal;
+            }
+        }
+    } else {
+        $insertDtl = [
+            'RFQ_No'        => $rfqNo,
+            'Product_Code'  => $prodCode,
+            'Product_Desc'  => $prodDesc,
+            'Specification' => $spec,
+            'Qty'           => $qty,
+            'Unit'          => $unit,
+            'Price'         => $price,
+            'Subtotal'      => $subtotal,
+        ];
+    }
+
+    if (!empty($insertDtl)) {
+        DB::table('rfq_dtl')->insert($insertDtl);
+    }
+}
+
     // 2. Ambil semua RFQ terkait PR ini untuk digabungkan di header purchase_request
     $allRfqs = DB::table('rfq')->where('PR_No', $prNo)->pluck('RFQ_No')->toArray();
     $combinedRfqNo = implode(', ', $allRfqs);
@@ -854,6 +922,656 @@ class ProcurementController extends Controller
         return view('humanresources.procurement.qtn-create-detail', compact('rfq', 'rfq_items'));
     }
 
+public function createRFQForm(Request $request)
+{
+    $prNo = trim((string) $request->query('PR_No'));
+    if ($prNo === '') {
+        return '<div class="alert alert-warning mb-0">Silakan pilih Nomor PR terlebih dahulu.</div>';
+    }
+
+    $header = DB::table('purchase_request')->where('PR_No', $prNo)->first();
+    if (!$header) {
+        return '<div class="alert alert-danger mb-0">Data Purchase Request tidak ditemukan.</div>';
+    }
+
+    $details = DB::table('purchase_request_dtl')
+        ->where('PR_No', $prNo)
+        ->orderBy('ID', 'ASC')
+        ->get();
+
+    $noteHistories = collect();
+    try {
+        $noteHistories = DB::table('pr_notes_history')
+            ->where('PR_No', $prNo)
+            ->orderBy('ID', 'DESC')
+            ->get();
+    } catch (\Exception $e) {
+        $noteHistories = collect();
+    }
+
+    // Ambil histori / tahapan approval dari Dynamic Approval Engine secara aman
+    $approvalReq = null;
+    $approvalTasks = collect();
+
+    try {
+        if (!empty($header->Approval_Request_ID)) {
+            $approvalReq = DB::table('approval_request')->where('ID', $header->Approval_Request_ID)->first();
+        }
+        if (!$approvalReq) {
+            $approvalReq = DB::table('approval_request')
+                ->where('Request_No', $prNo)
+                ->orderBy('ID', 'DESC')
+                ->first();
+        }
+
+        if ($approvalReq) {
+            $rawTasks = DB::table('approval_request_task')
+                ->where('Request_ID', $approvalReq->ID)
+                ->orderBy('Stage_Order', 'ASC')
+                ->orderBy('Level_Number', 'ASC')
+                ->orderBy('ID', 'ASC')
+                ->get();
+
+            $posMap = [];
+            try {
+                foreach (DB::table('master_position')->get() as $mp) {
+                    $posMap[(string) $mp->ID] = $mp->Position_Name ?? ($mp->Position_Code ?? '');
+                }
+            } catch (\Exception $ex) {
+            }
+
+            $userMap = [];
+            try {
+                foreach (DB::table('users')->get() as $u) {
+                    $label = $u->Name ?? ($u->name ?? ($u->username ?? ''));
+                    if (isset($u->id)) {
+                        $userMap[(string) $u->id] = $label;
+                    }
+                    if (!empty($u->username)) {
+                        $userMap[(string) $u->username] = $label ?: $u->username;
+                    }
+                }
+            } catch (\Exception $ex) {
+            }
+
+            foreach ($rawTasks as $t) {
+                $posKey = (string) ($t->Position_ID ?? '');
+                $actKey = (string) ($t->Acted_By ?? '');
+                $approvalTasks->push((object) [
+                    'Stage_Order'  => $t->Stage_Order ?? ($t->Level_Number ?? 1),
+                    'Position_Name'=> $t->Position_Name ?? ($posMap[$posKey] ?? ($t->Position_Code ?? 'Approver')),
+                    'Task_Status'  => $t->Status ?? 'PENDING',
+                    'Acted_By_Name'=> $userMap[$actKey] ?? ($actKey !== '' ? $actKey : '-'),
+                    'Acted_At'     => $t->Acted_At ?? '-',
+                    'Task_Notes'   => $t->Notes ?? '-',
+                ]);
+            }
+        }
+    } catch (\Exception $e) {
+        \Log::warning('createRFQForm approval history error: ' . $e->getMessage());
+    }
+
+    $listRfqsRaw = DB::table('rfq')
+        ->where('PR_No', $prNo)
+        ->orderBy('ID', 'ASC')
+        ->get();
+
+    $listRfqs = [];
+    $existingSupplierIds = [];
+
+    foreach ($listRfqsRaw as $rfq) {
+        $supplier = DB::table('supplier')->where('Supplier_ID', $rfq->Supplier_ID)->first();
+        $listRfqs[] = (object) [
+            'RFQ_No'       => $rfq->RFQ_No,
+            'RFQ_Date'     => $rfq->RFQ_Date,
+            'Supplier_ID'  => $rfq->Supplier_ID,
+            'Company_Name' => $supplier->Company_Name ?? $rfq->Supplier_ID,
+            'Status'       => $rfq->Status ?? 'SENT',
+        ];
+        $existingSupplierIds[] = $rfq->Supplier_ID;
+    }
+
+    $suppliersQuery = DB::table('supplier')->select('Supplier_ID', 'Company_Name');
+    if (!empty($existingSupplierIds)) {
+        $suppliersQuery->whereNotIn('Supplier_ID', $existingSupplierIds);
+    }
+    $suppliers = $suppliersQuery->orderBy('Company_Name', 'ASC')->get();
+
+    return view('humanresources.procurement.purchasing-order-rfq-created', compact(
+        'header',
+        'details',
+        'noteHistories',
+        'approvalReq',
+        'approvalTasks',
+        'suppliers',
+        'listRfqs'
+    ));
+}
+
+
+public function getApprovedPRForRFQ()
+{
+    try {
+        $rows = DB::table('purchase_request')->get();
+
+        $filtered = [];
+        foreach ($rows as $row) {
+            $arr = (array) $row;
+            $statusVal = '';
+            foreach ($arr as $k => $v) {
+                if (strtolower($k) === 'status') {
+                    $statusVal = strtoupper(trim((string) $v));
+                    break;
+                }
+            }
+
+            if (!in_array($statusVal, ['APPROVED', 'PARTIAL_PO'], true)) {
+                continue;
+            }
+
+            $getField = function ($keys, $default = '') use ($arr) {
+                foreach ($keys as $k) {
+                    if (array_key_exists($k, $arr) && $arr[$k] !== null) {
+                        return $arr[$k];
+                    }
+                    foreach ($arr as $ak => $av) {
+                        if (strtolower($ak) === strtolower($k) && $av !== null) {
+                            return $av;
+                        }
+                    }
+                }
+                return $default;
+            };
+
+            $filtered[] = [
+                'id'               => (int) $getField(['ID', 'id'], 0),
+                'PR_No'            => (string) $getField(['PR_No', 'pr_no'], ''),
+                'PR_Date'          => (string) $getField(['PR_Date', 'pr_date'], ''),
+                'Department'       => (string) $getField(['Department', 'department'], '-'),
+                'PIC'              => (string) $getField(['PIC', 'pic', 'Created_By', 'created_by'], '-'),
+                'Estimated_Budget' => (float) $getField(['Estimated_Budget', 'estimated_budget'], 0),
+                'Status'           => $statusVal,
+            ];
+        }
+
+        usort($filtered, function ($a, $b) {
+            return $b['id'] <=> $a['id'];
+        });
+
+        return response()->json([
+            'status' => 'success',
+            'data'   => $filtered,
+        ]);
+    } catch (\Exception $e) {
+        \Log::error('getApprovedPRForRFQ error: ' . $e->getMessage());
+        return response()->json([
+            'status'  => 'error',
+            'message' => $e->getMessage(),
+        ], 500);
+    }
+}
+
+
+private function pickRowValue(array $arr, array $candidates, $default = null)
+{
+    foreach ($candidates as $key) {
+        if (array_key_exists($key, $arr) && $arr[$key] !== null) {
+            return $arr[$key];
+        }
+        foreach ($arr as $ak => $av) {
+            if (strtolower((string) $ak) === strtolower((string) $key) && $av !== null) {
+                return $av;
+            }
+        }
+    }
+    return $default;
+}
+
+public function getRFQEditPanel(Request $request)
+{
+    $rfqNo = trim((string) $request->query('rfq_no'));
+    if ($rfqNo === '') {
+        return '<div class="alert alert-warning mb-0">Nomor RFQ tidak ditemukan.</div>';
+    }
+
+    try {
+        $rfqRow = DB::table('rfq')->where('RFQ_No', $rfqNo)->first();
+        if (!$rfqRow) {
+            $rfqRow = DB::table('rfq')->where('rfq_no', $rfqNo)->first();
+        }
+        if (!$rfqRow) {
+            return '<div class="alert alert-danger mb-0">Data RFQ <strong>' . e($rfqNo) . '</strong> tidak ditemukan.</div>';
+        }
+
+        $rfqArr = (array) $rfqRow;
+        $header = (object) [
+            'RFQ_No'      => (string) $this->pickRowValue($rfqArr, ['RFQ_No', 'rfq_no'], $rfqNo),
+            'PR_No'       => (string) $this->pickRowValue($rfqArr, ['PR_No', 'pr_no'], '-'),
+            'Supplier_ID' => (string) $this->pickRowValue($rfqArr, ['Supplier_ID', 'supplier_id'], ''),
+            'RFQ_Date'    => (string) $this->pickRowValue($rfqArr, ['RFQ_Date', 'rfq_date'], date('Y-m-d')),
+            'Status'      => (string) $this->pickRowValue($rfqArr, ['Status', 'status'], 'SENT'),
+            'Note'        => (string) $this->pickRowValue($rfqArr, ['Note', 'note', 'Notes', 'notes', 'Remark', 'remark'], ''),
+        ];
+
+        $detailRows = DB::table('rfq_dtl')
+            ->where('RFQ_No', $header->RFQ_No)
+            ->orderBy('ID', 'ASC')
+            ->get();
+
+        // Fallback jika tabel detail menggunakan nama kolom/tabel berbeda
+        if ($detailRows->isEmpty()) {
+            try {
+                $detailRows = DB::table('rfq_dtl')
+                    ->where('rfq_no', $header->RFQ_No)
+                    ->get();
+            } catch (\Exception $ex) {
+                $detailRows = collect();
+            }
+        }
+
+
+
+        $details = [];
+        foreach ($detailRows as $d) {
+            $dArr = (array) $d;
+            $details[] = (object) [
+                'ID'            => $this->pickRowValue($dArr, ['ID', 'id'], 0),
+                'Product_Code'  => (string) $this->pickRowValue($dArr, ['Product_Code', 'product_code'], ''),
+                'Product_Desc'  => (string) $this->pickRowValue($dArr, ['Product_Desc', 'product_desc', 'Description', 'description'], ''),
+                'Specification' => (string) $this->pickRowValue($dArr, ['Specification', 'specification', 'Spec', 'spec'], ''),
+                'Qty'           => (float) $this->pickRowValue($dArr, ['Qty', 'qty'], 1),
+                'Unit'          => (string) $this->pickRowValue($dArr, ['Unit', 'unit'], 'PCS'),
+                'Price'         => (float) $this->pickRowValue($dArr, ['Est_Price', 'Quoted_Price', 'Price', 'price', 'Default_Price'], 0),
+                'Note'          => (string) $this->pickRowValue($dArr, ['Note', 'note', 'Remark', 'remark'], ''),
+            ];
+        }
+
+        if (empty($details) && !empty($header->PR_No) && $header->PR_No !== '-') {
+            $prItems = DB::table('purchase_request_dtl')
+                ->where('PR_No', $header->PR_No)
+                ->orderBy('ID', 'ASC')
+                ->get();
+
+            foreach ($prItems as $d) {
+                $dArr = (array) $d;
+                $details[] = (object) [
+                    'ID'            => $this->pickRowValue($dArr, ['ID', 'id'], 0),
+                    'Product_Code'  => (string) $this->pickRowValue($dArr, ['Product_Code', 'product_code'], ''),
+                    'Product_Desc'  => (string) $this->pickRowValue($dArr, ['Product_Desc', 'product_desc', 'Description'], ''),
+                    'Specification' => (string) $this->pickRowValue($dArr, ['Specification', 'specification', 'Spec'], ''),
+                    'Qty'           => (float)  $this->pickRowValue($dArr, ['Qty', 'qty'], 1),
+                    'Unit'          => (string) $this->pickRowValue($dArr, ['Unit', 'unit'], 'PCS'),
+                    'Price'         => (float)  $this->pickRowValue($dArr, ['Default_Price', 'Est_Price', 'Price', 'price'], 0),
+                    'Note'          => '',
+                ];
+            }
+        }
+
+        $productOptions = [];
+        try {
+            $rawProducts = DB::table('product_code')
+                ->orderBy('Product_Code', 'ASC')
+                ->get();
+
+            foreach ($rawProducts as $p) {
+                $pArr   = (array) $p;
+                $status = strtoupper(trim((string) $this->pickRowValue($pArr, ['status_Muncul', 'status_muncul', 'Status'], 'ACTIVE')));
+                if ($status !== '' && !in_array($status, ['ACTIVE', 'AKTIF', 'Y', '1'], true)) {
+                    continue;
+                }
+
+                $pCode = trim((string) $this->pickRowValue($pArr, ['Product_Code', 'product_code'], ''));
+                $pName = trim((string) $this->pickRowValue($pArr, ['Description', 'description', 'Product_Desc'], ''));
+                $pSpec = trim((string) $this->pickRowValue($pArr, ['Specification', 'specification'], ''));
+                $pUnit = trim((string) $this->pickRowValue($pArr, ['Unit_Name', 'unit_name', 'Unit'], 'PCS')) ?: 'PCS';
+
+                if ($pCode !== '' || $pName !== '') {
+                    $productOptions[] = [
+                        'code'  => $pCode,
+                        'name'  => $pName,
+                        'spec'  => $pSpec,
+                        'unit'  => $pUnit,
+                        'price' => 0,
+                    ];
+                }
+            }
+        } catch (\Exception $ex) {
+            \Log::warning('getRFQEditPanel load product_code error: ' . $ex->getMessage());
+        }
+
+        $suppliers = DB::table('supplier')
+            ->orderBy('Company_Name', 'ASC')
+            ->get();
+
+        return view('humanresources.procurement.purchasing-order-rfq-edit', compact(
+            'header',
+            'details',
+            'suppliers',
+            'productOptions'
+        ));
+    } catch (\Exception $e) {
+        \Log::error('getRFQEditPanel error: ' . $e->getMessage());
+        return '<div class="alert alert-danger mb-0">Gagal memuat panel edit RFQ: ' . e($e->getMessage()) . '</div>';
+    }
+}
+
+public function updateRFQData(Request $request)
+{
+    $rfqNo      = trim((string) $request->input('rfq_no'));
+    $supplierId = trim((string) $request->input('supplier_id'));
+    $rfqDate    = trim((string) $request->input('rfq_date'));
+    $status     = trim((string) $request->input('status', 'SENT'));
+    $note       = (string) $request->input('note', '');
+    $items      = $request->input('items', []);
+
+    if ($rfqNo === '' || $supplierId === '' || $rfqDate === '') {
+        return response()->json([
+            'status'  => 'error',
+            'message' => 'No. RFQ, Vendor/Supplier, dan Tanggal RFQ wajib diisi.'
+        ], 422);
+    }
+
+    DB::beginTransaction();
+    try {
+        $rfqRow = DB::table('rfq')->where('RFQ_No', $rfqNo)->first();
+        if (!$rfqRow) {
+            $rfqRow = DB::table('rfq')->where('rfq_no', $rfqNo)->first();
+        }
+        if (!$rfqRow) {
+            DB::rollBack();
+            return response()->json([
+                'status'  => 'error',
+                'message' => "Data RFQ {$rfqNo} tidak ditemukan."
+            ], 404);
+        }
+
+        $rfqArr = (array) $rfqRow;
+        $prNo   = (string) $this->pickRowValue($rfqArr, ['PR_No', 'pr_no'], '');
+        $actor  = auth()->user()->username ?? (auth()->user()->name ?? (session('username') ?? 'system'));
+        $nowStr = now()->format('Y-m-d H:i:s');
+
+        $headerUpdate = [];
+        foreach ($rfqArr as $col => $val) {
+            $lc = strtolower($col);
+            if ($lc === 'supplier_id') {
+                $headerUpdate[$col] = $supplierId;
+            } elseif ($lc === 'rfq_date') {
+                $headerUpdate[$col] = $rfqDate;
+            } elseif ($lc === 'status') {
+                $headerUpdate[$col] = $status;
+            } elseif (in_array($lc, ['note', 'notes', 'remark'], true)) {
+                $headerUpdate[$col] = $note;
+            } elseif (in_array($lc, ['updated_by', 'last_update_by'], true)) {
+                $headerUpdate[$col] = $actor;
+            } elseif (in_array($lc, ['updated_at', 'updated_date', 'last_update', 'modified_date'], true)) {
+                $headerUpdate[$col] = $nowStr;
+            }
+        }
+
+        $grandTotal = 0;
+
+        // Hapus detail lama lalu insert ulang sesuai struktur rfq_dtl
+        $deleted = DB::table('rfq_dtl')->where('RFQ_No', $rfqNo)->delete();
+        if ($deleted === 0) {
+            DB::table('rfq_dtl')->where('rfq_no', $rfqNo)->delete();
+        }
+
+        if (!empty($items) && is_array($items)) {
+            foreach ($items as $row) {
+                $prodCode = trim((string) ($row['product_code'] ?? ''));
+                $prodDesc = trim((string) ($row['product_desc'] ?? ''));
+                $spec     = trim((string) ($row['specification'] ?? ''));
+                $qty      = (float) ($row['qty'] ?? 0);
+                $unit     = trim((string) ($row['unit'] ?? 'PCS')) ?: 'PCS';
+                $price    = (float) ($row['price'] ?? 0);
+
+                if ($prodCode === '' && $prodDesc === '') {
+                    continue;
+                }
+
+                $totalPrice = $qty * $price;
+                $grandTotal += $totalPrice;
+
+                DB::table('rfq_dtl')->insert([
+                    'RFQ_No'        => $rfqNo,
+                    'PR_No'         => $prNo,
+                    'Supplier_ID'   => $supplierId,
+                    'Product_Code'  => $prodCode,
+                    'Product_Desc'  => $prodDesc,
+                    'Specification' => $spec,
+                    'Qty'           => $qty,
+                    'Unit'          => $unit,
+                    'Est_Price'     => $price,
+                    'Total_Price'   => $totalPrice,
+                    'Created_By'    => $actor,
+                    'Created_Date'  => $nowStr,
+                    'Updated_By'    => $actor,
+                    'Updated_Date'  => $nowStr,
+                ]);
+            }
+        }
+
+        // Update Grand Total pada header RFQ jika kolomnya ada
+        foreach ($rfqArr as $col => $val) {
+            if (in_array(strtolower($col), ['grand_total', 'total_amount', 'total'], true)) {
+                $headerUpdate[$col] = $grandTotal;
+            }
+        }
+
+        if (!empty($headerUpdate)) {
+            $updated = DB::table('rfq')->where('RFQ_No', $rfqNo)->update($headerUpdate);
+            if ($updated === 0) {
+                DB::table('rfq')->where('rfq_no', $rfqNo)->update($headerUpdate);
+            }
+        }
+
+        DB::commit();
+
+        return response()->json([
+            'status'  => 'success',
+            'message' => "RFQ {$rfqNo} berhasil diperbarui!"
+        ]);
+    } catch (\Exception $e) {
+        DB::rollBack();
+        \Log::error('updateRFQData error: ' . $e->getMessage());
+        return response()->json([
+            'status'  => 'error',
+            'message' => 'Gagal menyimpan perubahan RFQ: ' . $e->getMessage()
+        ], 500);
+    }
+}
+
+
+// 1. Preview RFQ (Menampilkan PDF inline atau view HTML preview sebelum kirim/download)
+    public function previewRFQ(Request $request)
+    {
+        $rfqNo = trim((string) ($request->query('rfq_no') ?? $request->query('rfq')));
+        if ($rfqNo === '') {
+            return '<div class="alert alert-warning m-3">Nomor RFQ tidak ditemukan.</div>';
+        }
+
+        $rfq = DB::table('rfq as r')
+            ->leftJoin('supplier as s', DB::raw('r.Supplier_ID COLLATE utf8mb4_unicode_ci'), '=', DB::raw('s.Supplier_ID COLLATE utf8mb4_unicode_ci'))
+            ->leftJoin('purchase_request as pr', DB::raw('r.PR_No COLLATE utf8mb4_unicode_ci'), '=', DB::raw('pr.PR_No COLLATE utf8mb4_unicode_ci'))
+            ->select(
+                'r.*',
+                's.Company_Name', 's.Address as Supplier_Address', 's.Contact_Person', 's.Phone', 's.Email',
+                'pr.Department', 'pr.PIC', 'pr.PIC_Phone', 'pr.PIC_Email', 'pr.PIC_Address as Site_Tujuan', 'pr.Note as PR_Note'
+            )
+            ->where('r.RFQ_No', $rfqNo)
+            ->first();
+
+        if (!$rfq) {
+            return '<div class="alert alert-danger m-3">Data RFQ <strong>' . e($rfqNo) . '</strong> tidak ditemukan.</div>';
+        }
+
+        $items = DB::table('rfq_dtl')->where('RFQ_No', $rfqNo)->orderBy('ID', 'ASC')->get();
+        if ($items->isEmpty()) {
+            $items = DB::table('purchase_request_dtl')->where('PR_No', $rfq->PR_No)->orderBy('ID', 'ASC')->get();
+        }
+
+        // Jika dipanggil dengan ?mode=html, tampilkan panel preview interaktif (lengkap dengan info kontak vendor & tombol aksi)
+        if ($request->query('mode') === 'html') {
+            return view('humanresources.procurement.rfq-preview-panel', compact('rfq', 'items'));
+        }
+
+        // Default: langsung stream PDF inline untuk iframe Preview RFQ
+        return $this->printRFQ($request->merge(['rfq' => $rfqNo]));
+    }
+
+    // 2. Kirim RFQ via WhatsApp otomatis sesuai data master supplier
+    public function sendRFQWhatsApp(Request $request)
+    {
+        $rfqNo = trim((string) $request->input('rfq_no'));
+        $rfq = DB::table('rfq as r')
+            ->leftJoin('supplier as s', DB::raw('r.Supplier_ID COLLATE utf8mb4_unicode_ci'), '=', DB::raw('s.Supplier_ID COLLATE utf8mb4_unicode_ci'))
+            ->select('r.*', 's.Company_Name', 's.Contact_Person', 's.Phone', 's.Email')
+            ->where('r.RFQ_No', $rfqNo)
+            ->first();
+
+        if (!$rfq) {
+            return response()->json(['status' => 'error', 'message' => 'Data RFQ tidak ditemukan.'], 404);
+        }
+
+        $rawPhone = preg_replace('/[^0-9]/', '', (string) ($rfq->Phone ?? ''));
+        if ($rawPhone === '') {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Nomor WhatsApp/Telepon vendor (' . ($rfq->Company_Name ?? $rfq->Supplier_ID) . ') belum terdaftar di Master Supplier. Silakan gunakan tombol Download PDF.'
+            ], 422);
+        }
+
+        if (str_starts_with($rawPhone, '0')) {
+            $rawPhone = '62' . substr($rawPhone, 1);
+        }
+
+        $items = DB::table('rfq_dtl')->where('RFQ_No', $rfqNo)->orderBy('ID', 'ASC')->get();
+        $itemLines = [];
+        foreach ($items as $idx => $it) {
+            $itemLines[] = ($idx + 1) . ". {$it->Product_Desc} ({$it->Qty} {$it->Unit})";
+        }
+
+        $pdfLink = url('rfq-print?rfq=' . urlencode($rfqNo));
+        $vendorName = $rfq->Company_Name ?? $rfq->Supplier_ID;
+        $picName    = !empty($rfq->Contact_Person) ? "Bpk/Ibu {$rfq->Contact_Person}" : "Tim {$vendorName}";
+
+        $text = "Halo {$picName} ({$vendorName}),\n\n"
+              . "Berikut kami kirimkan *Request For Quotation (RFQ)* dari *PT Green Energi Utama*:\n"
+              . "• No. RFQ: *{$rfq->RFQ_No}*\n"
+              . "• No. PR: {$rfq->PR_No}\n"
+              . "• Tanggal: {$rfq->RFQ_Date}\n\n"
+              . "*Daftar Kebutuhan:*\n" . implode("\n", $itemLines) . "\n\n"
+              . "Dokumen RFQ PDF dapat diunduh melalui tautan berikut:\n{$pdfLink}\n\n"
+              . "Mohon dapat mengirimkan penawaran harga terbaik Anda. Terima kasih.";
+
+        // Update status DRAFT menjadi SENT saat dikirim
+        if (strtoupper((string) $rfq->Status) === 'DRAFT') {
+            DB::table('rfq')->where('RFQ_No', $rfqNo)->update(['Status' => 'SENT']);
+        }
+
+        $waUrl = 'https://wa.me/' . $rawPhone . '?text=' . urlencode($text);
+
+        return response()->json([
+            'status'  => 'success',
+            'wa_url'  => $waUrl,
+            'phone'   => $rawPhone,
+            'message' => "Menyiapkan pengiriman WhatsApp ke {$vendorName} ({$rawPhone})..."
+        ]);
+    }
+
+    // 3. Kirim RFQ via Email otomatis sesuai data master supplier (melampirkan PDF RFQ)
+    public function sendRFQEmail(Request $request)
+    {
+        $rfqNo = trim((string) $request->input('rfq_no'));
+        $rfq = DB::table('rfq as r')
+            ->leftJoin('supplier as s', DB::raw('r.Supplier_ID COLLATE utf8mb4_unicode_ci'), '=', DB::raw('s.Supplier_ID COLLATE utf8mb4_unicode_ci'))
+            ->leftJoin('purchase_request as pr', DB::raw('r.PR_No COLLATE utf8mb4_unicode_ci'), '=', DB::raw('pr.PR_No COLLATE utf8mb4_unicode_ci'))
+            ->select(
+                'r.*',
+                's.Company_Name', 's.Address as Supplier_Address', 's.Contact_Person', 's.Phone', 's.Email',
+                'pr.Department', 'pr.PIC', 'pr.PIC_Phone', 'pr.PIC_Email', 'pr.PIC_Address as Site_Tujuan', 'pr.Note as PR_Note'
+            )
+            ->where('r.RFQ_No', $rfqNo)
+            ->first();
+
+        if (!$rfq) {
+            return response()->json(['status' => 'error', 'message' => 'Data RFQ tidak ditemukan.'], 404);
+        }
+
+        $vendorEmail = trim((string) ($rfq->Email ?? ''));
+        if ($vendorEmail === '' || !filter_var($vendorEmail, FILTER_VALIDATE_EMAIL)) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Alamat Email vendor (' . ($rfq->Company_Name ?? $rfq->Supplier_ID) . ') belum terdaftar / tidak valid di Master Supplier. Silakan gunakan tombol Download PDF.'
+            ], 422);
+        }
+
+        $items = DB::table('rfq_dtl')->where('RFQ_No', $rfqNo)->orderBy('ID', 'ASC')->get();
+        if ($items->isEmpty()) {
+            $items = DB::table('purchase_request_dtl')->where('PR_No', $rfq->PR_No)->orderBy('ID', 'ASC')->get();
+        }
+
+        try {
+            // Generate file PDF RFQ sementara untuk dilampirkan di email
+            $mpdfTempDir = storage_path('app/mpdf');
+            if (!file_exists($mpdfTempDir)) {
+                mkdir($mpdfTempDir, 0775, true);
+            }
+
+            $mpdf = new \Mpdf\Mpdf([
+                'mode'          => 'utf-8',
+                'format'        => 'A4',
+                'tempDir'       => $mpdfTempDir,
+                'margin_left'   => 10,
+                'margin_right'  => 10,
+                'margin_top'    => 38,
+                'margin_bottom' => 15,
+                'margin_header' => 5,
+                'margin_footer' => 5,
+            ]);
+
+            $kopPath = public_path('assets/images/surat/header_geu.jpg');
+            if (file_exists($kopPath)) {
+                $mpdf->SetHTMLHeader('
+                    <div style="text-align: center; border-bottom: 1.5px solid #689f38; padding-bottom: 5px;">
+                        <img src="' . $kopPath . '" style="width: 100%; max-height: 95px;">
+                    </div>
+                ');
+            }
+
+            $html = view('humanresources.procurement.rfq-print', compact('rfq', 'items'))->render();
+            $mpdf->WriteHTML($html);
+            $pdfBinary = $mpdf->Output('', 'S');
+            $safeFilename = str_replace('/', '-', $rfq->RFQ_No) . '.pdf';
+
+            $vendorName = $rfq->Company_Name ?? $rfq->Supplier_ID;
+            $bodyText = "Kepada Yth. {$vendorName},\n\n"
+                      . "Terlampir kami kirimkan dokumen Request For Quotation (RFQ) dengan nomor {$rfq->RFQ_No} (Ref PR: {$rfq->PR_No}).\n"
+                      . "Mohon dapat mengirimkan penawaran harga terbaik beserta estimasi waktu pengiriman.\n\n"
+                      . "Hormat kami,\nProcurement Team - PT Green Energi Utama";
+
+            \Mail::raw($bodyText, function ($message) use ($vendorEmail, $vendorName, $rfq, $pdfBinary, $safeFilename) {
+                $message->to($vendorEmail, $vendorName)
+                    ->subject("Request For Quotation (RFQ) - {$rfq->RFQ_No}")
+                    ->attachData($pdfBinary, $safeFilename, ['mime' => 'application/pdf']);
+            });
+
+            if (strtoupper((string) $rfq->Status) === 'DRAFT') {
+                DB::table('rfq')->where('RFQ_No', $rfqNo)->update(['Status' => 'SENT']);
+            }
+
+            return response()->json([
+                'status'  => 'success',
+                'message' => "Dokumen RFQ {$rfqNo} berhasil dikirim via Email ke {$vendorName} ({$vendorEmail})!"
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('sendRFQEmail error: ' . $e->getMessage());
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Gagal mengirim email RFQ: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 
 
     // 2. Menyimpan Penawaran Harga Vendor (Quotation) ke rfq & rfq_dtl
@@ -2721,6 +3439,587 @@ private function sendOneSignalNotification(array $targetExternalIds, $title, $me
         \Log::warning('OneSignal PR Created error: ' . $curlErr);
     } elseif ($response) {
         \Log::info('OneSignal PR Created response: ' . $response);
+    }
+}
+
+        // 1. Tampilkan Halaman Utama Purchase Order List
+public function purchaseOrderListIndex()
+{
+    return view('humanresources.procurement.purchase-order-list');
+}
+
+// 2. Endpoint XML DHTMLX Grid untuk Seluruh Daftar Purchase Order
+public function xmlPurchaseOrderList()
+{
+    $pos = DB::table('purchase_order as po')
+        ->leftJoin(
+            'supplier as s',
+            DB::raw('po.Supplier COLLATE utf8mb4_unicode_ci'),
+            '=',
+            DB::raw('s.Supplier_ID COLLATE utf8mb4_unicode_ci')
+        )
+        ->select(
+            'po.ID',
+            'po.PO_No',
+            'po.PO_Date',
+            'po.PR_No',
+            'po.Supplier',
+            's.Company_Name',
+            'po.Department',
+            'po.Term_Payment',
+            'po.Total',
+            'po.Status',
+            'po.Status_Receive',
+            'po.User_Trx'
+        )
+        ->orderBy('po.ID', 'desc')
+        ->get();
+
+    $xml = '<?xml version="1.0" encoding="UTF-8"?>';
+    $xml .= '<rows>';
+
+    $no = 1;
+    foreach ($pos as $row) {
+        $vendorDisplay = $row->Company_Name
+            ? $row->Supplier . ' - ' . $row->Company_Name
+            : ($row->Supplier ?? '-');
+
+        $xml .= '<row id="' . htmlspecialchars($row->PO_No) . '">';
+        $xml .= '<cell>' . $no++ . '</cell>';
+        $xml .= '<cell>' . htmlspecialchars($row->PO_No) . '</cell>';
+        $xml .= '<cell>' . htmlspecialchars($row->PO_Date ?? '-') . '</cell>';
+        $xml .= '<cell>' . htmlspecialchars($row->PR_No ?? '-') . '</cell>';
+        $xml .= '<cell>' . htmlspecialchars($vendorDisplay) . '</cell>';
+        $xml .= '<cell>' . htmlspecialchars($row->Department ?? '-') . '</cell>';
+        $xml .= '<cell>' . htmlspecialchars($row->Term_Payment ?? '-') . '</cell>';
+        $xml .= '<cell>' . number_format($row->Total ?? 0, 0, ',', '.') . '</cell>';
+        $xml .= '<cell>' . htmlspecialchars($row->Status ?? 'OPEN') . '</cell>';
+        $xml .= '<cell>' . htmlspecialchars($row->Status_Receive ?? 'OPEN') . '</cell>';
+        $xml .= '<cell>' . htmlspecialchars($row->User_Trx ?? '-') . '</cell>';
+        $xml .= '</row>';
+    }
+
+    $xml .= '</rows>';
+
+    return response($xml, 200)->header('Content-Type', 'text/xml');
+}
+
+// 3. Form Edit PO (Disamakan dengan form Create PO Emergency + fitur tambah/hapus item)
+public function editPOForm(Request $request)
+{
+    $poNo = trim((string) $request->query('PO_No'));
+    $poHeader = DB::table('purchase_order')->where('PO_No', $poNo)->first();
+
+    if (!$poHeader) {
+        return '<div class="alert alert-danger mb-0">Data Purchase Order tidak ditemukan.</div>';
+    }
+
+    $poItems = DB::table('purchase_order_dtl')
+        ->where('PO_No', $poNo)
+        ->orderBy('ID', 'ASC')
+        ->get();
+
+    $suppliers = DB::table('supplier')
+        ->orderBy('Company_Name', 'ASC')
+        ->get();
+
+    $departments = DB::table('department')
+        ->orderBy('Department', 'ASC')
+        ->get();
+
+    $materials = DB::table('product_code')
+        ->select('Product_Code', 'Description', 'Specification', 'Unit_Name')
+        ->orderBy('Description', 'ASC')
+        ->get();
+
+    $username = session('username') ?? (auth()->user()->Username ?? auth()->user()->name ?? 'admin');
+
+    return view('humanresources.procurement.po-edit-form', compact(
+        'poHeader',
+        'poItems',
+        'suppliers',
+        'departments',
+        'materials',
+        'username'
+    ));
+}
+
+// 4. Simpan Perubahan Edit PO
+public function updatePO(Request $request)
+{
+    $poNo       = trim((string) $request->input('po_no'));
+    $poDate     = trim((string) $request->input('po_date', date('Y-m-d')));
+    $supplierId = trim((string) $request->input('supplier_id'));
+    $department = trim((string) $request->input('department', ''));
+    $termPay    = trim((string) $request->input('term_payment', 'NET 30'));
+    $category   = trim((string) $request->input('purchase_category', 'NON ASSET'));
+    $subCat     = trim((string) $request->input('purchase_sub_category', 'BARANG'));
+    $suppliesType = strtoupper(trim((string) $request->input('supplies_type', 'NON OPS')));
+    if (!in_array($suppliesType, ['OPS', 'NON OPS'], true)) {
+        $suppliesType = 'NON OPS';
+    }
+
+    $pic        = trim((string) $request->input('pic', ''));
+    $siteDest   = trim((string) $request->input('site_destination', ''));
+    $picPhone   = trim((string) $request->input('pic_phone', ''));
+    $picEmail   = trim((string) $request->input('pic_email', ''));
+    $remark     = (string) $request->input('remark', '');
+
+    $discount   = floatval($request->input('discount', 0));
+    $ppn        = floatval($request->input('ppn', 0));
+    $pph        = floatval($request->input('pph', 0));
+    $delivery   = floatval($request->input('delivery_fee', 0));
+    $items      = $request->input('items', []);
+    $username   = session('username') ?? (auth()->user()->Username ?? auth()->user()->name ?? 'admin');
+
+    DB::beginTransaction();
+    try {
+        $po = DB::table('purchase_order')->where('PO_No', $poNo)->first();
+        if (!$po) {
+            DB::rollBack();
+            return response()->json(['status' => 'error', 'message' => 'Data PO tidak ditemukan.'], 404);
+        }
+
+        $supplier = DB::table('supplier')->where('Supplier_ID', $supplierId)->first();
+
+        // Hapus detail PO lama lalu insert ulang sesuai item tersisa
+        DB::table('purchase_order_dtl')->where('PO_No', $poNo)->delete();
+
+        $subtotal = 0;
+        if (is_array($items) && !empty($items)) {
+            foreach ($items as $row) {
+                $desc  = trim((string) ($row['product_desc'] ?? ''));
+                $qty   = floatval($row['qty'] ?? 0);
+                $price = floatval($row['price'] ?? 0);
+                if ($desc === '' || $qty <= 0) continue;
+
+                $lineSub = $qty * $price;
+                $subtotal += $lineSub;
+
+                DB::table('purchase_order_dtl')->insert([
+                    'Location'      => $siteDest ?: ($po->Location ?? 'HO'),
+                    'PR_No'         => $po->PR_No,
+                    'PO_No'         => $poNo,
+                    'Category'      => $category ?: $po->Purchase_Category,
+                    'Sub_Category'  => $subCat ?: $po->Purchase_Sub_Category,
+                    'Purchase_Type' => $po->Purchase_Type,
+                    'Product_Code'  => trim((string) ($row['product_code'] ?? '')) ?: 'EMERGENCY-ITEM',
+                    'Product_Desc'  => $desc,
+                    'Specification' => trim((string) ($row['specification'] ?? '')) ?: null,
+                    'Qty'           => $qty,
+                    'Unit'          => trim((string) ($row['unit'] ?? 'PCS')) ?: 'PCS',
+                    'Price'         => $price,
+                    'Discount'      => 0,
+                    'Subtotal'      => $lineSub,
+                    'PPN'           => 0,
+                    'PPN_pct'       => 0,
+                    'Total'         => $lineSub,
+                    'Qty_Receive'   => 0,
+                    'Qty_Remain'    => $qty,
+                    'Currency'      => $po->Currency ?? 'IDR',
+                ]);
+            }
+        }
+
+        $grandTotal = max(0, $subtotal - $discount + $ppn - $pph + $delivery);
+
+        $headerUpdate = [
+            'PO_Date'               => $poDate ?: $po->PO_Date,
+            'PO_Dest'               => $siteDest ?: $po->PO_Dest,
+            'Department'            => $department !== '' ? $department : $po->Department,
+            'Purchase_Category'     => $category ?: $po->Purchase_Category,
+            'Purchase_Sub_Category' => $subCat ?: $po->Purchase_Sub_Category,
+            'PIC'                   => $pic !== '' ? $pic : $po->PIC,
+            'PIC_Address'           => $siteDest ?: $po->PIC_Address,
+            'PIC_Phone'             => $picPhone !== '' ? $picPhone : null,
+            'PIC_Email'             => $picEmail !== '' ? $picEmail : null,
+            'Supplier'              => $supplierId ?: $po->Supplier,
+            'Supplier_PIC'          => $supplier->Contact_Person ?? $po->Supplier_PIC,
+            'Term_Payment'          => $termPay,
+            'Pay_Term'              => $termPay,
+            'Subtotal'              => $subtotal,
+            'Discount'              => $discount,
+            'PPN'                   => $ppn,
+            'PPH'                   => $pph,
+            'Delivery_Fee'          => $delivery,
+            'Total'                 => $grandTotal,
+            'Remark'                => $remark,
+            'User_Trx'              => $username,
+            'Date_Trx'              => now(),
+        ];
+
+        if (\Schema::hasColumn('purchase_order', 'Supplies_Type')) {
+            $headerUpdate['Supplies_Type'] = $suppliesType;
+        }
+
+        DB::table('purchase_order')->where('PO_No', $poNo)->update($headerUpdate);
+
+        DB::commit();
+
+        return response()->json([
+            'status'  => 'success',
+            'message' => "Purchase Order {$poNo} berhasil diperbarui!"
+        ]);
+    } catch (\Exception $e) {
+        DB::rollBack();
+        return response()->json([
+            'status'  => 'error',
+            'message' => 'Gagal menyimpan perubahan PO: ' . $e->getMessage()
+        ], 500);
+    }
+}
+
+// 5. Kirim PO Otomatis via WhatsApp sesuai data master vendor
+public function sendPOWhatsApp(Request $request)
+{
+    $poNo = trim((string) $request->input('po_no'));
+    $po = DB::table('purchase_order as po')
+        ->leftJoin(
+            'supplier as s',
+            DB::raw('po.Supplier COLLATE utf8mb4_unicode_ci'),
+            '=',
+            DB::raw('s.Supplier_ID COLLATE utf8mb4_unicode_ci')
+        )
+        ->select('po.*', 's.Company_Name', 's.Contact_Person', 's.Phone')
+        ->where('po.PO_No', $poNo)
+        ->first();
+
+    if (!$po) {
+        return response()->json(['status' => 'error', 'message' => 'Data PO tidak ditemukan.'], 404);
+    }
+
+    $rawPhone = preg_replace('/[^0-9]/', '', (string) ($po->Phone ?? ''));
+    if ($rawPhone === '') {
+        return response()->json([
+            'status'  => 'error',
+            'message' => 'Nomor telepon/WhatsApp vendor (' . ($po->Company_Name ?? $po->Supplier) . ') belum terdaftar di Master Supplier.'
+        ], 422);
+    }
+
+    if (str_starts_with($rawPhone, '0')) {
+        $rawPhone = '62' . substr($rawPhone, 1);
+    }
+
+    $items = DB::table('purchase_order_dtl')->where('PO_No', $poNo)->orderBy('ID', 'ASC')->get();
+    $lines = [];
+    foreach ($items as $i => $it) {
+        $lines[] = ($i + 1) . ". {$it->Product_Desc} ({$it->Qty} {$it->Unit}) @ Rp " . number_format($it->Price ?? 0, 0, ',', '.');
+    }
+
+    $vendorName = $po->Company_Name ?? $po->Supplier;
+    $picName    = !empty($po->Contact_Person) ? "Bpk/Ibu {$po->Contact_Person}" : "Tim {$vendorName}";
+    $pdfLink    = url('po-print?PO_No=' . urlencode($poNo));
+    $totalStr   = 'Rp ' . number_format($po->Total ?? 0, 0, ',', '.');
+
+    $text = "Halo {$picName} ({$vendorName}),\n\n"
+          . "Berikut kami kirimkan *Purchase Order (PO)*:\n"
+          . "• No. PO: *{$po->PO_No}*\n"
+          . "• Tanggal PO: {$po->PO_Date}\n"
+          . "• Termin (TOP): " . ($po->Term_Payment ?? '-') . "\n"
+          . "• Grand Total: *{$totalStr}*\n\n"
+          . "*Rincian Item:*\n" . implode("\n", $lines) . "\n\n"
+          . "Dokumen PO PDF:\n{$pdfLink}";
+
+    return response()->json([
+        'status'  => 'success',
+        'wa_url'  => 'https://wa.me/' . $rawPhone . '?text=' . urlencode($text),
+        'message' => "Menyiapkan WhatsApp ke {$vendorName} ({$rawPhone})..."
+    ]);
+}
+
+// 6. Kirim PO Otomatis via Email sesuai data master vendor + lampiran PDF
+public function sendPOEmail(Request $request)
+{
+    $poNo = trim((string) $request->input('po_no'));
+    $poHeader = DB::table('purchase_order as po')
+        ->leftJoin(
+            'supplier as s',
+            DB::raw('po.Supplier COLLATE utf8mb4_unicode_ci'),
+            '=',
+            DB::raw('s.Supplier_ID COLLATE utf8mb4_unicode_ci')
+        )
+        ->select('po.*', 's.Company_Name', 's.Address as Supplier_Address', 's.Phone as Supplier_Phone', 's.Email as Supplier_Email')
+        ->where('po.PO_No', $poNo)
+        ->first();
+
+    if (!$poHeader) {
+        return response()->json(['status' => 'error', 'message' => 'Data PO tidak ditemukan.'], 404);
+    }
+
+    $vendorEmail = trim((string) ($poHeader->Supplier_Email ?? ''));
+    if ($vendorEmail === '' || !filter_var($vendorEmail, FILTER_VALIDATE_EMAIL)) {
+        return response()->json([
+            'status'  => 'error',
+            'message' => 'Email vendor (' . ($poHeader->Company_Name ?? $poHeader->Supplier) . ') belum terdaftar atau tidak valid di Master Supplier.'
+        ], 422);
+    }
+
+    $poItems = DB::table('purchase_order_dtl')->where('PO_No', $poNo)->orderBy('ID', 'ASC')->get();
+
+    try {
+        $mpdfTempDir = storage_path('app/mpdf');
+        if (!file_exists($mpdfTempDir)) {
+            mkdir($mpdfTempDir, 0775, true);
+        }
+
+        $mpdf = new \Mpdf\Mpdf([
+            'mode'          => 'utf-8',
+            'format'        => 'A4',
+            'tempDir'       => $mpdfTempDir,
+            'margin_left'   => 10,
+            'margin_right'  => 10,
+            'margin_top'    => 42,
+            'margin_bottom' => 15,
+            'margin_header' => 5,
+            'margin_footer' => 5,
+        ]);
+
+        $kopPath = public_path('assets/images/surat/header_geu.jpg');
+        if (file_exists($kopPath)) {
+            $ext = pathinfo($kopPath, PATHINFO_EXTENSION);
+            $base64 = 'data:image/' . $ext . ';base64,' . base64_encode(file_get_contents($kopPath));
+            $mpdf->SetHTMLHeader('
+                <div style="text-align: center; border-bottom: 1.5px solid #689f38; padding-bottom: 5px;">
+                    <img src="' . $base64 . '" style="width: 100%; max-height: 95px;">
+                </div>
+            ');
+        }
+
+        $html = view('humanresources.procurement.po-print-pdf', compact('poHeader', 'poItems'))->render();
+        $mpdf->WriteHTML($html);
+        $pdfBinary = $mpdf->Output('', 'S');
+        $safeFilename = str_replace('/', '-', $poHeader->PO_No) . '.pdf';
+
+        $vendorName = $poHeader->Company_Name ?? $poHeader->Supplier;
+        $bodyText = "Kepada Yth. {$vendorName},\n\n"
+                  . "Terlampir kami kirimkan dokumen Purchase Order nomor {$poHeader->PO_No} (Ref PR: " . ($poHeader->PR_No ?? '-') . ").\n"
+                  . "Grand Total: Rp " . number_format($poHeader->Total ?? 0, 0, ',', '.') . "\n\n"
+                  . "Terima kasih,\nProcurement Team";
+
+        \Mail::raw($bodyText, function ($message) use ($vendorEmail, $vendorName, $poHeader, $pdfBinary, $safeFilename) {
+            $message->to($vendorEmail, $vendorName)
+                ->subject("Purchase Order - {$poHeader->PO_No}")
+                ->attachData($pdfBinary, $safeFilename, ['mime' => 'application/pdf']);
+        });
+
+        return response()->json([
+            'status'  => 'success',
+            'message' => "Purchase Order {$poNo} berhasil dikirim via Email ke {$vendorName} ({$vendorEmail})!"
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'status'  => 'error',
+            'message' => 'Gagal mengirim Email PO: ' . $e->getMessage()
+        ], 500);
+    }
+}
+
+        // 1. Tampilkan Form Create PO Emergency (Bypass PR/RFQ/QTN)
+public function createEmergencyPOForm()
+{
+    $prefix = 'PO/GEU/' . date('Ym') . '-';
+    $lastPo = DB::table('purchase_order')
+        ->where('PO_No', 'like', $prefix . '%')
+        ->orderBy('ID', 'desc')
+        ->first();
+
+    $nextNum = $lastPo ? ((int) substr($lastPo->PO_No, -4)) + 1 : 1;
+    $generated_po_no = $prefix . str_pad($nextNum, 4, '0', STR_PAD_LEFT);
+
+    $suppliers = DB::table('supplier')->orderBy('Company_Name', 'ASC')->get();
+    $departments = DB::table('department')->orderBy('Department', 'ASC')->get();
+    $materials = DB::table('product_code')
+        ->select('Product_Code', 'Description', 'Specification', 'Unit_Name')
+        ->orderBy('Description', 'ASC')
+        ->get();
+
+    $username = session('username') ?? (auth()->user()->Username ?? auth()->user()->name ?? 'admin');
+    $userData = DB::table('users')->where('username', $username)->first();
+    $userDepartment = $userData->Department ?? '';
+
+    return view('humanresources.procurement.po-emergency-form', compact(
+        'generated_po_no',
+        'suppliers',
+        'departments',
+        'materials',
+        'username',
+        'userDepartment'
+    ));
+}
+
+// 2. Simpan PO Emergency ke purchase_order & purchase_order_dtl
+public function storeEmergencyPO(Request $request)
+{
+    $request->validate([
+        'po_date'          => 'required|date',
+        'supplier_id'      => 'required|string',
+        'department'       => 'required|string',
+        'emergency_reason' => 'required|string',
+        'items'            => 'required|array|min:1',
+    ]);
+
+    $username   = session('username') ?? (auth()->user()->Username ?? auth()->user()->name ?? 'admin');
+    $userData   = DB::table('users')->where('username', $username)->first();
+    $location   = $userData->Location ?? 'HO';
+    $supplierId = trim((string) $request->input('supplier_id'));
+    $supplier   = DB::table('supplier')->where('Supplier_ID', $supplierId)->first();
+
+    DB::beginTransaction();
+    try {
+        // Generate ulang nomor PO di dalam transaksi agar aman dari bentrok
+        $prefix = 'PO/GEU/' . date('Ym') . '-';
+        $lastPo = DB::table('purchase_order')
+            ->where('PO_No', 'like', $prefix . '%')
+            ->orderBy('ID', 'desc')
+            ->lockForUpdate()
+            ->first();
+
+        $nextNum = $lastPo ? ((int) substr($lastPo->PO_No, -4)) + 1 : 1;
+        $poNo    = $prefix . str_pad($nextNum, 4, '0', STR_PAD_LEFT);
+
+        $subtotal = 0;
+        $validItems = [];
+
+        foreach ($request->input('items', []) as $row) {
+            $desc  = trim((string) ($row['product_desc'] ?? ''));
+            $qty   = floatval($row['qty'] ?? 0);
+            $price = floatval($row['price'] ?? 0);
+
+            if ($desc === '' || $qty <= 0) {
+                continue;
+            }
+
+            $lineTotal = $qty * $price;
+            $subtotal += $lineTotal;
+
+            $validItems[] = [
+                'product_code'  => trim((string) ($row['product_code'] ?? '')) ?: 'EMERGENCY-ITEM',
+                'product_desc'  => $desc,
+                'specification' => trim((string) ($row['specification'] ?? '')),
+                'qty'           => $qty,
+                'unit'          => trim((string) ($row['unit'] ?? 'PCS')) ?: 'PCS',
+                'price'         => $price,
+                'total'         => $lineTotal,
+            ];
+        }
+
+        if (empty($validItems)) {
+            DB::rollBack();
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Minimal harus mengisi 1 item dengan deskripsi dan qty valid.'
+            ], 422);
+        }
+
+        $discount    = floatval($request->input('discount', 0));
+        $ppn         = floatval($request->input('ppn', 0));
+        $deliveryFee = floatval($request->input('delivery_fee', 0));
+        $grandTotal  = max(0, $subtotal - $discount + $ppn + $deliveryFee);
+
+        $siteDest = trim((string) $request->input('site_destination', $location));
+        $picPhone = trim((string) $request->input('pic_phone', ''));
+        $picEmail = trim((string) $request->input('pic_email', ''));
+
+        // Hitung otomatis Lead Time Emergency (<= 1 hari kerja sejak PO_Date)
+        $poDateCarbon = \Carbon\Carbon::parse($request->input('po_date'))->startOfDay();
+        $dueDateCarbon = $poDateCarbon->copy()->addDay();
+        while ($dueDateCarbon->isWeekend()) {
+            $dueDateCarbon->addDay();
+        }
+        $leadTimeDays = max(1, $poDateCarbon->diffInDaysFiltered(function ($d) {
+            return !$d->isWeekend();
+        }, $dueDateCarbon));
+        $leadTimeInfo = "Lead Time Emergency: <= {$leadTimeDays} hari kerja (Target: {$dueDateCarbon->format('d/m/Y')})";
+
+        $termPayment = trim((string) $request->input('term_payment', 'NET 30'));
+        $category    = $request->input('purchase_category', 'NON ASSET');
+        $subCategory = $request->input('purchase_sub_category', 'BARANG');
+        $reason      = trim((string) $request->input('emergency_reason'));
+        $suppliesType = strtoupper(trim((string) $request->input('supplies_type', 'NON OPS')));
+            if (!in_array($suppliesType, ['OPS', 'NON OPS'], true)) {
+                $suppliesType = 'NON OPS';
+            }
+
+        // Insert Header PO (PR_No ditandai EMERGENCY / BYPASS-PR)
+        $poHeaderData = [
+    'Location'              => $location,
+    'Process_By'            => $username,
+    'Purchase_Type'         => 'EMERGENCY',
+    'Purchase_Category'     => $category,
+    'Purchase_Sub_Category' => $subCategory,
+    'PR_No'                 => 'EMERGENCY',
+    'PO_No'                 => $poNo,
+    'PO_Date'               => $request->input('po_date'),
+    'PO_Dest'               => $siteDest,
+    'Department'            => $request->input('department'),
+    'PIC_Address'           => $siteDest,
+    'PIC_Phone'             => $picPhone ?: null,
+    'PIC_Email'             => $picEmail ?: null,
+    'PIC'                   => trim((string) $request->input('pic', $username)),
+    'Supplier'              => $supplierId,
+    'Supplier_PIC'          => $supplier->Contact_Person ?? null,
+    'Term_Payment'          => $termPayment,
+    'Pay_Term'              => $termPayment,
+    'Subtotal'              => $subtotal,
+    'Discount'              => $discount,
+    'PPN'                   => $ppn,
+    'PPH'                   => 0,
+    'Delivery_Fee'          => $deliveryFee,
+    'Total'                 => $grandTotal,
+    'Total_Paid'            => 0,
+    'Status'                => 'OPEN',
+    'Status_Receive'        => 'OPEN',
+    'Currency'              => 'IDR',
+    'Remark'                => "[PO EMERGENCY - {$suppliesType} - BYPASS PR/RFQ/QTN] {$reason} | {$leadTimeInfo}",
+    'Date_Trx'              => now(),
+    'User_Trx'              => $username,
+];
+
+if (\Schema::hasColumn('purchase_order', 'Supplies_Type')) {
+    $poHeaderData['Supplies_Type'] = $suppliesType;
+}
+
+DB::table('purchase_order')->insert($poHeaderData);
+
+        // Insert Detail Item ke purchase_order_dtl
+        foreach ($validItems as $it) {
+            DB::table('purchase_order_dtl')->insert([
+                'Location'      => $location,
+                'PR_No'         => 'EMERGENCY',
+                'PO_No'         => $poNo,
+                'Category'      => $category,
+                'Sub_Category'  => $subCategory,
+                'Purchase_Type' => 'EMERGENCY',
+                'Product_Code'  => $it['product_code'],
+                'Product_Desc'  => $it['product_desc'],
+                'Specification' => $it['specification'] ?: null,
+                'Qty'           => $it['qty'],
+                'Unit'          => $it['unit'],
+                'Price'         => $it['price'],
+                'Discount'      => 0,
+                'Subtotal'      => $it['total'],
+                'PPN'           => 0,
+                'PPN_pct'       => 0,
+                'Total'         => $it['total'],
+                'Qty_Receive'   => 0,
+                'Qty_Remain'    => $it['qty'],
+                'Currency'      => 'IDR',
+            ]);
+        }
+
+        DB::commit();
+
+        return response()->json([
+            'status'  => 'success',
+            'po_no'   => $poNo,
+            'message' => "PO Emergency {$poNo} berhasil diterbitkan!"
+        ]);
+    } catch (\Exception $e) {
+        DB::rollBack();
+        return response()->json([
+            'status'  => 'error',
+            'message' => 'Gagal menyimpan PO Emergency: ' . $e->getMessage()
+        ], 500);
     }
 }
 

@@ -18,11 +18,12 @@
             <i class="fas fa-file-invoice mr-2"></i>Detail Purchase Order (PO) &mdash; {{ $poHeader->PO_No }}
         </h6>
         <div class="d-flex align-items-center mt-1 mt-md-0">
-            @if($statusPoUpper === 'OPEN')
-                <button type="button" class="btn btn-sm font-weight-bold py-0 px-2 mr-1 shadow-sm" style="background-color:#ef6c00; color:#fff;" onclick="prosesDeliveryPO('{{ $poHeader->PO_No }}')">
-                    &#128666; Proses Delivery
-                </button>
-            @endif
+           <!-- Di header tombol aksi -->
+                @if(in_array($statusPoUpper, ['OPEN', 'APPROVED']))
+                    <button type="button" class="btn btn-sm font-weight-bold py-0 px-2 mr-1 shadow-sm" style="background-color:#ef6c00; color:#fff;" onclick="prosesDeliveryPO('{{ $poHeader->PO_No }}')">
+                        &#128666; Proses Delivery
+                    </button>
+                @endif
 
             <a href="{{ url('po-print') }}?PO_No={{ urlencode($poHeader->PO_No) }}" target="_blank" class="btn btn-sm btn-warning text-dark font-weight-bold py-0 px-2 mr-1 shadow-sm">
                 <i class="fas fa-print mr-1"></i> Cetak PDF PO
