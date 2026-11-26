@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Schema;
 use App\Services\Approval\ProcurementApprovalService; // <-- Tambahkan baris ini!
 
 class ProcurementController extends Controller
@@ -544,6 +545,138 @@ class ProcurementController extends Controller
             'approvalReq', 'approvalTasks', 'canUserAct'
         ));
     }
+
+
+
+public function detailPREdit(Request $request)
+{
+    try {
+        $prNo = trim((string) $request->query('PR_No'));
+        $header = DB::table('purchase_request')->where('PR_No', $prNo)->first();
+
+        if (!$header) {
+            return view('humanresources.procurement.purchase-request-detail-editpr', [
+                'header'        => null,
+                'details'       => collect(),
+                'materials'     => collect(),
+                'departments'   => collect(),
+                'noteHistories' => collect(),
+            ]);
+        }
+
+        $currentStatus = strtoupper(trim((string) ($header->Status ?? '')));
+        if ($currentStatus !== 'PENDING') {
+            return '<div class="alert alert-warning mt-3" style="font-size: 12px;">
+                <i class="fas fa-exclamation-triangle mr-1"></i>
+                PR <strong>' . e($prNo) . '</strong> berstatus <strong>' . e($currentStatus) . '</strong>. Edit atau pembatalan PR hanya diperbolehkan saat status masih <strong>PENDING</strong>.
+            </div>';
+        }
+
+        $details = DB::table('purchase_request_dtl')
+            ->where('PR_No', $prNo)
+            ->orderBy('ID', 'ASC')
+            ->get();
+
+        $noteHistories = collect();
+        if (Schema::hasTable('pr_notes_history')) {
+            $noteHistories = DB::table('pr_notes_history')
+                ->where('PR_No', $prNo)
+                ->orderBy('ID', 'DESC')
+                ->get();
+        }
+
+        $materials   = DB::table('product_code')->select('Product_Code', 'Description')->get();
+        $departments = DB::table('department')->orderBy('Department', 'ASC')->get();
+
+        return view('humanresources.procurement.purchase-request-detail-editpr', compact(
+            'header',
+            'details',
+            'materials',
+            'departments',
+            'noteHistories'
+        ));
+    } catch (\Throwable $e) {
+        \Log::error('detailPREdit error: ' . $e->getMessage());
+        return response(
+            '<div class="alert alert-danger mt-3" style="font-size: 12px;">Gagal memuat form Edit PR: ' . e($e->getMessage()) . '</div>',
+            500
+        );
+    }
+}
+
+public function cancelPR(Request $request)
+{
+    $request->validate([
+        'pr_no'  => 'required|string',
+        'reason' => 'nullable|string|max:500',
+    ]);
+
+    $prNo     = trim((string) $request->input('pr_no'));
+    $reason   = trim((string) ($request->input('reason') ?? 'Dibatalkan oleh pemohon'));
+    $username = session('username') ?? (Auth::user()->username ?? 'admin');
+
+    $pr = DB::table('purchase_request')->where('PR_No', $prNo)->first();
+    if (!$pr) {
+        return response()->json([
+            'status'  => 'error',
+            'message' => "Data Purchase Request {$prNo} tidak ditemukan."
+        ], 404);
+    }
+
+    $currentStatus = strtoupper(trim((string) ($pr->Status ?? '')));
+    if ($currentStatus !== 'PENDING') {
+        return response()->json([
+            'status'  => 'error',
+            'message' => "PR {$prNo} tidak dapat dibatalkan karena statusnya saat ini adalah {$currentStatus} (hanya status PENDING yang dapat dibatalkan)."
+        ], 422);
+    }
+
+    DB::beginTransaction();
+    try {
+        $cancelNote  = "[CANCELLED by {$username} (" . date('d-m-Y H:i') . ")] {$reason}";
+        $updatedNote = trim((string) ($pr->Note ?? ''));
+        $updatedNote = $updatedNote !== '' ? ($updatedNote . ' | ' . $cancelNote) : $cancelNote;
+
+        DB::table('purchase_request')
+            ->where('PR_No', $prNo)
+            ->update([
+                'Status'     => 'CANCELLED',
+                'Note'       => $updatedNote,
+                'Updated_By' => $username,
+            ]);
+
+        if (Schema::hasTable('pr_notes_history')) {
+            DB::table('pr_notes_history')->insert([
+                'PR_No'         => $prNo,
+                'Action_Status' => 'CANCELLED',
+                'Note'          => $reason,
+                'Created_By'    => $username,
+                'Created_Date'  => now(),
+            ]);
+        }
+
+        if (!empty($pr->Approval_Request_ID) && Schema::hasTable('approval_request')) {
+            DB::table('approval_request')
+                ->where('ID', $pr->Approval_Request_ID)
+                ->update(['Status' => 'CANCELLED']);
+        }
+
+        DB::commit();
+
+        return response()->json([
+            'status'  => 'success',
+            'message' => "Purchase Request {$prNo} berhasil dibatalkan!"
+        ]);
+    } catch (\Exception $e) {
+        DB::rollBack();
+        return response()->json([
+            'status'  => 'error',
+            'message' => 'Gagal membatalkan PR: ' . $e->getMessage()
+        ], 500);
+    }
+}
+
+
 
 
     // Proses Approve atau Reject PR
@@ -1996,89 +2129,245 @@ public function updateRFQData(Request $request)
     }
 
     // 2. Endpoint XML DHTMLX Grid untuk Daftar PO Berstatus OPEN / PARTIAL
-    public function xmlOutstandingPO()
-    {
-        $pos = DB::table('purchase_order as po')
-            ->leftJoin(
-                'supplier as s',
-                DB::raw('po.Supplier COLLATE utf8mb4_unicode_ci'),
-                '=',
-                DB::raw('s.Supplier_ID COLLATE utf8mb4_unicode_ci')
-            )
-            ->select(
-                'po.ID',
-                'po.PO_No',
-                'po.PO_Date',
-                'po.PR_No',
-                'po.Supplier',
-                's.Company_Name',
-                'po.Department',
-                'po.Term_Payment',
-                'po.Total',
-                'po.Status',
-                'po.Status_Receive',
-                'po.User_Trx'
-            )
-            ->whereIn('po.Status', ['OPEN', 'APPROVED', 'DELIVERY', 'PARTIAL'])
-            ->orderBy('po.ID', 'desc')
-            ->get();
+   public function xmlOutstandingPO(Request $request)
+{
+    $defaultStart = date('Y-m-01');
+    $defaultEnd   = date('Y-m-d');
 
-        $xml = '<?xml version="1.0" encoding="UTF-8"?>';
-        $xml .= '<rows>';
+    $startDate = trim((string) $request->query('start_date', $defaultStart));
+    $endDate   = trim((string) $request->query('end_date', $defaultEnd));
 
-        $no = 1;
-        foreach ($pos as $row) {
-            $vendorDisplay = $row->Company_Name
-                ? $row->Supplier . ' - ' . $row->Company_Name
-                : $row->Supplier;
-
-            $xml .= '<row id="' . htmlspecialchars($row->PO_No) . '">';
-            $xml .= '<cell>' . $no++ . '</cell>';
-            $xml .= '<cell>' . htmlspecialchars($row->PO_No) . '</cell>';
-            $xml .= '<cell>' . htmlspecialchars($row->PO_Date ?? '-') . '</cell>';
-            $xml .= '<cell>' . htmlspecialchars($row->PR_No ?? '-') . '</cell>';
-            $xml .= '<cell>' . htmlspecialchars($vendorDisplay ?? '-') . '</cell>';
-            $xml .= '<cell>' . htmlspecialchars($row->Department ?? '-') . '</cell>';
-            $xml .= '<cell>' . htmlspecialchars($row->Term_Payment ?? '-') . '</cell>';
-            $xml .= '<cell>' . number_format($row->Total ?? 0, 0, ',', '.') . '</cell>';
-            $xml .= '<cell>' . htmlspecialchars($row->Status ?? 'OPEN') . '</cell>';
-            $xml .= '<cell>' . htmlspecialchars($row->Status_Receive ?? 'OPEN') . '</cell>';
-            $xml .= '<cell>' . htmlspecialchars($row->User_Trx ?? '-') . '</cell>';
-            $xml .= '</row>';
-        }
-
-        $xml .= '</rows>';
-
-        return response($xml, 200)->header('Content-Type', 'text/xml');
+    if ($startDate === '') {
+        $startDate = $defaultStart;
+    }
+    if ($endDate === '') {
+        $endDate = $defaultEnd;
     }
 
-    // 3. Detail Item PO saat Baris Grid Di-Double Click
-    public function detailPO(Request $request)
-    {
-        $poNo = $request->query('PO_No');
+    $pos = DB::table('purchase_order as po')
+        ->leftJoin(
+            'supplier as s',
+            DB::raw('po.Supplier COLLATE utf8mb4_unicode_ci'),
+            '=',
+            DB::raw('s.Supplier_ID COLLATE utf8mb4_unicode_ci')
+        )
+        ->leftJoin(
+            'purchase_request as pr',
+            DB::raw('po.PR_No COLLATE utf8mb4_unicode_ci'),
+            '=',
+            DB::raw('pr.PR_No COLLATE utf8mb4_unicode_ci')
+        )
+        ->leftJoin(
+            DB::raw('(SELECT PO_No, AVG(Price) as Avg_Unit_Price FROM purchase_order_dtl GROUP BY PO_No) as pod'),
+            DB::raw('po.PO_No COLLATE utf8mb4_unicode_ci'),
+            '=',
+            DB::raw('pod.PO_No COLLATE utf8mb4_unicode_ci')
+        )
 
-        $poHeader = DB::table('purchase_order as po')
-            ->leftJoin(
-                'supplier as s',
-                DB::raw('po.Supplier COLLATE utf8mb4_unicode_ci'),
-                '=',
-                DB::raw('s.Supplier_ID COLLATE utf8mb4_unicode_ci')
-            )
-            ->select('po.*', 's.Company_Name', 's.Address as Supplier_Address', 's.Phone as Supplier_Phone')
-            ->where('po.PO_No', $poNo)
-            ->first();
+        ->leftJoin(
+            DB::raw('(SELECT PO_No, MAX(Incoming_Date) as Last_Incoming_Date FROM good_receive GROUP BY PO_No) as gr'),
+            DB::raw('po.PO_No COLLATE utf8mb4_unicode_ci'),
+            '=',
+            DB::raw('gr.PO_No COLLATE utf8mb4_unicode_ci')
+        )
+        ->select(
+            'po.ID',
+            'po.PO_No',
+            'po.PO_Date',
+            'po.PR_No',
+            'pr.PR_Date',
+            'po.Supplier',
+            's.Company_Name',
+            'po.Department',
+            'po.Term_Payment',
+            'po.Total',
+            'po.Status',
+            'po.Status_Receive',
+            'po.Date_Trx',
+            'po.User_Trx',
+            DB::raw('COALESCE(pod.Avg_Unit_Price, 0) as Avg_Unit_Price')
+        )
+        ->whereIn('po.Status', ['OPEN', 'APPROVED', 'DELIVERY', 'PARTIAL', 'CLOSED', 'RECEIVED'])
+        ->whereDate('po.PO_Date', '>=', $startDate)
+        ->whereDate('po.PO_Date', '<=', $endDate)
+        ->orderBy('po.ID', 'desc')
+        ->get();
 
-        if (!$poHeader) {
-            return '<div class="alert alert-danger">Data Purchase Order tidak ditemukan.</div>';
+    // Histori harga rata-rata per Supplier + Product_Code dari PO sebelumnya
+    $histPrices = DB::table('purchase_order_dtl as d')
+        ->join(
+            'purchase_order as h',
+            DB::raw('d.PO_No COLLATE utf8mb4_unicode_ci'),
+            '=',
+            DB::raw('h.PO_No COLLATE utf8mb4_unicode_ci')
+        )
+        ->select(
+            'h.Supplier',
+            'd.Product_Code',
+            DB::raw('AVG(d.Price) as Hist_Price'),
+            DB::raw('COUNT(*) as Trx_Count')
+        )
+        ->where('h.Status', '!=', 'CANCELLED')
+        ->groupBy('h.Supplier', 'd.Product_Code')
+        ->get()
+        ->keyBy(function ($r) {
+            return strtoupper(trim((string) $r->Supplier)) . '|' . strtoupper(trim((string) $r->Product_Code));
+        });
+
+    $poItemsMap = DB::table('purchase_order_dtl')
+        ->select('PO_No', 'Product_Code', 'Price')
+        ->whereIn('PO_No', $pos->pluck('PO_No')->all())
+        ->get()
+        ->groupBy('PO_No');
+
+    $xml = '<?xml version="1.0" encoding="UTF-8"?>';
+    $xml .= '<rows>';
+
+    $no = 1;
+    foreach ($pos as $row) {
+        $vendorDisplay = $row->Company_Name
+            ? $row->Supplier . ' - ' . $row->Company_Name
+            : $row->Supplier;
+
+        $stPo  = strtoupper(trim((string) ($row->Status ?? 'OPEN')));
+        $stRec = strtoupper(trim((string) ($row->Status_Receive ?? 'OPEN')));
+        $isDone = in_array($stPo, ['RECEIVED', 'DONE', 'CLOSED'], true) || in_array($stRec, ['RECEIVED', 'DONE'], true);
+        $prosesLabel = $isDone ? 'DONE' : 'ON PROSES';
+
+
+        // Lead time dari PO_Date ke tanggal penerimaan (Good Receive) / sekarang
+        $poLeadtimeText = '-';
+        if (!empty($row->PO_Date)) {
+            try {
+                $poStartDt = \Carbon\Carbon::parse($row->PO_Date)->startOfDay();
+                $hasReceivedDt = !empty($row->Last_Incoming_Date);
+
+                if ($hasReceivedDt) {
+                    $poEndDt = \Carbon\Carbon::parse($row->Last_Incoming_Date)->startOfDay();
+                    $poDays = max(0, $poStartDt->diffInDays($poEndDt));
+                    $poLeadtimeText = $poDays . ' hr (Received)';
+                } elseif ($isDone) {
+                    $poEndDt = \Carbon\Carbon::parse($row->Date_Trx ?? now())->startOfDay();
+                    $poDays = max(0, $poStartDt->diffInDays($poEndDt));
+                    $poLeadtimeText = $poDays . ' hr (Done)';
+                } else {
+                    $poDays = max(0, $poStartDt->diffInDays(now()->startOfDay()));
+                    $poLeadtimeText = $poDays . ' hr (PO->Now)';
+                }
+            } catch (\Exception $ex) {
+                $poLeadtimeText = '-';
+            }
         }
 
-        $poItems = DB::table('purchase_order_dtl')
-            ->where('PO_No', $poNo)
-            ->orderBy('ID', 'ASC')
-            ->get();
+        // Lead time dari PR_Date ke tanggal selesai / sekarang
+        $leadtimeText = '-';
+        if (!empty($row->PR_Date)) {
+            try {
+                $startDt = \Carbon\Carbon::parse($row->PR_Date)->startOfDay();
+                $endDt   = $isDone
+                    ? \Carbon\Carbon::parse($row->Date_Trx ?? now())->startOfDay()
+                    : now()->startOfDay();
+                $days = max(0, $startDt->diffInDays($endDt));
+                $leadtimeText = $days . ' hr (' . ($isDone ? 'Complete' : 'PR->Now') . ')';
+            } catch (\Exception $ex) {
+                $leadtimeText = '-';
+            }
+        }
 
-        return view('humanresources.procurement.po-detail', compact('poHeader', 'poItems'));
+        // Cek perbandingan harga terhadap histori vendor & produk
+        $priceTrend = 'NORMAL';
+        $itemsForPo = $poItemsMap->get($row->PO_No, collect());
+        foreach ($itemsForPo as $it) {
+            $key = strtoupper(trim((string) $row->Supplier)) . '|' . strtoupper(trim((string) $it->Product_Code));
+            $hist = $histPrices->get($key);
+            if ($hist && (int) $hist->Trx_Count > 1 && floatval($hist->Hist_Price) > 0) {
+                $curPrice = floatval($it->Price ?? 0);
+                $avgHist  = floatval($hist->Hist_Price);
+                if ($curPrice > $avgHist) {
+                    $priceTrend = 'UP';
+                    break;
+                } elseif ($curPrice < $avgHist && $priceTrend !== 'UP') {
+                    $priceTrend = 'DOWN';
+                }
+            }
+        }
+
+        $avgFormatted = number_format($row->Avg_Unit_Price ?? 0, 0, ',', '.');
+        if ($priceTrend === 'UP') {
+            $histBadge = 'Naik vs Hist (Avg ' . $avgFormatted . ')';
+            $rowStyle  = ' style="background-color:#fff8e1;"';
+        } elseif ($priceTrend === 'DOWN') {
+            $histBadge = 'Turun vs Hist (Avg ' . $avgFormatted . ')';
+            $rowStyle  = ' style="background-color:#e8f5e9;"';
+        } else {
+            $histBadge = 'Avg ' . $avgFormatted;
+            $rowStyle  = '';
+        }
+
+        $xml .= '<row id="' . htmlspecialchars($row->PO_No) . '"' . $rowStyle . '>';
+        // $xml .= '<cell>' . $no++ . '</cell>';
+        $xml .= '<cell>' . ($no++) . '</cell>';
+        $xml .= '<cell>' . htmlspecialchars($row->PO_No) . '</cell>';
+        $xml .= '<cell>' . htmlspecialchars($row->PO_Date ?? '-') . '</cell>';
+        $xml .= '<cell>' . htmlspecialchars($row->PR_No ?? '-') . '</cell>';
+        $xml .= '<cell>' . htmlspecialchars($vendorDisplay ?? '-') . '</cell>';
+        $xml .= '<cell>' . htmlspecialchars($row->Department ?? '-') . '</cell>';
+        $xml .= '<cell>' . htmlspecialchars($row->Term_Payment ?? '-') . '</cell>';
+        $xml .= '<cell>' . number_format($row->Total ?? 0, 0, ',', '.') . '</cell>';
+        $xml .= '<cell>' . htmlspecialchars($histBadge) . '</cell>';
+        $xml .= '<cell>' . htmlspecialchars($leadtimeText) . '</cell>';
+        $xml .= '<cell>' . htmlspecialchars($poLeadtimeText) . '</cell>';
+        $xml .= '<cell>' . htmlspecialchars($prosesLabel) . '</cell>';
+        $xml .= '<cell>' . htmlspecialchars($row->Status ?? 'OPEN') . '</cell>';
+        $xml .= '<cell>' . htmlspecialchars($row->Status_Receive ?? 'OPEN') . '</cell>';
+        $xml .= '<cell>' . htmlspecialchars($row->User_Trx ?? '-') . '</cell>';
+        $xml .= '</row>';
     }
+
+    $xml .= '</rows>';
+
+    return response($xml, 200)->header('Content-Type', 'text/xml');
+}
+
+// 3. Detail Item PO saat Baris Grid Di-Double Click
+public function detailPO(Request $request)
+{
+    $poNo = $request->query('PO_No');
+
+    $poHeader = DB::table('purchase_order as po')
+        ->leftJoin(
+            'supplier as s',
+            DB::raw('po.Supplier COLLATE utf8mb4_unicode_ci'),
+            '=',
+            DB::raw('s.Supplier_ID COLLATE utf8mb4_unicode_ci')
+        )
+        ->leftJoin(
+            'purchase_request as pr',
+            DB::raw('po.PR_No COLLATE utf8mb4_unicode_ci'),
+            '=',
+            DB::raw('pr.PR_No COLLATE utf8mb4_unicode_ci')
+        )
+        ->select(
+            'po.*',
+            'pr.PR_Date',
+            's.Company_Name',
+            's.Address as Supplier_Address',
+            's.Phone as Supplier_Phone'
+        )
+        ->where('po.PO_No', $poNo)
+        ->first();
+
+    if (!$poHeader) {
+        return '<div class="alert alert-danger">Data Purchase Order tidak ditemukan.</div>';
+    }
+
+    $poItems = DB::table('purchase_order_dtl')
+        ->where('PO_No', $poNo)
+        ->orderBy('ID', 'ASC')
+        ->get();
+
+    return view('humanresources.procurement.po-detail', compact('poHeader', 'poItems'));
+}
 
     // 4. Cetak PDF Purchase Order (mPDF + Kop Surat Base64)
     public function printPO(Request $request)
@@ -4022,5 +4311,101 @@ DB::table('purchase_order')->insert($poHeaderData);
         ], 500);
     }
 }
+
+public function mobileGoodReceivedPO(Request $request)
+{
+    $username = session('username') ?? (Auth::user()->username ?? 'admin');
+    $userObj  = Auth::user() ?? DB::table('users')->where('username', $username)->first();
+
+    $pos = DB::table('purchase_order as po')
+        ->leftJoin(
+            'supplier as s',
+            DB::raw('po.Supplier COLLATE utf8mb4_unicode_ci'),
+            '=',
+            DB::raw('s.Supplier_ID COLLATE utf8mb4_unicode_ci')
+        )
+        ->select(
+            'po.ID',
+            'po.PO_No',
+            'po.PO_Date',
+            'po.PR_No',
+            'po.Supplier',
+            's.Company_Name',
+            'po.Department',
+            'po.PIC',
+            'po.PIC_Address',
+            'po.Total',
+            'po.Status',
+            'po.Status_Receive',
+            'po.Remark'
+        )
+        ->whereIn(DB::raw('UPPER(COALESCE(po.Status, \'\'))'), ['OPEN', 'APPROVED', 'DELIVERY', 'PARTIAL', 'RECEIVED'])
+        ->orderBy('po.ID', 'DESC')
+        ->limit(100)
+        ->get();
+
+    $poNos = $pos->pluck('PO_No')->filter()->unique()->values()->all();
+
+    $detailsByPo = [];
+    $grsByPo     = [];
+
+    if (!empty($poNos)) {
+        foreach (DB::table('purchase_order_dtl')->whereIn('PO_No', $poNos)->orderBy('ID', 'ASC')->get() as $dtl) {
+            $orderQty = floatval($dtl->Qty ?? 0);
+            $recQty   = floatval($dtl->Qty_Receive ?? 0);
+            $remain   = isset($dtl->Qty_Remain) && $dtl->Qty_Remain !== null
+                ? max(0, floatval($dtl->Qty_Remain))
+                : max(0, $orderQty - $recQty);
+
+            $detailsByPo[trim((string) $dtl->PO_No)][] = (object) [
+                'ID'           => $dtl->ID,
+                'Product_Code' => $dtl->Product_Code ?? '-',
+                'Product_Desc' => $dtl->Product_Desc ?? '-',
+                'Qty'          => $orderQty,
+                'Qty_Receive'  => $recQty,
+                'Qty_Remain'   => $remain,
+                'Unit'         => $dtl->Unit ?? 'PCS',
+            ];
+        }
+
+        foreach (DB::table('good_receive')->whereIn('PO_No', $poNos)->orderBy('ID', 'DESC')->get() as $gr) {
+            $grsByPo[trim((string) $gr->PO_No)][] = $gr;
+        }
+    }
+$poReceiveList = collect();
+    foreach ($pos as $p) {
+        $poNo   = trim((string) ($p->PO_No ?? ''));
+        $items  = $detailsByPo[$poNo] ?? [];
+        $grList = $grsByPo[$poNo] ?? [];
+
+        $totalRemainQty = 0;
+        foreach ($items as $it) {
+            $totalRemainQty += floatval($it->Qty_Remain ?? 0);
+        }
+
+        $stPo = strtoupper(trim((string) ($p->Status ?? 'OPEN')));
+        $canReceive = ($totalRemainQty > 0) && !in_array($stPo, ['CANCELLED', 'CLOSED'], true);
+
+        $poReceiveList->push((object) [
+            'id'             => $p->ID,
+            'po_no'          => $poNo,
+            'pr_no'          => $p->PR_No ?: '-',
+            'po_date_label'  => !empty($p->PO_Date) ? \Carbon\Carbon::parse($p->PO_Date)->format('d M Y') : '-',
+            'vendor'         => $p->Company_Name ? ($p->Supplier . ' - ' . $p->Company_Name) : ($p->Supplier ?: '-'),
+            'department'     => $p->Department ?: '-',
+            'destination'    => $p->PIC_Address ?: ($p->PIC ?: '-'),
+            'total'          => floatval($p->Total ?? 0),
+            'status'         => $stPo,
+            'status_receive' => strtoupper(trim((string) ($p->Status_Receive ?? 'OPEN'))),
+            'total_remain'   => $totalRemainQty,
+            'can_receive'    => $canReceive,
+            'items'          => $items,
+            'gr_history'     => $grList,
+        ]);
+    }
+
+    return view('humanresources.procurement.mobile-po-good-received', compact('poReceiveList', 'userObj'));
+}
+
 
 }

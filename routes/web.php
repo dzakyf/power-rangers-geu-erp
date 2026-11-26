@@ -2711,6 +2711,10 @@ Route::group(['middleware' => 'log.access'], function () {
     Route::get('/xml-purchasing-order-rfq', function () {
         return view('humanresources.procurement.xml.purchasing-order-rfq');
     });
+
+Route::get('/purchase-request-detail-editpr', [ProcurementController::class, 'detailPREdit']);
+Route::post('/cancel-pr', [ProcurementController::class, 'cancelPR']);
+
     Route::get('/purchasing-order-rfq-created', [ProcurementController::class, 'createRFQForm']);
 
     Route::get('/rfq-approved-pr-list', [ProcurementController::class, 'getApprovedPRForRFQ']);
@@ -7120,6 +7124,9 @@ Route::get('/procurement/pr/{id}/edit', [\App\Http\Controllers\ProcurementContro
     Route::get('/procurement/pr/tracking', [\App\Http\Controllers\ProcurementController::class, 'mobileTrackingPR'])
     ->name('procurement.mobile.pr.tracking');
 
+
+    Route::get('/procurement/po/good-received', [\App\Http\Controllers\ProcurementController::class, 'mobileGoodReceivedPO'])
+    ->name('procurement.po.good-received');
 
     //===============================================
 

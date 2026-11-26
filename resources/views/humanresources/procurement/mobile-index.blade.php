@@ -211,7 +211,7 @@
                 'desc'  => 'Confirm PO, Claim, GR, BAST & surat jalan penerimaan',
                 'icon'  => 'fa-boxes',
                 'tone'  => 'teal',
-                'url'   => url('goods-received-list'),
+                'url'   => url('mobile/procurement/po/good-received'),
             ],
         ];
     @endphp

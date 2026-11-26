@@ -158,6 +158,11 @@
             <button type="button" id="PrintPRProcurement" name="PrintPRProcurement" class="btn btn-dark pr-action-btn shadow-sm">
                 <i class="fas fa-print"></i> Cetak PR
             </button>
+
+            <button type="button" id="BtnEditCancelPR" class="btn btn-warning text-dark pr-action-btn shadow-sm">
+                <i class="fas fa-edit"></i> Edit / Batalkan PR
+            </button>
+
         </div>
 
         <div class="d-flex flex-wrap align-items-center" style="gap: 8px;">
@@ -172,6 +177,39 @@
 <div id="PRDiv" class="mt-3"></div>
 
 <script>
+
+function getSelectedPRStatus(rowId) {
+    let status = PRGrid.getUserData(rowId, "status");
+    if (!status) {
+        status = PRGrid.cells(rowId, 4).getValue();
+    }
+    return String(status || '').replace(/<[^>]*>/g, '').trim().toUpperCase();
+}
+
+$('#BtnEditCancelPR').on('click', function() {
+    let s = selectedPRPO();
+    if (!s) return;
+
+    let status = getSelectedPRStatus(s.rowId);
+    if (status !== 'PENDING') {
+        alert('Aksi Edit / Batalkan PR hanya tersedia untuk status PENDING. Status PR ini saat ini: ' + status);
+        return;
+    }
+
+    // Muat form/detail PENDING ke #PRDiv untuk diedit atau dibatalkan
+    LoadM('PRDiv', 'purchase-request-detail-editpr?PR_No=' + encodeURIComponent(s.rowId));
+
+    setTimeout(function() {
+        let detailEl = document.getElementById('PRDiv');
+        if (detailEl) {
+            detailEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }, 250);
+});
+
+
+
+    
     function selectedPRPO() {
         let pmid = PRGrid.getSelectedRowId();
         if (pmid == null) {
@@ -238,7 +276,7 @@
 
     var PRGrid = new dhtmlXGridObject('PRGrid');
     PRGrid.setImagePath("./dhtmlx/imgs/");
-    PRGrid.setHeader("No.,No. PR,Date PR,Department,Status,Note,yang Mengajukan,Phone,Email,Site Destination,Qty,Satuan,Category,Estimasi Budget");
+    PRGrid.setHeader("No.,No. PR,Date PR,Department,Status,Note,Requested by,Phone,Email,Site Destination,Qty,Satuan,Category,Estimasi Budget");
     PRGrid.setInitWidths("60,180,105,125,120,170,180,130,170,130,70,70,100,120");
     PRGrid.attachHeader("&nbsp;,#text_filter,#text_filter,#text_filter,#select_filter,#text_filter,#text_filter,#text_filter,#text_filter,#select_filter,#text_filter,#select_filter,#select_filter,#text_filter");
     PRGrid.setColAlign("center,center,center,center,center,left,center,center,center,center,right,center,center,right");
