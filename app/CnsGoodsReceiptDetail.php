@@ -19,11 +19,13 @@ class CnsGoodsReceiptDetail extends Model
         'qty_received',
         'notes',
         'serial_number',
+        'serial_photos',
     ];
 
     protected $casts = [
-        'qty_ordered'  => 'float',
-        'qty_received' => 'float',
+        'qty_ordered'   => 'float',
+        'qty_received'  => 'float',
+        'serial_photos' => 'array',
     ];
 
     public function goodsReceipt()

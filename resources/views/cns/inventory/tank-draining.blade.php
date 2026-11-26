@@ -137,15 +137,15 @@
 			<div class="cns-filter-bar">
 				<div>
 					<label class="d-block mb-1"><small>Dari Tanggal</small></label>
-					<input type="date" id="filterStartDate" class="form-control form-control-sm" style="width:140px;" />
+					<input type="date" id="filterStartDate" class="text-black form-control form-control-sm" style="width:140px;" />
 				</div>
 				<div>
 					<label class="d-block mb-1"><small>Sampai Tanggal</small></label>
-					<input type="date" id="filterEndDate" class="form-control form-control-sm" style="width:140px;" />
+					<input type="date" id="filterEndDate" class="text-black form-control form-control-sm" style="width:140px;" />
 				</div>
 				<div>
 					<label class="d-block mb-1"><small>Tangki Asal</small></label>
-					<select id="filterTank" class="form-control form-control-sm" style="width:160px;" onchange="refreshdata()">
+					<select id="filterTank" class="text-black form-control form-control-sm" style="width:160px;" onchange="refreshdata()">
 						<option value="">Semua Tangki</option>
 						@foreach($tanks as $t)
 							<option value="{{ $t->id }}">{{ $t->name }}</option>
@@ -154,7 +154,7 @@
 				</div>
 				<div>
 					<label class="d-block mb-1"><small>Tujuan Draining</small></label>
-					<select id="filterTargetType" class="form-control form-control-sm" style="width:140px;" onchange="refreshdata()">
+					<select id="filterTargetType" class="text-black form-control form-control-sm" style="width:140px;" onchange="refreshdata()">
 						<option value="">Semua Tujuan</option>
 						<option value="MOVING">MOVING</option>
 						<option value="PENJUALAN">PENJUALAN</option>
@@ -162,7 +162,7 @@
 				</div>
 				<div>
 					<label class="d-block mb-1"><small>Pencarian</small></label>
-					<input type="text" id="filterSearch" class="form-control form-control-sm" style="width:170px;" placeholder="Kode / SO / Ket..." onkeyup="if(event.key==='Enter') refreshdata()" />
+					<input type="text" id="filterSearch" class="text-black form-control form-control-sm" style="width:170px;" placeholder="Kode / SO / Ket..." onkeyup="if(event.key==='Enter') refreshdata()" />
 				</div>
 				<div>
 					<button type="button" class="btn btn-sm btn-primary" onclick="refreshdata()">Filter</button>
@@ -191,7 +191,7 @@
 					<div class="row">
 						<div class="col-md-4 mb-2">
 							<label class="small font-weight-bold mb-1">Kode Draining Sumber</label>
-							<select id="movingSludgeDrainingId" class="form-control form-control-sm" onchange="onMovingSludgeDrainingChange()">
+							<select id="movingSludgeDrainingId" class="text-black form-control form-control-sm" onchange="onMovingSludgeDrainingChange()">
 								<option value="">-- Pilih Kode Draining --</option>
 								@foreach($sludgeSourceRows as $src)
 									@if(($src['sisa_qty'] ?? 0) > 0)
@@ -204,21 +204,21 @@
 						</div>
 						<div class="col-md-3 mb-2">
 							<label class="small font-weight-bold mb-1">Gudang Tujuan</label>
-							<select id="movingSludgeWarehouseId" class="form-control form-control-sm" style="width:100%;">
+							<select id="movingSludgeWarehouseId" class="text-black form-control form-control-sm" style="width:100%;">
 								<option value="">-- Pilih Gudang Tujuan --</option>
 							</select>
 						</div>
 						<div class="col-md-2 mb-2">
 							<label class="small font-weight-bold mb-1">Tanggal Moving</label>
-							<input type="date" id="movingSludgeDate" class="form-control form-control-sm" value="{{ date('Y-m-d') }}" />
+							<input type="date" id="movingSludgeDate" class="text-black form-control form-control-sm" value="{{ date('Y-m-d') }}" />
 						</div>
 						<div class="col-md-3 mb-2">
 							<label class="small font-weight-bold mb-1">Qty Moving (KG) <span id="movingSludgeMaxInfo" class="text-muted"></span></label>
-							<input type="number" step="0.01" min="0.01" id="movingSludgeQty" class="form-control form-control-sm" placeholder="0.00" />
+							<input type="number" step="0.01" min="0.01" id="movingSludgeQty" class="text-black form-control form-control-sm" placeholder="0.00" />
 						</div>
 						<div class="col-md-9 mb-2">
 							<label class="small font-weight-bold mb-1">Keterangan</label>
-							<input type="text" id="movingSludgeNotes" class="form-control form-control-sm" placeholder="Catatan moving sludge..." />
+							<input type="text" id="movingSludgeNotes" class="text-black form-control form-control-sm" placeholder="Catatan moving sludge..." />
 						</div>
 						<div class="col-md-3 mb-2 d-flex align-items-end justify-content-end gap-2">
 							<button type="button" class="btn btn-sm btn-secondary mr-2" onclick="toggleSludgeMovingForm(false)">Batal</button>
@@ -231,15 +231,15 @@
 			<div class="cns-filter-bar">
 				<div>
 					<label class="d-block mb-1"><small>Dari Tanggal</small></label>
-					<input type="date" id="sludgeFilterStartDate" class="form-control form-control-sm" style="width:140px;" />
+					<input type="date" id="sludgeFilterStartDate" class="text-black form-control form-control-sm" style="width:140px;" />
 				</div>
 				<div>
 					<label class="d-block mb-1"><small>Sampai Tanggal</small></label>
-					<input type="date" id="sludgeFilterEndDate" class="form-control form-control-sm" style="width:140px;" />
+					<input type="date" id="sludgeFilterEndDate" class="text-black form-control form-control-sm" style="width:140px;" />
 				</div>
 				<div>
 					<label class="d-block mb-1"><small>Tangki Asal</small></label>
-					<select id="sludgeFilterTank" class="form-control form-control-sm" style="width:160px;" onchange="loadSludgeStock()">
+					<select id="sludgeFilterTank" class="text-black form-control form-control-sm" style="width:160px;" onchange="loadSludgeStock()">
 						<option value="">Semua Tangki</option>
 						@foreach($tanks as $t)
 							<option value="{{ $t->id }}">{{ $t->name }}</option>
@@ -374,7 +374,7 @@
 	TankDrainingGrid.setInitWidths("45,140,95,115,120,115,95,165,*,105,110,125");
 	TankDrainingGrid.attachHeader("&nbsp;,#text_filter,#text_filter,#select_filter,#text_filter,#text_filter,#select_filter,#text_filter,#text_filter,&nbsp;,#text_filter,#text_filter");
 	TankDrainingGrid.setColAlign("center,left,center,left,right,right,center,left,left,center,left,center");
-	TankDrainingGrid.setColTypes("dyn,ro,ro,ro,ro,ro,ro,ro,ro,link,ro,ro");
+	TankDrainingGrid.setColTypes("dyn,ro,ro,ro,ro,ro,ro,ro,ro,cns_doc,ro,ro");
 	TankDrainingGrid.attachEvent("onRowDblClicked", DetailDraining);
 	TankDrainingGrid.setColSorting("int,str,date,str,int,int,str,str,str,str,str,str");
 	TankDrainingGrid.enableMultiline(true);

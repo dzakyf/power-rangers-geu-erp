@@ -14,7 +14,7 @@
         }
 
         var row = $('<div class="input-group mb-2 company-email-row">' +
-            '<input type="email" name="Emails[]" class="form-control shadow-sm company-email-input" required />' +
+            '<input type="email" name="Emails[]" class="text-black form-control shadow-sm company-email-input" required />' +
             '<div class="input-group-append"><button type="button" class="btn btn-outline-danger remove-company-email">Hapus</button></div>' +
             '</div>');
         row.find('input').val(value || '');

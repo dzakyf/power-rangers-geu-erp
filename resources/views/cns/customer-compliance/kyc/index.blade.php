@@ -22,6 +22,14 @@
             <button type="button" class="btn btn-warning btn-sm" onclick="openSelectedEdit()">
                 <i class="fa fa-edit"></i> Edit
             </button>
+            @can('cns.customer_compliance_kyc.approve')
+                <button type="button" class="btn btn-success btn-sm" onclick="approveSelected()">
+                    <i class="fa fa-check"></i> Approve
+                </button>
+                <button type="button" class="btn btn-outline-danger btn-sm" onclick="openRejectSelected()">
+                    <i class="fa fa-times"></i> Reject
+                </button>
+            @endcan
             <button type="button" class="btn btn-secondary btn-sm" onclick="printSelected()">
                 <i class="fa fa-print"></i> Cetak PDF
             </button>
@@ -33,20 +41,20 @@
     <div class="card-body">
         <div class="row cns-filter-bar">
             <div class="col-md-4">
-                <label for="filterSearch" class="mb-1">Pencarian</label>
-                <input type="text" id="filterSearch" class="form-control" placeholder="Cari No. KYC, Perusahaan, Reg. No, Pengisi...">
+                <label for="filterSearch" class="mb-1" style="font-size: 0.8rem;">Pencarian</label>
+                <input type="text" id="filterSearch" class="text-black form-control form-control-sm" placeholder="Cari No. KYC, Perusahaan, Reg. No, Pengisi...">
             </div>
             <div class="col-md-2">
-                <label for="filterStartDate" class="mb-1">Dari Tanggal</label>
-                <input type="date" id="filterStartDate" class="form-control">
+                <label for="filterStartDate" class="mb-1" style="font-size: 0.8rem;">Dari Tanggal</label>
+                <input type="date" id="filterStartDate" class="text-black form-control form-control-sm">
             </div>
             <div class="col-md-2">
-                <label for="filterEndDate" class="mb-1">Sampai Tanggal</label>
-                <input type="date" id="filterEndDate" class="form-control">
+                <label for="filterEndDate" class="mb-1" style="font-size: 0.8rem;">Sampai Tanggal</label>
+                <input type="date" id="filterEndDate" class="text-black form-control form-control-sm">
             </div>
-            <div class="col-md-4 d-flex align-items-end">
-                <button type="button" class="btn btn-primary mr-2" onclick="loadGridData()"><i class="fa fa-search"></i> Cari</button>
-                <button type="button" class="btn btn-light" onclick="resetFilters()"><i class="fa fa-refresh"></i> Reset</button>
+            <div class="col-md-4 d-flex align-items-end gap-2">
+                <button type="button" class="btn btn-sm btn-primary mr-2" onclick="loadGridData()"><i class="fa fa-search"></i> Cari</button>
+                <button type="button" class="btn btn-sm btn-light" onclick="resetFilters()"><i class="fa fa-refresh"></i> Reset</button>
             </div>
         </div>
 
@@ -59,6 +67,36 @@
 <form id="deleteForm" method="POST" style="display:none;">
     @csrf
 </form>
+
+@can('cns.customer_compliance_kyc.approve')
+    <form id="approveForm" method="POST" style="display:none;">
+        @csrf
+    </form>
+
+    <div class="modal fade" id="rejectKycModal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <form id="rejectForm" method="POST" class="modal-content">
+                @csrf
+                <div class="modal-header">
+                    <h5 class="modal-title">Reject Form KYC</h5>
+                    <button type="button" class="close btn-close" data-bs-dismiss="modal" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group mb-0">
+                        <label for="rejection_reason">Alasan Penolakan <span class="text-danger">*</span></label>
+                        <textarea name="rejection_reason" id="rejection_reason" rows="3" class="text-black form-control" required maxlength="1000" placeholder="Tuliskan alasan penolakan..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-danger">Reject KYC</button>
+                </div>
+            </form>
+        </div>
+    </div>
+@endcan
 
 <script>
     var KycGrid;
@@ -174,6 +212,50 @@
             form.action = "{{ url('cns-customer-compliance-kyc-delete') }}/" + rowId;
             form.submit();
         });
+    }
+
+    function getPendingSelectedRowId() {
+        var rowId = KycGrid.getSelectedRowId();
+        if (!rowId) {
+            swal('Perhatian', 'Pilih data terlebih dahulu.', 'warning');
+            return null;
+        }
+        var status = String(KycGrid.cells(rowId, 8).getValue() || '').trim().toUpperCase();
+        if (status !== 'PENDING') {
+            swal('Perhatian', 'Hanya KYC berstatus PENDING yang dapat diproses.', 'warning');
+            return null;
+        }
+        return rowId;
+    }
+
+    function approveSelected() {
+        var rowId = getPendingSelectedRowId();
+        if (!rowId) return;
+        swal({
+            title: 'Konfirmasi Approval',
+            text: 'Approve form KYC ini?',
+            icon: 'info',
+            buttons: ['Batal', 'Approve']
+        }).then(function (confirmed) {
+            if (!confirmed) return;
+            var form = document.getElementById('approveForm');
+            form.action = "{{ url('cns-customer-compliance-kyc-approve') }}/" + rowId;
+            form.submit();
+        });
+    }
+
+    function openRejectSelected() {
+        var rowId = getPendingSelectedRowId();
+        if (!rowId) return;
+        var form = document.getElementById('rejectForm');
+        form.action = "{{ url('cns-customer-compliance-kyc-reject') }}/" + rowId;
+        $('#rejection_reason').val('');
+        var modalEl = document.getElementById('rejectKycModal');
+        if (window.bootstrap && bootstrap.Modal) {
+            bootstrap.Modal.getOrCreateInstance(modalEl).show();
+        } else {
+            $('#rejectKycModal').modal('show');
+        }
     }
 </script>
 @endsection

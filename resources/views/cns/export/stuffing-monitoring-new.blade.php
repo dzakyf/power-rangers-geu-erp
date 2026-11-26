@@ -19,7 +19,7 @@ $Saya =  Auth::user()->username;
 						<div class="col-12">
 							<div class="form-group">
 								<label for="Order_No">Order No</label>
-								<input type="text" name="Order_No" id="Order_No" value="{{ $vs->Order_No }}" class="form-control" required readonly />
+								<input type="text" name="Order_No" id="Order_No" value="{{ $vs->Order_No }}" class="text-black form-control" required readonly />
 							</div>
 						</div>
                         <div class="col-12" id="divContainerSeal">

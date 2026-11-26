@@ -117,7 +117,8 @@ class DrainAdjustmentController extends Controller
             $docCell = '';
             if (!empty($row->document_path)) {
                 $docUrl = route('cns-drain-adjustment.document', ['id' => $row->id], false);
-                $docCell = htmlspecialchars($docUrl) . '^Lihat Dokumen^_blank';
+                $docName = $row->document_name ?: basename($row->document_path);
+                $docCell = htmlspecialchars($docUrl) . '^' . htmlspecialchars($docName);
             }
 
             $selisihPrefix = $row->selisih_qty > 0 ? '+' : '';

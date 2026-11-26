@@ -34,11 +34,11 @@ $Saya =  Auth::user()->username;
 		<div class="cns-filter-bar">
 			<div>
 				<label for="tgl1" class="d-block mb-1"><small>Dari Tanggal</small></label>
-				<input type="date" id="tgl1" name="tgl1" value="{{ date('Y-m-01', strtotime('-7 days')) }}" class="form-control form-control-sm" style="width:auto;" />
+				<input type="date" id="tgl1" name="tgl1" value="{{ date('Y-m-01', strtotime('-7 days')) }}" class="text-black form-control form-control-sm" style="width:auto;" />
 			</div>
 			<div>
 				<label for="tgl2" class="d-block mb-1"><small>Sampai Tanggal</small></label>
-				<input type="date" id="tgl2" name="tgl2" value="{{ date('Y-m-d') }}" class="form-control form-control-sm" style="width:auto;" />
+				<input type="date" id="tgl2" name="tgl2" value="{{ date('Y-m-d') }}" class="text-black form-control form-control-sm" style="width:auto;" />
 			</div>
 			<div>
 				<button type="button" onclick="refreshdataDetail()" class="btn btn-sm btn-primary">Filter</button>
@@ -59,7 +59,7 @@ $Saya =  Auth::user()->username;
 				<div class="col-md-4 col-12">
 					<div class="form-group">
 						<label for="Order_No">Order No</label>
-						<select name="Order_No" id="Order_No" class="form-control shadow-sm" required>
+						<select name="Order_No" id="Order_No" class="text-black form-control shadow-sm" required>
 							<option value="">-- Pilih Order No --</option>
 							@foreach ($vss as $vs)
 								<option value="{{ $vs->Order_No }}">{{ $vs->Order_No }} - {{ $vs->Vessel }}</option>
@@ -70,25 +70,25 @@ $Saya =  Auth::user()->username;
 				<div class="col-md-2 col-12">
 					<div class="form-group">
 						<label for="Date">Tanggal</label>
-						<input type="date" name="Date" id="Date" value="{{ date('Y-m-d') }}" class="form-control shadow-sm" required />
+						<input type="date" name="Date" id="Date" value="{{ date('Y-m-d') }}" class="text-black form-control shadow-sm" required />
 					</div>
 				</div>
 				<div class="col-md-2 col-12">
 					<div class="form-group">
 						<label for="Time_From">Jam Awal</label>
-						<input type="time" name="Time_From" id="Time_From" class="form-control shadow-sm" />
+						<input type="time" name="Time_From" id="Time_From" class="text-black form-control shadow-sm" />
 					</div>
 				</div>
 				<div class="col-md-2 col-12">
 					<div class="form-group">
 						<label for="Time_To">Jam Akhir</label>
-						<input type="time" name="Time_To" id="Time_To" class="form-control shadow-sm" />
+						<input type="time" name="Time_To" id="Time_To" class="text-black form-control shadow-sm" />
 					</div>
 				</div>
 				<div class="col-md-2 col-12">
 					<div class="form-group">
 						<label for="Police_No">Nopol</label>
-						<input type="text" name="Police_No" id="Police_No" class="form-control shadow-sm" />
+						<input type="text" name="Police_No" id="Police_No" class="text-black form-control shadow-sm" />
 					</div>
 				</div>
 			</div>
@@ -96,25 +96,25 @@ $Saya =  Auth::user()->username;
 				<div class="col-md-4 col-12">
 					<div class="form-group">
 						<label for="Container">Kontainer</label>
-						<input type="text" name="Container" id="Container" class="form-control shadow-sm" required />
+						<input type="text" name="Container" id="Container" class="text-black form-control shadow-sm" required />
 					</div>
 				</div>
 				<div class="col-md-4 col-12">
 					<div class="form-group">
 						<label for="Seal">Seal</label>
-						<input type="text" name="Seal" id="Seal" class="form-control shadow-sm" />
+						<input type="text" name="Seal" id="Seal" class="text-black form-control shadow-sm" />
 					</div>
 				</div>
 				<div class="col-md-2 col-12">
 					<div class="form-group">
 						<label for="Tare">Tare</label>
-						<input type="text" inputmode="decimal" name="Tare" id="Tare" class="form-control shadow-sm cns-decimal" value="0.00" />
+						<input type="text" inputmode="decimal" name="Tare" id="Tare" class="text-black form-control shadow-sm cns-decimal" value="0.00" />
 					</div>
 				</div>
 				<div class="col-md-2 col-12">
 					<div class="form-group">
 						<label for="Netto_KG">Net (Kg)</label>
-						<input type="text" inputmode="decimal" name="Netto_KG" id="Netto_KG" class="form-control shadow-sm cns-decimal" value="0.00" />
+						<input type="text" inputmode="decimal" name="Netto_KG" id="Netto_KG" class="text-black form-control shadow-sm cns-decimal" value="0.00" />
 					</div>
 				</div>
 			</div>
@@ -122,25 +122,25 @@ $Saya =  Auth::user()->username;
 				<div class="col-md-3 col-12">
 					<div class="form-group">
 						<label for="Netto_MT">Net (MT)</label>
-						<input type="text" name="Netto_MT" id="Netto_MT" class="form-control shadow-sm bg-white" value="0.00" readonly />
+						<input type="text" name="Netto_MT" id="Netto_MT" class="text-black form-control shadow-sm bg-white" value="0.00" readonly />
 					</div>
 				</div>
 				<div class="col-md-3 col-12">
 					<div class="form-group">
 						<label for="Gross_KG">Gross (Kg)</label>
-						<input type="text" name="Gross_KG" id="Gross_KG" class="form-control shadow-sm bg-white" value="0.00" readonly />
+						<input type="text" name="Gross_KG" id="Gross_KG" class="text-black form-control shadow-sm bg-white" value="0.00" readonly />
 					</div>
 				</div>
 				<div class="col-md-3 col-12">
 					<div class="form-group">
 						<label for="Gross_MT">Gross (MT)</label>
-						<input type="text" name="Gross_MT" id="Gross_MT" class="form-control shadow-sm bg-white" value="0.00" readonly />
+						<input type="text" name="Gross_MT" id="Gross_MT" class="text-black form-control shadow-sm bg-white" value="0.00" readonly />
 					</div>
 				</div>
 				<div class="col-md-3 col-12">
 					<div class="form-group">
 						<label for="Note">Note</label>
-						<input type="text" name="Note" id="Note" class="form-control shadow-sm" />
+						<input type="text" name="Note" id="Note" class="text-black form-control shadow-sm" />
 					</div>
 				</div>
 			</div>
@@ -148,14 +148,14 @@ $Saya =  Auth::user()->username;
 				<div class="col-md-6 col-12">
 					<div class="form-group">
 						<label for="Weighbridge_Note">Upload Nota Timbang</label>
-						<input type="file" name="Weighbridge_Note" id="Weighbridge_Note" class="form-control shadow-sm" accept=".pdf,.jpg,.jpeg,.png" />
+						<input type="file" name="Weighbridge_Note" id="Weighbridge_Note" class="text-black form-control shadow-sm" accept=".pdf,.jpg,.jpeg,.png" />
 						<small class="text-muted">PDF/JPG/JPEG/PNG, maksimal 8 MB. Kosongkan jika tidak ingin mengganti nota.</small>
 					</div>
 				</div>
 				<div class="col-md-6 col-12">
 					<div class="form-group">
 						<label>Nota Timbang Saat Ini</label>
-						<div id="currentWeighbridgeNote" class="form-control bg-white" style="min-height:38px;height:auto;">Tidak ada nota.</div>
+						<div id="currentWeighbridgeNote" class="text-black form-control bg-white" style="min-height:38px;height:auto;">Tidak ada nota.</div>
 					</div>
 				</div>
 			</div>

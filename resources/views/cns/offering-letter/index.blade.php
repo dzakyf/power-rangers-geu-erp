@@ -29,7 +29,7 @@
         <div class="row cns-filter-bar">
             <div class="col-md-2">
                 <label for="filterSeller" class="small font-weight-bold mb-1">Seller</label>
-                <select id="filterSeller" class="form-control form-control-sm">
+                <select id="filterSeller" class="text-black form-control form-control-sm">
                     <option value="">Semua</option>
                     @foreach($sellers as $seller)
                         <option value="{{ $seller->code }}">{{ $seller->name }}</option>
@@ -38,7 +38,7 @@
             </div>
             <div class="col-md-2">
                 <label for="filterStatus" class="small font-weight-bold mb-1">Status</label>
-                <select id="filterStatus" class="form-control form-control-sm">
+                <select id="filterStatus" class="text-black form-control form-control-sm">
                     <option value="">Semua</option>
                     <option value="DRAFT">DRAFT</option>
                     <option value="APPROVED">APPROVED</option>
@@ -46,11 +46,11 @@
             </div>
             <div class="col-md-2">
                 <label for="filterStartDate" class="small font-weight-bold mb-1">Dari Tanggal</label>
-                <input type="date" id="filterStartDate" class="form-control form-control-sm">
+                <input type="date" id="filterStartDate" class="text-black form-control form-control-sm">
             </div>
             <div class="col-md-2">
                 <label for="filterEndDate" class="small font-weight-bold mb-1">Sampai Tanggal</label>
-                <input type="date" id="filterEndDate" class="form-control form-control-sm">
+                <input type="date" id="filterEndDate" class="text-black form-control form-control-sm">
             </div>
             <div class="col-md-4 d-flex align-items-end gap-2">
                 <button type="button" class="btn btn-sm btn-primary mr-2" onclick="loadGridData()">Filter</button>

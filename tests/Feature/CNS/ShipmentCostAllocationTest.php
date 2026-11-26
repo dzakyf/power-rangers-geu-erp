@@ -109,7 +109,7 @@ class ShipmentCostAllocationTest extends TestCase
         $admin->Priv_ID = 'ADM';
         $this->be($admin);
 
-        $siId = DB::table('shipping_instructions')->insertGetId([
+        DB::table('shipping_instructions')->insert([
             'SI_No'       => 'SI/EXP/001/XI/2026',
             'Final_SI_No' => 'FINALSI/EXP/001/XI/2026',
             'Order_No'    => 'ORD-001',
@@ -119,14 +119,24 @@ class ShipmentCostAllocationTest extends TestCase
             'Status'      => 'FINAL',
         ]);
 
-        DB::table('vessel_schedule_dtls')->insert([
-            ['SI_No' => 'SI/EXP/001/XI/2026', 'Container' => 'CONT-01', 'Netto_MT' => 50.0, 'Status' => 'ACTIVE'],
-            ['SI_No' => 'SI/EXP/001/XI/2026', 'Container' => 'CONT-02', 'Netto_MT' => 50.0, 'Status' => 'ACTIVE'],
+        DB::table('vessel_schedules')->insert([
+            'Task_ID'  => 'TSK-001',
+            'Order_No' => 'ORD-001',
+            'BC_No'    => 'BC-2026-001',
+            'Vessel'   => 'MV MAERSK',
+            'POL'      => 'Belawan',
+            'POD'      => 'Rotterdam',
+            'Qty'      => '120',
         ]);
 
-        // Store DRAFT
+        DB::table('vessel_schedule_dtls')->insert([
+            ['Task_ID' => 'TSK-001', 'Order_No' => 'ORD-001', 'SI_No' => 'SI/EXP/001/XI/2026', 'Container' => 'CONT-01', 'Netto_MT' => 50.0, 'Status' => 'ACTIVE'],
+            ['Task_ID' => 'TSK-001', 'Order_No' => 'ORD-001', 'SI_No' => 'SI/EXP/001/XI/2026', 'Container' => 'CONT-02', 'Netto_MT' => 50.0, 'Status' => 'ACTIVE'],
+        ]);
+
+        // Store DRAFT using bc_no
         $res = $this->post('/cns-export-cost-allocation-store', [
-            'si_id'                 => $siId,
+            'bc_no'                 => 'BC-2026-001',
             'default_exchange_rate' => 16000,
             'notes'                 => 'Shipment pertama',
             'items'                 => [
@@ -166,6 +176,7 @@ class ShipmentCostAllocationTest extends TestCase
 
         $alloc = CnsShipmentCostAllocation::first();
         $this->assertNotNull($alloc);
+        $this->assertSame('BC-2026-001', $alloc->bc_no);
         $this->assertSame('DRAFT', $alloc->status);
         $this->assertEquals(2000.0, $alloc->total_freight_usd);
         $this->assertEquals(500.0, $alloc->total_trucking_usd);
@@ -194,13 +205,58 @@ class ShipmentCostAllocationTest extends TestCase
         // CSV Export
         $csvRes = $this->get('/cns-export-cost-allocation-export-csv');
         $csvRes->assertStatus(200);
-        $this->assertStringContainsString('SI/EXP/001/XI/2026', $csvRes->streamedContent());
+        $csvContent = $csvRes->streamedContent();
+        $this->assertStringContainsString('BC-2026-001', $csvContent);
+        $this->assertStringContainsString('SI/EXP/001/XI/2026', $csvContent);
 
         // Delete allowed when DRAFT
         $this->delete("/cns-export-cost-allocation-delete/{$alloc->id}")
             ->assertStatus(200)
             ->assertJson(['success' => true]);
         $this->assertNull(CnsShipmentCostAllocation::find($alloc->id));
+    }
+
+    public function test_bc_allocation_falls_back_to_vessel_schedule_qty_and_rejects_unknown_bc()
+    {
+        if (!extension_loaded('pdo_sqlite')) {
+            $this->markTestSkipped('pdo_sqlite extension not available in this environment.');
+        }
+
+        $this->setupSqliteSchema();
+
+        $admin = new User();
+        $admin->id = 1;
+        $admin->username = 'admin';
+        $admin->name = 'Admin';
+        $admin->Priv_ID = 'ADM';
+        $this->be($admin);
+
+        DB::table('vessel_schedules')->insert([
+            'Task_ID'  => 'TSK-002',
+            'Order_No' => 'ORD-002',
+            'BC_No'    => 'BC-2026-002',
+            'Vessel'   => 'MV EVERGREEN',
+            'POL'      => 'Dumai',
+            'POD'      => 'Singapore',
+            'Qty'      => '85.5',
+        ]);
+
+        // Unknown BC_No rejected
+        $this->post('/cns-export-cost-allocation-store', [
+            'bc_no'                 => 'BC-UNKNOWN',
+            'default_exchange_rate' => 16000,
+        ])->assertSessionHasErrors('bc_no');
+
+        // Valid BC_No without stuffing falls back to Qty
+        $this->post('/cns-export-cost-allocation-store', [
+            'bc_no'                 => 'BC-2026-002',
+            'default_exchange_rate' => 16000,
+        ])->assertRedirect();
+
+        $alloc = CnsShipmentCostAllocation::where('bc_no', 'BC-2026-002')->first();
+        $this->assertNotNull($alloc);
+        $this->assertEquals(85.5, $alloc->volume_mt);
+        $this->assertEquals(0, $alloc->container_count);
     }
 
     private function setupSqliteSchema(): void
@@ -228,16 +284,21 @@ class ShipmentCostAllocationTest extends TestCase
 
         Schema::create('vessel_schedules', function (Blueprint $table) {
             $table->increments('id');
+            $table->string('Task_ID')->nullable();
             $table->string('Order_No')->nullable();
+            $table->string('BC_No')->nullable();
             $table->string('Vessel')->nullable();
             $table->string('POL')->nullable();
             $table->string('POD')->nullable();
             $table->date('ETD')->nullable();
             $table->date('ATD')->nullable();
+            $table->string('Qty')->nullable();
         });
 
         Schema::create('vessel_schedule_dtls', function (Blueprint $table) {
             $table->increments('id');
+            $table->string('Task_ID')->nullable();
+            $table->string('Order_No')->nullable();
             $table->string('SI_No')->nullable();
             $table->string('Container')->nullable();
             $table->decimal('Netto_MT', 18, 4)->default(0);
@@ -247,8 +308,9 @@ class ShipmentCostAllocationTest extends TestCase
         Schema::create('cns_shipment_cost_allocations', function (Blueprint $table) {
             $table->increments('id');
             $table->string('allocation_no')->unique();
+            $table->string('bc_no')->nullable()->unique();
             $table->unsignedInteger('si_id')->nullable();
-            $table->string('si_no');
+            $table->string('si_no')->nullable();
             $table->string('final_si_no')->nullable();
             $table->string('order_no')->nullable();
             $table->decimal('default_exchange_rate', 15, 4)->default(16000);

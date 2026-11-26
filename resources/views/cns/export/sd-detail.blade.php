@@ -1,6 +1,6 @@
 <?php
 use Illuminate\Support\Facades\Auth;
-$Saya = Auth::user()->username;
+$Saya = optional(Auth::user())->username;
 ?>
 <div class="mt-3">
     <div class="cns-section-header">DETAIL SUSTAINABILITY DECLARATION</div>
@@ -13,13 +13,13 @@ $Saya = Auth::user()->username;
                     <div class="col-md-6">
                         <div class="form-group">
                             <label>Unique Number of Sustainability Declaration</label>
-                            <input type="text" name="SD_No" id="SD_No" value="{{ $sd->SD_No }}" class="form-control shadow-sm" required readonly />
+                            <input type="text" name="SD_No" id="SD_No" value="{{ $sd->SD_No }}" class="text-black form-control shadow-sm" required readonly />
                         </div>
                     </div>
                     <div class="col-md-3">
                         <div class="form-group">
                             <label>Date of Issuance</label>
-                            <input type="text" name="Issue_Date" id="Issue_Date" value="{{ $sd->Issue_Date }}" class="form-control shadow-sm" required />
+                            <input type="text" name="Issue_Date" id="Issue_Date" value="{{ $sd->Issue_Date }}" class="text-black form-control shadow-sm" required />
                         </div>
                     </div>
                 </div>
@@ -30,7 +30,7 @@ $Saya = Auth::user()->username;
                     <div class="col-md-4">
                         <div class="form-group">
                             <label>Consignee (Recipient Name)</label>
-                            <select name="Consignee" id="Consignee" class="form-control shadow-sm" required>
+                            <select name="Consignee" id="Consignee" class="text-black form-control shadow-sm" required>
                                 <option value="">-- Pilih Consignee --</option>
                                 @foreach($companies as $c)
                                     <option value="{{ $c->Supplier_ID }}" {{ $sd->Consignee==$c->Supplier_ID?'selected':'' }}>{{ $c->Company_Name }}</option>
@@ -41,13 +41,13 @@ $Saya = Auth::user()->username;
                     <div class="col-md-4">
                         <div class="form-group">
                             <label>Certificate Number (Supplier)</label>
-                            <input type="text" name="Certificate_No" id="Certificate_No" value="{{ $sd->Certificate_No }}" class="form-control shadow-sm" />
+                            <input type="text" name="Certificate_No" id="Certificate_No" value="{{ $sd->Certificate_No }}" class="text-black form-control shadow-sm" />
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="form-group">
                             <label>Contract Number</label>
-                            <input type="text" name="Contract_No" id="Contract_No" value="{{ $sd->Contract_No }}" class="form-control shadow-sm" />
+                            <input type="text" name="Contract_No" id="Contract_No" value="{{ $sd->Contract_No }}" class="text-black form-control shadow-sm" />
                         </div>
                     </div>
                 </div>
@@ -58,7 +58,7 @@ $Saya = Auth::user()->username;
                     <div class="col-md-6">
                         <div class="form-group">
                             <label>Address of Dispatch / Shipping Point</label>
-                            <textarea name="Dispatch_Address" id="Dispatch_Address" rows="2" class="form-control shadow-sm">{{ $sd->Dispatch_Address }}</textarea>
+                            <textarea name="Dispatch_Address" id="Dispatch_Address" rows="2" class="text-black form-control shadow-sm">{{ $sd->Dispatch_Address }}</textarea>
                         </div>
                         <div class="form-check mb-2">
                             <input class="form-check-input" type="checkbox" name="Dispatch_Same_As_Supplier" id="Dispatch_Same_As_Supplier" value="1" {{ $sd->Dispatch_Same_As_Supplier?'checked':'' }}>
@@ -68,7 +68,7 @@ $Saya = Auth::user()->username;
                     <div class="col-md-6">
                         <div class="form-group">
                             <label>Address of Receipt / Receiving Point</label>
-                            <textarea name="Receipt_Address" id="Receipt_Address" rows="2" class="form-control shadow-sm">{{ $sd->Receipt_Address }}</textarea>
+                            <textarea name="Receipt_Address" id="Receipt_Address" rows="2" class="text-black form-control shadow-sm">{{ $sd->Receipt_Address }}</textarea>
                         </div>
                         <div class="form-check mb-2">
                             <input class="form-check-input" type="checkbox" name="Receipt_Same_As_Recipient" id="Receipt_Same_As_Recipient" value="1" {{ $sd->Receipt_Same_As_Recipient?'checked':'' }}>
@@ -78,7 +78,7 @@ $Saya = Auth::user()->username;
                     <div class="col-md-3">
                         <div class="form-group">
                             <label>Date of Dispatch</label>
-                            <input type="text" name="Dispatch_Date" id="Dispatch_Date" value="{{ $sd->Dispatch_Date }}" class="form-control shadow-sm" />
+                            <input type="text" name="Dispatch_Date" id="Dispatch_Date" value="{{ $sd->Dispatch_Date }}" class="text-black form-control shadow-sm" />
                         </div>
                     </div>
                 </div>
@@ -89,37 +89,37 @@ $Saya = Auth::user()->username;
                     <div class="col-md-4">
                         <div class="form-group">
                             <label>Type of Product</label>
-                            <input type="text" name="Product_Type" id="Product_Type" value="{{ $sd->Product_Type }}" class="form-control shadow-sm" />
+                            <input type="text" name="Product_Type" id="Product_Type" value="{{ $sd->Product_Type }}" class="text-black form-control shadow-sm" />
                         </div>
                     </div>
                     <div class="col-md-8">
                         <div class="form-group">
                             <label>Type of Raw Material</label>
-                            <input type="text" name="Raw_Material_Type" id="Raw_Material_Type" value="{{ $sd->Raw_Material_Type }}" class="form-control shadow-sm" />
+                            <input type="text" name="Raw_Material_Type" id="Raw_Material_Type" value="{{ $sd->Raw_Material_Type }}" class="text-black form-control shadow-sm" />
                         </div>
                     </div>
                     <div class="col-md-12">
                         <div class="form-group">
                             <label>Additional Information (voluntary)</label>
-                            <textarea name="Additional_Info" id="Additional_Info" rows="2" class="form-control shadow-sm">{{ $sd->Additional_Info }}</textarea>
+                            <textarea name="Additional_Info" id="Additional_Info" rows="2" class="text-black form-control shadow-sm">{{ $sd->Additional_Info }}</textarea>
                         </div>
                     </div>
                     <div class="col-md-3">
                         <div class="form-group">
                             <label>Country of Origin</label>
-                            <input type="text" name="Country_Of_Origin" id="Country_Of_Origin" value="{{ $sd->Country_Of_Origin }}" class="form-control shadow-sm" />
+                            <input type="text" name="Country_Of_Origin" id="Country_Of_Origin" value="{{ $sd->Country_Of_Origin }}" class="text-black form-control shadow-sm" />
                         </div>
                     </div>
                     <div class="col-md-3">
                         <div class="form-group">
                             <label>Quantity</label>
-                            <input type="text" inputmode="decimal" name="Quantity" id="Quantity" value="{{ number_format((float) $sd->Quantity, 2, '.', ',') }}" class="form-control shadow-sm cns-decimal" />
+                            <input type="text" inputmode="decimal" name="Quantity" id="Quantity" value="{{ number_format((float) $sd->Quantity, 2, '.', ',') }}" class="text-black form-control shadow-sm cns-decimal" />
                         </div>
                     </div>
                     <div class="col-md-3">
                         <div class="form-group">
                             <label>Quantity Unit</label>
-                            <select name="Quantity_Unit" id="Quantity_Unit" class="form-control shadow-sm">
+                            <select name="Quantity_Unit" id="Quantity_Unit" class="text-black form-control shadow-sm">
                                 <option value="metric tons" {{ $sd->Quantity_Unit=='metric tons'?'selected':'' }}>metric tons</option>
                                 <option value="m3" {{ $sd->Quantity_Unit=='m3'?'selected':'' }}>m³</option>
                             </select>
@@ -128,7 +128,7 @@ $Saya = Auth::user()->username;
                     <div class="col-md-3">
                         <div class="form-group">
                             <label>Chain of Custody Option</label>
-                            <input type="text" name="Chain_Of_Custody" id="Chain_Of_Custody" value="{{ $sd->Chain_Of_Custody }}" class="form-control shadow-sm" />
+                            <input type="text" name="Chain_Of_Custody" id="Chain_Of_Custody" value="{{ $sd->Chain_Of_Custody }}" class="text-black form-control shadow-sm" />
                         </div>
                     </div>
                     <div class="col-md-3">
@@ -164,7 +164,7 @@ $Saya = Auth::user()->username;
                         <div class="form-group row align-items-center">
                             <label class="col-md-8 col-form-label">{{ $label }}</label>
                             <div class="col-md-4">
-                                <select name="{{ $field }}" id="{{ $field }}" class="form-control shadow-sm form-control-sm">
+                                <select name="{{ $field }}" id="{{ $field }}" class="text-black form-control shadow-sm form-control-sm">
                                     <option value="Yes" {{ $sd->$field=='Yes'?'selected':'' }}>Yes</option>
                                     <option value="No" {{ $sd->$field=='No'?'selected':'' }}>No</option>
                                 </select>
@@ -175,13 +175,13 @@ $Saya = Auth::user()->username;
                     <div class="col-md-6">
                         <div class="form-group">
                             <label>Waste or Animal By-product Permit Number</label>
-                            <input type="text" name="Waste_Permit_No" id="Waste_Permit_No" value="{{ $sd->Waste_Permit_No }}" class="form-control shadow-sm" />
+                            <input type="text" name="Waste_Permit_No" id="Waste_Permit_No" value="{{ $sd->Waste_Permit_No }}" class="text-black form-control shadow-sm" />
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="form-group">
                             <label>Support Nature and Scheme</label>
-                            <textarea name="Support_Nature" id="Support_Nature" rows="2" class="form-control shadow-sm">{{ $sd->Support_Nature }}</textarea>
+                            <textarea name="Support_Nature" id="Support_Nature" rows="2" class="text-black form-control shadow-sm">{{ $sd->Support_Nature }}</textarea>
                         </div>
                     </div>
                 </div>
@@ -191,7 +191,7 @@ $Saya = Auth::user()->username;
                 <div class="row">
                     <div class="col-md-4">
                         <label class="d-block">Total Default Value (RED III) Applied</label>
-                        <select name="GHG_Total_Default" id="GHG_Total_Default" class="form-control shadow-sm form-control-sm" style="width:100px;">
+                        <select name="GHG_Total_Default" id="GHG_Total_Default" class="text-black form-control shadow-sm form-control-sm" style="width:100px;">
                             <option value="No" {{ $sd->GHG_Total_Default=='No'?'selected':'' }}>No</option>
                             <option value="Yes" {{ $sd->GHG_Total_Default=='Yes'?'selected':'' }}>Yes</option>
                         </select>
@@ -202,7 +202,7 @@ $Saya = Auth::user()->username;
                     <div class="col-md-1" style="min-width:80px;">
                         <div class="form-group">
                             <label style="font-size:11px;">{{ $ghg }}</label>
-                            <input type="text" name="GHG_{{ $ghg }}" id="GHG_{{ $ghg }}" value="{{ $sd->{'GHG_'.$ghg} }}" class="form-control shadow-sm form-control-sm" />
+                            <input type="text" name="GHG_{{ $ghg }}" id="GHG_{{ $ghg }}" value="{{ $sd->{'GHG_'.$ghg} }}" class="text-black form-control shadow-sm form-control-sm" />
                         </div>
                     </div>
                     @endforeach
@@ -214,19 +214,19 @@ $Saya = Auth::user()->username;
                     <div class="col-md-2">
                         <div class="form-group">
                             <label>Ship (km)</label>
-                            <input type="text" inputmode="decimal" name="Transport_Ship_KM" id="Transport_Ship_KM" value="{{ $sd->Transport_Ship_KM !== null && $sd->Transport_Ship_KM !== '' ? number_format((float) $sd->Transport_Ship_KM, 2, '.', ',') : '' }}" class="form-control shadow-sm form-control-sm cns-decimal" />
+                            <input type="text" inputmode="decimal" name="Transport_Ship_KM" id="Transport_Ship_KM" value="{{ $sd->Transport_Ship_KM !== null && $sd->Transport_Ship_KM !== '' ? number_format((float) $sd->Transport_Ship_KM, 2, '.', ',') : '' }}" class="text-black form-control shadow-sm form-control-sm cns-decimal" />
                         </div>
                     </div>
                     <div class="col-md-2">
                         <div class="form-group">
                             <label>Train (km)</label>
-                            <input type="text" inputmode="decimal" name="Transport_Train_KM" id="Transport_Train_KM" value="{{ $sd->Transport_Train_KM !== null && $sd->Transport_Train_KM !== '' ? number_format((float) $sd->Transport_Train_KM, 2, '.', ',') : '' }}" class="form-control shadow-sm form-control-sm cns-decimal" />
+                            <input type="text" inputmode="decimal" name="Transport_Train_KM" id="Transport_Train_KM" value="{{ $sd->Transport_Train_KM !== null && $sd->Transport_Train_KM !== '' ? number_format((float) $sd->Transport_Train_KM, 2, '.', ',') : '' }}" class="text-black form-control shadow-sm form-control-sm cns-decimal" />
                         </div>
                     </div>
                     <div class="col-md-2">
                         <div class="form-group">
                             <label>Road (km)</label>
-                            <input type="text" inputmode="decimal" name="Transport_Road_KM" id="Transport_Road_KM" value="{{ $sd->Transport_Road_KM !== null && $sd->Transport_Road_KM !== '' ? number_format((float) $sd->Transport_Road_KM, 2, '.', ',') : '' }}" class="form-control shadow-sm form-control-sm cns-decimal" />
+                            <input type="text" inputmode="decimal" name="Transport_Road_KM" id="Transport_Road_KM" value="{{ $sd->Transport_Road_KM !== null && $sd->Transport_Road_KM !== '' ? number_format((float) $sd->Transport_Road_KM, 2, '.', ',') : '' }}" class="text-black form-control shadow-sm form-control-sm cns-decimal" />
                         </div>
                     </div>
                 </div>
@@ -244,18 +244,18 @@ $Saya = Auth::user()->username;
                     <div class="col-md-3">
                         <div class="form-group">
                             <label>Esca: Bonus or Cap</label>
-                            <input type="text" name="GHG_Esca_Bonus_Cap" id="GHG_Esca_Bonus_Cap" value="{{ $sd->GHG_Esca_Bonus_Cap }}" class="form-control shadow-sm form-control-sm" />
+                            <input type="text" name="GHG_Esca_Bonus_Cap" id="GHG_Esca_Bonus_Cap" value="{{ $sd->GHG_Esca_Bonus_Cap }}" class="text-black form-control shadow-sm form-control-sm" />
                         </div>
                     </div>
                     <div class="col-md-3">
                         <div class="form-group">
                             <label>NUTS2 Area</label>
-                            <input type="text" name="GHG_NUTS2_Area" id="GHG_NUTS2_Area" value="{{ $sd->GHG_NUTS2_Area }}" class="form-control shadow-sm form-control-sm" />
+                            <input type="text" name="GHG_NUTS2_Area" id="GHG_NUTS2_Area" value="{{ $sd->GHG_NUTS2_Area }}" class="text-black form-control shadow-sm form-control-sm" />
                         </div>
                     </div>
                     <div class="col-md-8">
                         <label>El: Bonus of 29 g CO₂eq/MJ if biomass from restored degraded land</label>
-                        <select name="GHG_El_Bonus" id="GHG_El_Bonus" class="form-control shadow-sm form-control-sm" style="width:100px;">
+                        <select name="GHG_El_Bonus" id="GHG_El_Bonus" class="text-black form-control shadow-sm form-control-sm" style="width:100px;">
                             <option value="Yes" {{ $sd->GHG_El_Bonus=='Yes'?'selected':'' }}>Yes</option>
                             <option value="No" {{ $sd->GHG_El_Bonus=='No'?'selected':'' }}>No</option>
                         </select>
@@ -295,15 +295,20 @@ $Saya = Auth::user()->username;
                     <div class="col-md-12">
                         <div class="form-group">
                             <label>Note</label>
-                            <textarea name="Note" id="Note" rows="2" class="form-control shadow-sm">{{ $sd->Note }}</textarea>
+                            <textarea name="Note" id="Note" rows="2" class="text-black form-control shadow-sm">{{ $sd->Note }}</textarea>
                         </div>
                     </div>
                 </div>
 
             </div>{{-- /ContentPagesSDDtl --}}
 
-            <div>
-                <input type="button" id="UpdateSD" value="Update" class="btn btn-success mt-2 mr-2" />
+            <div class="d-flex align-items-center flex-wrap" style="gap: 0.5rem;">
+                @if (($sd->Status ?? '') === 'APPROVED')
+                    <span class="badge rounded-pill cns-status-badge bg-success mt-2">APPROVED</span>
+                @else
+                    <input type="button" id="UpdateSD" value="Update" class="btn btn-success mt-2 mr-2" />
+                    <button type="button" id="ApproveSD" class="btn btn-primary mt-2">Approve</button>
+                @endif
             </div>
         </div>
     </div>
@@ -341,6 +346,42 @@ $Saya = Auth::user()->username;
                 $.unblockUI();
                 swal('Error', 'Error Internal! Silakan coba lagi.', 'error');
             }
+        });
+    });
+
+    $('#ApproveSD').click(function () {
+        var sdNo = $('#SD_No').val();
+        swal({
+            title: 'Konfirmasi Approve',
+            text: 'Approve Sustainability Declaration ' + sdNo + '?',
+            icon: 'warning',
+            buttons: ['Batal', 'Ya, Approve']
+        }).then(function (ok) {
+            if (!ok) return;
+            $.blockUI();
+            $.ajax({
+                headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
+                url: "cns-export-sustainability-declaration-approve?_token={{ csrf_token() }}",
+                type: "POST",
+                data: { sd_no: sdNo },
+                success: function (res) {
+                    $.unblockUI();
+                    if (res && res.status === 'success') {
+                        swal('Berhasil!', res.message || 'Sustainability Declaration berhasil di-approve!', 'success');
+                        if (typeof refreshdata === 'function') {
+                            refreshdata();
+                        }
+                        $('#divlistOpportunity').html('');
+                    } else {
+                        swal('Error', (res && res.message) || 'Gagal approve Sustainability Declaration!', 'error');
+                    }
+                },
+                error: function (xhr) {
+                    $.unblockUI();
+                    var msg = (xhr.responseJSON && xhr.responseJSON.message) || 'Error Internal! Silakan coba lagi.';
+                    swal('Error', msg, 'error');
+                }
+            });
         });
     });
 </script>

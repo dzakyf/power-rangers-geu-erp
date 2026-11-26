@@ -1,12 +1,68 @@
 @extends('layout.mainlayout-cns')
 
 @section('content-wrapper')
+<style>
+    .metric-card {
+        border-radius: 10px;
+        padding: 18px 20px;
+        color: #ffffff;
+        position: relative;
+        min-height: 110px;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+    }
+    .metric-card .metric-header {
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.85);
+        padding-right: 58px;
+    }
+    .metric-card .metric-value {
+        font-size: 26px;
+        font-weight: 700;
+        line-height: 1.15;
+        color: #ffffff;
+        margin-top: 6px;
+        padding-right: 58px;
+    }
+    .metric-card .metric-sub {
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.9);
+        margin-top: 4px;
+        padding-right: 58px;
+    }
+    .metric-card .metric-icon-box {
+        width: 48px;
+        height: 48px;
+        border-radius: 6px;
+        background: rgba(255, 255, 255, 0.18);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: absolute;
+        right: 18px;
+        top: 50%;
+        transform: translateY(-50%);
+    }
+    .metric-card .metric-icon-box i {
+        font-size: 22px;
+        color: #ffffff;
+    }
+    .bg-card-navy { background-color: #3e4f7a !important; }
+    .bg-card-teal { background-color: #11a38f !important; }
+    .bg-card-orange { background-color: #f5a834 !important; }
+    .bg-card-coral { background-color: #ef533c !important; }
+</style>
 @php
     $isEdit = $allocation !== null;
     $isFinal = $isEdit && $allocation->isFinal();
     $defaultRate = $isEdit ? (float) $allocation->default_exchange_rate : 16000;
-    $currentSiNo = $isEdit ? $allocation->si_no : '';
-    $currentMeta = $currentSiNo && isset($siMeta[$currentSiNo]) ? $siMeta[$currentSiNo] : [];
+    $currentMeta = $currentMeta ?? [];
 @endphp
 
 @include('cns.partials.page-header', [
@@ -24,7 +80,7 @@
 
     <div class="card cns-card">
         <div class="card-header">
-            <h5 class="card-title mb-0">Shipment Reference (Shipping Instruction)</h5>
+            <h5 class="card-title mb-0">Shipment Reference (Booking Confirmation)</h5>
             @if($isEdit)
                 <span class="badge rounded-pill cns-status-badge {{ $isFinal ? 'bg-success' : 'bg-warning text-dark' }}">{{ $allocation->status }}</span>
             @endif
@@ -32,22 +88,22 @@
         <div class="card-body">
             <div class="row">
                 <div class="col-md-5 mb-2">
-                    <label class="small font-weight-bold">Shipping Instruction (SI No) <span class="text-danger">*</span></label>
+                    <label class="small font-weight-bold">Booking Confirmation (BC No) <span class="text-danger">*</span></label>
                     @if($isEdit)
-                        <input type="text" class="form-control form-control-sm" value="{{ $allocation->si_no }}{{ $allocation->final_si_no ? ' / ' . $allocation->final_si_no : '' }}" readonly>
+                        <input type="text" class="text-black form-control form-control-sm" value="{{ $allocation->bc_no ?: ($allocation->si_no ?: '-') }}{{ $allocation->si_no && $allocation->bc_no ? ' (SI: ' . $allocation->si_no . ')' : '' }}" readonly>
                     @else
-                        <select name="si_id" id="si_id" class="form-control form-control-sm select2-si" required>
-                            <option value="">-- Pilih Shipping Instruction --</option>
-                            @foreach($shipments as $s)
-                                <option value="{{ $s['id'] }}"
-                                    data-si="{{ $s['si_no'] }}"
-                                    data-final-si="{{ $s['final_si_no'] }}"
-                                    data-consignee="{{ $s['consignee'] }}"
-                                    data-vessel="{{ $s['vessel_name'] }}"
-                                    data-pod="{{ $s['pod'] }}"
-                                    data-mt="{{ $s['volume_mt'] }}"
-                                    data-ctr="{{ $s['containers'] }}">
-                                    {{ $s['si_no'] }}{{ $s['final_si_no'] !== '-' ? ' (' . $s['final_si_no'] . ')' : '' }} — {{ $s['consignee'] }}
+                        <select name="bc_no" id="bc_no" class="text-black form-control form-control-sm select2-bc" required>
+                            <option value="">-- Pilih Booking Confirmation (BC No) --</option>
+                            @foreach($bcs as $b)
+                                <option value="{{ $b['bc_no'] }}"
+                                    data-si="{{ $b['si_no'] }}"
+                                    data-order="{{ $b['order_no'] }}"
+                                    data-consignee="{{ $b['consignee'] }}"
+                                    data-vessel="{{ $b['vessel_name'] }}"
+                                    data-pod="{{ $b['pod'] }}"
+                                    data-mt="{{ $b['volume_mt'] }}"
+                                    data-ctr="{{ $b['containers'] }}">
+                                    {{ $b['bc_no'] }}{{ $b['si_no'] !== '-' ? ' (SI: ' . $b['si_no'] . ')' : '' }} — {{ $b['consignee'] }}
                                 </option>
                             @endforeach
                         </select>
@@ -55,11 +111,11 @@
                 </div>
                 <div class="col-md-2 mb-2">
                     <label class="small font-weight-bold">Default Kurs (IDR / 1 USD) <span class="text-danger">*</span></label>
-                    <input type="number" step="0.01" min="1" name="default_exchange_rate" id="default_exchange_rate" class="form-control form-control-sm" value="{{ $defaultRate }}" {{ $readOnly ? 'readonly' : '' }} required>
+                    <input type="number" step="0.01" min="1" name="default_exchange_rate" id="default_exchange_rate" class="text-black form-control form-control-sm" value="{{ $defaultRate }}" {{ $readOnly ? 'readonly' : '' }} required>
                 </div>
                 <div class="col-md-5 mb-2">
                     <label class="small font-weight-bold">Catatan Umum</label>
-                    <input type="text" name="notes" class="form-control form-control-sm" value="{{ $isEdit ? $allocation->notes : '' }}" {{ $readOnly ? 'readonly' : '' }} placeholder="Catatan opsional untuk shipment ini">
+                    <input type="text" name="notes" class="text-black form-control form-control-sm" value="{{ $isEdit ? $allocation->notes : '' }}" {{ $readOnly ? 'readonly' : '' }} placeholder="Catatan opsional untuk shipment ini">
                 </div>
             </div>
 
@@ -72,37 +128,37 @@
         </div>
     </div>
 
-    <div class="row">
-        <div class="col-md-3 col-sm-6 mb-2">
-            <div class="card bg-light border-0 shadow-sm">
-                <div class="card-body py-2 px-3">
-                    <div class="small text-muted">Total Cost (USD)</div>
-                    <div class="h5 mb-0 font-weight-bold text-primary">$ <span id="summary_total_usd">0.00</span></div>
-                </div>
+    <div class="row mb-3">
+        <div class="col-xl-3 col-md-6 mb-2">
+            <div class="metric-card bg-card-navy">
+                <div class="metric-header">Total Cost (USD)</div>
+                <div class="metric-value">$ <span id="summary_total_usd">0.00</span></div>
+                <div class="metric-sub">Total biaya dalam USD</div>
+                <div class="metric-icon-box"><i class="fe fe-dollar-sign"></i></div>
             </div>
         </div>
-        <div class="col-md-3 col-sm-6 mb-2">
-            <div class="card bg-light border-0 shadow-sm">
-                <div class="card-body py-2 px-3">
-                    <div class="small text-muted">Total Cost (IDR)</div>
-                    <div class="h5 mb-0 font-weight-bold text-dark">Rp <span id="summary_total_idr">0</span></div>
-                </div>
+        <div class="col-xl-3 col-md-6 mb-2">
+            <div class="metric-card bg-card-teal">
+                <div class="metric-header">Total Cost (IDR)</div>
+                <div class="metric-value">Rp <span id="summary_total_idr">0</span></div>
+                <div class="metric-sub">Total biaya dalam IDR</div>
+                <div class="metric-icon-box"><i class="fe fe-credit-card"></i></div>
             </div>
         </div>
-        <div class="col-md-3 col-sm-6 mb-2">
-            <div class="card bg-light border-0 shadow-sm">
-                <div class="card-body py-2 px-3">
-                    <div class="small text-muted">Cost / MT (USD)</div>
-                    <div class="h5 mb-0 font-weight-bold text-success">$ <span id="summary_cost_mt">0.00</span></div>
-                </div>
+        <div class="col-xl-3 col-md-6 mb-2">
+            <div class="metric-card bg-card-orange">
+                <div class="metric-header">Cost / MT (USD)</div>
+                <div class="metric-value">$ <span id="summary_cost_mt">0.00</span></div>
+                <div class="metric-sub">Rata-rata per MT</div>
+                <div class="metric-icon-box"><i class="fe fe-trending-up"></i></div>
             </div>
         </div>
-        <div class="col-md-3 col-sm-6 mb-2">
-            <div class="card bg-light border-0 shadow-sm">
-                <div class="card-body py-2 px-3">
-                    <div class="small text-muted">Cost / Container (USD)</div>
-                    <div class="h5 mb-0 font-weight-bold text-info">$ <span id="summary_cost_ctr">0.00</span></div>
-                </div>
+        <div class="col-xl-3 col-md-6 mb-2">
+            <div class="metric-card bg-card-coral">
+                <div class="metric-header">Cost / Container (USD)</div>
+                <div class="metric-value">$ <span id="summary_cost_ctr">0.00</span></div>
+                <div class="metric-sub">Rata-rata per container</div>
+                <div class="metric-icon-box"><i class="fe fe-package"></i></div>
             </div>
         </div>
     </div>
@@ -116,7 +172,7 @@
                     <span class="badge badge-light">Subtotal: $ <span class="cat-subtotal-usd" data-cat="{{ $catKey }}">0.00</span></span>
                 </div>
                 @if(!$readOnly)
-                    <button type="button" class="btn btn-xs btn-outline-primary btn-add-item" data-cat="{{ $catKey }}">
+                    <button type="button" class="btn btn-sm btn-outline-primary btn-add-item" data-cat="{{ $catKey }}">
                         <i class="fa fa-plus"></i> Tambah {{ $catLabel }}
                     </button>
                 @endif
@@ -142,19 +198,19 @@
                                 <tr class="cost-item-row" data-cat="{{ $catKey }}">
                                     <td>
                                         <input type="hidden" name="items[{{ $rowIndex }}][category]" value="{{ $catKey }}">
-                                        <input type="text" name="items[{{ $rowIndex }}][description]" class="form-control form-control-sm" value="{{ $item->description }}" {{ $readOnly ? 'readonly' : '' }} required>
+                                        <input type="text" name="items[{{ $rowIndex }}][description]" class="text-black form-control form-control-sm" value="{{ $item->description }}" {{ $readOnly ? 'readonly' : '' }} required>
                                     </td>
-                                    <td><input type="text" name="items[{{ $rowIndex }}][vendor_name]" class="form-control form-control-sm" value="{{ $item->vendor_name }}" {{ $readOnly ? 'readonly' : '' }}></td>
-                                    <td><input type="text" name="items[{{ $rowIndex }}][reference_no]" class="form-control form-control-sm" value="{{ $item->reference_no }}" {{ $readOnly ? 'readonly' : '' }}></td>
+                                    <td><input type="text" name="items[{{ $rowIndex }}][vendor_name]" class="text-black form-control form-control-sm" value="{{ $item->vendor_name }}" {{ $readOnly ? 'readonly' : '' }}></td>
+                                    <td><input type="text" name="items[{{ $rowIndex }}][reference_no]" class="text-black form-control form-control-sm" value="{{ $item->reference_no }}" {{ $readOnly ? 'readonly' : '' }}></td>
                                     <td>
-                                        <select name="items[{{ $rowIndex }}][currency]" class="form-control form-control-sm item-currency" {{ $readOnly ? 'disabled' : '' }}>
+                                        <select name="items[{{ $rowIndex }}][currency]" class="text-black form-control form-control-sm item-currency" {{ $readOnly ? 'disabled' : '' }}>
                                             <option value="USD" {{ $item->currency === 'USD' ? 'selected' : '' }}>USD</option>
                                             <option value="IDR" {{ $item->currency === 'IDR' ? 'selected' : '' }}>IDR</option>
                                         </select>
                                         @if($readOnly)<input type="hidden" name="items[{{ $rowIndex }}][currency]" value="{{ $item->currency }}">@endif
                                     </td>
-                                    <td><input type="number" step="0.01" min="0" name="items[{{ $rowIndex }}][amount]" class="form-control form-control-sm text-right item-amount" value="{{ (float) $item->amount }}" {{ $readOnly ? 'readonly' : '' }} required></td>
-                                    <td><input type="number" step="0.01" min="1" name="items[{{ $rowIndex }}][exchange_rate]" class="form-control form-control-sm text-right item-rate" value="{{ (float) $item->exchange_rate }}" {{ $readOnly ? 'readonly' : '' }} required></td>
+                                    <td><input type="number" step="0.01" min="0" name="items[{{ $rowIndex }}][amount]" class="text-black form-control form-control-sm text-right item-amount" value="{{ (float) $item->amount }}" {{ $readOnly ? 'readonly' : '' }} required></td>
+                                    <td><input type="number" step="0.01" min="1" name="items[{{ $rowIndex }}][exchange_rate]" class="text-black form-control form-control-sm text-right item-rate" value="{{ (float) $item->exchange_rate }}" {{ $readOnly ? 'readonly' : '' }} required></td>
                                     <td class="text-right align-middle item-usd-display">0.00</td>
                                     <td class="text-right align-middle item-idr-display">0</td>
                                     @if(!$readOnly)
@@ -207,11 +263,11 @@ $(function () {
     var shipmentMt = {{ $isEdit ? (float) $allocation->volume_mt : 0 }};
     var shipmentCtr = {{ $isEdit ? (int) $allocation->container_count : 0 }};
 
-    if ($.fn.select2 && $('.select2-si').length) {
-        $('.select2-si').select2({ width: '100%' });
+    if ($.fn.select2 && $('.select2-bc').length) {
+        $('.select2-bc').select2({ width: '100%' });
     }
 
-    $('#si_id').on('change', function () {
+    $('#bc_no').on('change', function () {
         var opt = $(this).find(':selected');
         shipmentMt = parseFloat(opt.data('mt')) || 0;
         shipmentCtr = parseInt(opt.data('ctr'), 10) || 0;
@@ -269,12 +325,12 @@ $(function () {
         var idx = nextIndex++;
         var html = '<tr class="cost-item-row" data-cat="' + cat + '">' +
             '<td><input type="hidden" name="items[' + idx + '][category]" value="' + cat + '">' +
-            '<input type="text" name="items[' + idx + '][description]" class="form-control form-control-sm" placeholder="Nama biaya" required></td>' +
-            '<td><input type="text" name="items[' + idx + '][vendor_name]" class="form-control form-control-sm" placeholder="Vendor"></td>' +
-            '<td><input type="text" name="items[' + idx + '][reference_no]" class="form-control form-control-sm" placeholder="No. Inv"></td>' +
-            '<td><select name="items[' + idx + '][currency]" class="form-control form-control-sm item-currency"><option value="USD">USD</option><option value="IDR">IDR</option></select></td>' +
-            '<td><input type="number" step="0.01" min="0" name="items[' + idx + '][amount]" class="form-control form-control-sm text-right item-amount" value="0" required></td>' +
-            '<td><input type="number" step="0.01" min="1" name="items[' + idx + '][exchange_rate]" class="form-control form-control-sm text-right item-rate" value="' + defaultRate + '" required></td>' +
+            '<input type="text" name="items[' + idx + '][description]" class="text-black form-control form-control-sm" placeholder="Nama biaya" required></td>' +
+            '<td><input type="text" name="items[' + idx + '][vendor_name]" class="text-black form-control form-control-sm" placeholder="Vendor"></td>' +
+            '<td><input type="text" name="items[' + idx + '][reference_no]" class="text-black form-control form-control-sm" placeholder="No. Inv"></td>' +
+            '<td><select name="items[' + idx + '][currency]" class="text-black form-control form-control-sm item-currency"><option value="USD">USD</option><option value="IDR">IDR</option></select></td>' +
+            '<td><input type="number" step="0.01" min="0" name="items[' + idx + '][amount]" class="text-black form-control form-control-sm text-right item-amount" value="0" required></td>' +
+            '<td><input type="number" step="0.01" min="1" name="items[' + idx + '][exchange_rate]" class="text-black form-control form-control-sm text-right item-rate" value="' + defaultRate + '" required></td>' +
             '<td class="text-right align-middle item-usd-display">0.00</td>' +
             '<td class="text-right align-middle item-idr-display">0</td>' +
             '<td class="text-center align-middle"><button type="button" class="btn btn-xs btn-danger btn-remove-item"><i class="fa fa-times"></i></button></td>' +

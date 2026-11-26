@@ -238,7 +238,7 @@
                     '<div class="form-row align-items-center">' +
                         '<div class="col-md-6 mb-1 mb-md-0 cns-overflow-tank-col"></div>' +
                         '<div class="col-md-4 mb-1 mb-md-0">' +
-                            '<input type="number" step="0.01" min="0.01" class="form-control form-control-sm cns-overflow-qty" placeholder="Qty sisa (KG)" value="' + qtyVal + '">' +
+                            '<input type="number" step="0.01" min="0.01" class="text-black form-control form-control-sm cns-overflow-qty" placeholder="Qty sisa (KG)" value="' + qtyVal + '">' +
                         '</div>' +
                         '<div class="col-md-2 text-right">' +
                             '<button type="button" class="btn btn-sm btn-outline-danger cns-overflow-remove" title="Hapus baris">&times;</button>' +

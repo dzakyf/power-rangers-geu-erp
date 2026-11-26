@@ -11,6 +11,7 @@ class CnsSalesForecast extends Model
     protected $guarded = ['id'];
 
     protected $casts = [
-        'planned_mt' => 'float',
+        'planned_mt'    => 'float',
+        'planned_value' => 'float',
     ];
 }

@@ -96,6 +96,25 @@ Sebagian besar dokumen pada modul CNS dibuat secara berjenjang. Alur pembuatan d
 
 [Sisipkan tangkapan layar: Bagan alur pembuatan dokumen ekspor]
 
+### Alur Proses Export Checklist & Integrasi Dashboard
+
+Alur pemantauan pemenuhan kontrak ekspor dari penerbitan **Contract** hingga pelaporan kinerja keuangan pada **Export Performance Dashboard** ditunjukkan pada diagram berikut:
+
+```mermaid
+flowchart TD
+    A["Contract Pembelian (Buyer Contract)"] --> B["1..N Booking Confirmation (BC)"]
+    B --> C["Vessel Schedule & Stuffing (Netto MT)"]
+    C --> D["Dokumen Ekspor (SI, FSI, PL, CI, WBT, COO, SD, DN, Annex VII)"]
+    D --> E["Payment Finance (Verifikasi Dana) & Approve CNS"]
+    E --> F["Export Checklist (Progress Contract 100% / 14 Tahap)"]
+    F --> G["Export Performance Dashboard (Tonnage, Value, Cost & Margin)"]
+```
+
+- **Contract ke 1..N BC:** Satu **Kontrak Pembelian** (`cns_buyer_contracts`) dapat dipecah menjadi satu atau lebih **Booking Confirmation (BC)** (`cns_buyer_contract_bookings`).
+- **Vessel Schedule, Stuffing & Dokumen Ekspor:** Setiap BC dijadwalkan pengapalannya pada **Vessel Schedule**, dicatat realisasi berat bersih (`Netto_MT`) pada **Stuffing**, lalu dilengkapi 9 dokumen ekspor (`SI`, `FSI`, `PL`, `CI`, `WBT`, `COO`, `SD`, `DN`, `Annex VII`).
+- **Payment Finance & Approve CNS:** Setelah tim Finance memverifikasi dana masuk (`Finance_Payment_Verified`), tim CNS melakukan persetujuan pembayaran (`Approve Payment`) di menu **Export Checklist**. Ketika seluruh 14 tahap per BC terpenuhi, progress BC berstatus **Completed 100%**.
+- **Integrasi Export Performance Dashboard:** Menu **Dashboard → Export Performance** (`cns-dashboard-export-performance`) menggabungkan progress **Export Checklist** dengan **Tonnage (MT)** dari hasil stuffing, **Value (USD)** (`Tonnage × Price_Per_MT`), serta **Shipment Cost (USD)** dari **Cost Allocation per Shipment** untuk menghitung **Margin (USD & %)** secara otomatis.
+
 ### 2.2 Peta Menu Modul CNS
 
 Menu utama modul CNS dan sub-menunya adalah sebagai berikut:

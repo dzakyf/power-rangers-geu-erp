@@ -27,19 +27,19 @@
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="edit_tank_name" class="font-weight-bold">Nama / Kode Tangki <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" id="edit_tank_name" name="name" value="{{ $tank->name }}" required maxlength="100" />
+                                    <input type="text" class="text-black form-control" id="edit_tank_name" name="name" value="{{ $tank->name }}" required maxlength="100" />
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="edit_tank_capacity" class="font-weight-bold">Kapasitas Maksimal (KG) <span class="text-danger">*</span></label>
-                                    <input type="text" inputmode="decimal" class="form-control cns-decimal" id="edit_tank_capacity" name="capacity" value="{{ number_format((float) $tank->capacity, 2, '.', ',') }}" required />
+                                    <input type="text" inputmode="decimal" class="text-black form-control cns-decimal" id="edit_tank_capacity" name="capacity" value="{{ number_format((float) $tank->capacity, 2, '.', ',') }}" required />
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="edit_tank_status" class="font-weight-bold">Status <span class="text-danger">*</span></label>
-                                    <select class="form-control" id="edit_tank_status" name="status" required>
+                                    <select class="text-black form-control" id="edit_tank_status" name="status" required>
                                         <option value="ACTIVE" {{ $tank->status === 'ACTIVE' ? 'selected' : '' }}>ACTIVE</option>
                                         <option value="INACTIVE" {{ $tank->status === 'INACTIVE' ? 'selected' : '' }}>INACTIVE</option>
                                     </select>
@@ -48,7 +48,7 @@
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="edit_tank_notes" class="font-weight-bold">Keterangan / Lokasi</label>
-                                    <textarea class="form-control" id="edit_tank_notes" name="notes" rows="2">{{ $tank->notes }}</textarea>
+                                    <textarea class="text-black form-control" id="edit_tank_notes" name="notes" rows="2">{{ $tank->notes }}</textarea>
                                 </div>
                             </div>
                             <div class="col-md-6">

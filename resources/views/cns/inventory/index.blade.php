@@ -195,21 +195,21 @@
                 <div class="cns-filter-bar">
                     <div>
                         <label class="d-block mb-1"><small>Dari Tanggal</small></label>
-                        <input type="date" id="filterStartDate" class="form-control form-control-sm" style="width:145px;" />
+                        <input type="date" id="filterStartDate" class="text-black form-control form-control-sm" style="width:145px;" />
                     </div>
                     <div>
                         <label class="d-block mb-1"><small>Sampai Tanggal</small></label>
-                        <input type="date" id="filterEndDate" class="form-control form-control-sm" style="width:145px;" />
+                        <input type="date" id="filterEndDate" class="text-black form-control form-control-sm" style="width:145px;" />
                     </div>
                     <div style="width:200px;">
                         <label class="d-block mb-1"><small>Warehouse</small></label>
-                        <select id="filterWarehouse" class="form-control form-control-sm" style="width:100%;">
+                        <select id="filterWarehouse" class="text-black form-control form-control-sm" style="width:100%;">
                             <option value="">-- Semua --</option>
                         </select>
                     </div>
                     <div style="width:180px;">
                         <label class="d-block mb-1"><small>Nama Tangki</small></label>
-                        <select id="filterTank" class="form-control form-control-sm" style="width:100%;">
+                        <select id="filterTank" class="text-black form-control form-control-sm" style="width:100%;">
                             <option value="">-- Semua --</option>
                         </select>
                     </div>
@@ -231,22 +231,22 @@
                 <div class="cns-filter-bar">
                     <div>
                         <label class="d-block mb-1"><small>Jenis Tanggal</small></label>
-                        <select id="filterUpcomingDateType" class="form-control form-control-sm" style="width:130px;">
+                        <select id="filterUpcomingDateType" class="text-black form-control form-control-sm" style="width:130px;">
                             <option value="eta" selected>Tgl ETA</option>
                             <option value="loading">Tgl Loading</option>
                         </select>
                     </div>
                     <div>
                         <label class="d-block mb-1"><small>Dari Tanggal</small></label>
-                        <input type="date" id="filterUpcomingStartDate" class="form-control form-control-sm" style="width:145px;" />
+                        <input type="date" id="filterUpcomingStartDate" class="text-black form-control form-control-sm" style="width:145px;" />
                     </div>
                     <div>
                         <label class="d-block mb-1"><small>Sampai Tanggal</small></label>
-                        <input type="date" id="filterUpcomingEndDate" class="form-control form-control-sm" style="width:145px;" />
+                        <input type="date" id="filterUpcomingEndDate" class="text-black form-control form-control-sm" style="width:145px;" />
                     </div>
                     <div style="width:240px;">
                         <label class="d-block mb-1"><small>Pencarian</small></label>
-                        <input type="text" id="filterUpcomingSearch" class="form-control form-control-sm" placeholder="Kode / Asal / Tujuan / Status" onkeyup="if(event.keyCode===13) applyUpcomingFilters()" />
+                        <input type="text" id="filterUpcomingSearch" class="text-black form-control form-control-sm" placeholder="Kode / Asal / Tujuan / Status" onkeyup="if(event.keyCode===13) applyUpcomingFilters()" />
                     </div>
                     <div>
                         <button type="button" class="btn btn-sm btn-primary" onclick="applyUpcomingFilters()">Filter</button>
@@ -265,7 +265,7 @@
                         <span id="upcomingPaginationInfo" class="text-muted small mr-3">Menampilkan 0 data</span>
                         <div class="d-flex align-items-center">
                             <label for="upcomingPerPage" class="text-muted small mb-0 mr-2">Per halaman:</label>
-                            <select id="upcomingPerPage" class="form-control form-control-sm" style="width:auto;" onchange="changeUpcomingPerPage(this.value)">
+                            <select id="upcomingPerPage" class="text-black form-control form-control-sm" style="width:auto;" onchange="changeUpcomingPerPage(this.value)">
                                 <option value="10">10</option>
                                 <option value="25" selected>25</option>
                                 <option value="50">50</option>

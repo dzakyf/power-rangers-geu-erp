@@ -176,7 +176,7 @@
                 <span class="input-group-text bg-transparent border-0 text-muted" id="sidebar-search-icon" role="button" title="Search menu">
                     <i class="fe fe-search"></i>
                 </span>
-                <input type="text" id="sidebar-menu-search" class="form-control form-control-sm border-0 ps-0" placeholder="Search menu..." autocomplete="off" aria-label="Search menu">
+                <input type="text" id="sidebar-menu-search" class="text-black form-control form-control-sm border-0 ps-0" placeholder="Search menu..." autocomplete="off" aria-label="Search menu">
                 <button type="button" id="sidebar-search-clear" class="btn btn-sm text-muted position-absolute end-0 top-50 translate-middle-y me-1 p-0 text-decoration-none d-none" style="z-index: 5; background: none; border: none; font-size: 16px; line-height: 1;" aria-label="Clear search">
                     <i class="fe fe-x"></i>
                 </button>

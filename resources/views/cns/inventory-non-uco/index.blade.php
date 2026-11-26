@@ -20,15 +20,15 @@
         <div class="cns-filter-bar">
             <div>
                 <label class="d-block mb-1"><small>Dari Tanggal</small></label>
-                <input type="date" id="filterStartDate" class="form-control form-control-sm" style="width:140px;" />
+                <input type="date" id="filterStartDate" class="text-black form-control form-control-sm" style="width:140px;" />
             </div>
             <div>
                 <label class="d-block mb-1"><small>Sampai Tanggal</small></label>
-                <input type="date" id="filterEndDate" class="form-control form-control-sm" style="width:140px;" />
+                <input type="date" id="filterEndDate" class="text-black form-control form-control-sm" style="width:140px;" />
             </div>
             <div>
                 <label class="d-block mb-1"><small>Kategori</small></label>
-                <select id="filterCategory" class="form-control form-control-sm" style="width:140px;" onchange="applyFilters()">
+                <select id="filterCategory" class="text-black form-control form-control-sm" style="width:140px;" onchange="applyFilters()">
                     <option value="">Semua Kategori</option>
                     @foreach($categories as $cat)
                         <option value="{{ $cat }}">{{ $cat }}</option>
@@ -37,7 +37,7 @@
             </div>
             <div>
                 <label class="d-block mb-1"><small>Nama Barang</small></label>
-                <select id="filterItemName" class="form-control form-control-sm" style="width:170px;" onchange="applyFilters()">
+                <select id="filterItemName" class="text-black form-control form-control-sm" style="width:170px;" onchange="applyFilters()">
                     <option value="">Semua Barang</option>
                     @foreach($items as $itm)
                         <option value="{{ $itm }}">{{ $itm }}</option>
@@ -71,42 +71,42 @@
                 <div class="modal-body">
                     <div class="form-group">
                         <label class="font-weight-bold">Tanggal Transaksi <span class="text-danger">*</span></label>
-                        <input type="date" name="transaction_date" class="form-control form-control-sm" value="{{ date('Y-m-d') }}" required />
+                        <input type="date" name="transaction_date" class="text-black form-control form-control-sm" value="{{ date('Y-m-d') }}" required />
                     </div>
                     <div class="form-row">
                         <div class="form-group col-md-6">
                             <label class="font-weight-bold">Kategori Barang</label>
-                            <input type="text" name="category" class="form-control form-control-sm" placeholder="Contoh: Flexibag / Besi Penyangga" value="Flexibag" />
+                            <input type="text" name="category" class="text-black form-control form-control-sm" placeholder="Contoh: Flexibag / Besi Penyangga" value="Flexibag" />
                         </div>
                         <div class="form-group col-md-6">
                             <label class="font-weight-bold">Nama Barang <span class="text-danger">*</span></label>
-                            <input type="text" name="item_name" class="form-control form-control-sm" placeholder="Contoh: Flexibag 24KL" value="Flexibag 24KL" required />
+                            <input type="text" name="item_name" class="text-black form-control form-control-sm" placeholder="Contoh: Flexibag 24KL" value="Flexibag 24KL" required />
                         </div>
                     </div>
                     <div class="form-row">
                         <div class="form-group col-md-4">
                             <label class="font-weight-bold">Tipe Mutasi</label>
-                            <select name="type" class="form-control form-control-sm" required>
+                            <select name="type" class="text-black form-control form-control-sm" required>
                                 <option value="OUT" selected>OUT (Keluar / Pemakaian)</option>
                                 <option value="IN">IN (Penyesuaian Masuk)</option>
                             </select>
                         </div>
                         <div class="form-group col-md-4">
                             <label class="font-weight-bold">Kuantiti <span class="text-danger">*</span></label>
-                            <input type="text" inputmode="decimal" name="qty" class="form-control form-control-sm font-weight-bold text-right cns-decimal" required />
+                            <input type="text" inputmode="decimal" name="qty" class="text-black form-control form-control-sm font-weight-bold text-right cns-decimal" required />
                         </div>
                         <div class="form-group col-md-4">
                             <label class="font-weight-bold">Satuan</label>
-                            <input type="text" name="unit" class="form-control form-control-sm text-center" value="PCS" required />
+                            <input type="text" name="unit" class="text-black form-control form-control-sm text-center" value="PCS" required />
                         </div>
                     </div>
                     <div class="form-group">
                         <label class="font-weight-bold">No. Referensi / No. Dokumen Pemakaian <span class="text-danger">*</span></label>
-                        <input type="text" name="reference_no" class="form-control form-control-sm" placeholder="Contoh: PK-GUDANG-2026-001" required />
+                        <input type="text" name="reference_no" class="text-black form-control form-control-sm" placeholder="Contoh: PK-GUDANG-2026-001" required />
                     </div>
                     <div class="form-group">
                         <label class="font-weight-bold">Keterangan / Alasan Pemakaian</label>
-                        <textarea name="notes" class="form-control form-control-sm" rows="2" placeholder="Tujuan pengeluaran / lokasi pemakaian..."></textarea>
+                        <textarea name="notes" class="text-black form-control form-control-sm" rows="2" placeholder="Tujuan pengeluaran / lokasi pemakaian..."></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">

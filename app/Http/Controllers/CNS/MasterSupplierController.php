@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\CNS;
 
+use App\Http\Controllers\CNS\Concerns\HandlesCompanyExcelImport;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -9,6 +10,7 @@ use Illuminate\Support\Facades\DB;
 
 class MasterSupplierController extends Controller
 {
+    use HandlesCompanyExcelImport;
     public function indexMasterSupplier()
     {
         return view('cns.master.supplier');
@@ -233,5 +235,19 @@ class MasterSupplierController extends Controller
         // DB::insert(DB::raw("INSERT INTO supplier($ax,Status,Supplier_ID,Created_By,Location) VALUES($isi,'NORMAL','$Supplier_ID','$Saya','$LSP')"));
 
         return "success";
+    }
+
+    public function downloadImportTemplate()
+    {
+        return $this->downloadSupplierTableTemplate('master-supplier-import-template.xlsx', 'No', 'Yes');
+    }
+
+    public function importMasterSupplier(Request $request)
+    {
+        return $this->importSupplierTableRows($request, [
+            'Is_Supplier'  => 1,
+            'Is_Consignee' => 0,
+            'Is_Company'   => 1,
+        ]);
     }
 }

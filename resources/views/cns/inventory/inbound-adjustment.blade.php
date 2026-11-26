@@ -22,15 +22,15 @@
 		<div class="cns-filter-bar">
 			<div>
 				<label class="d-block mb-1"><small>Dari Tanggal</small></label>
-				<input type="date" id="adjFilterStartDate" class="form-control form-control-sm" style="width:140px;" />
+				<input type="date" id="adjFilterStartDate" class="text-black form-control form-control-sm" style="width:140px;" />
 			</div>
 			<div>
 				<label class="d-block mb-1"><small>Sampai Tanggal</small></label>
-				<input type="date" id="adjFilterEndDate" class="form-control form-control-sm" style="width:140px;" />
+				<input type="date" id="adjFilterEndDate" class="text-black form-control form-control-sm" style="width:140px;" />
 			</div>
 			<div>
 				<label class="d-block mb-1"><small>Tangki Tujuan</small></label>
-				<select id="adjFilterTank" class="form-control form-control-sm" style="width:160px;" onchange="refreshAdjData()">
+				<select id="adjFilterTank" class="text-black form-control form-control-sm" style="width:160px;" onchange="refreshAdjData()">
 					<option value="">Semua Tangki</option>
 					@foreach($tanks as $t)
 						<option value="{{ $t->id }}">{{ $t->name }}</option>
@@ -39,7 +39,7 @@
 			</div>
 			<div>
 				<label class="d-block mb-1"><small>Status Approval</small></label>
-				<select id="adjFilterStatus" class="form-control form-control-sm" style="width:140px;" onchange="refreshAdjData()">
+				<select id="adjFilterStatus" class="text-black form-control form-control-sm" style="width:140px;" onchange="refreshAdjData()">
 					<option value="">Semua Status</option>
 					<option value="PENDING">PENDING</option>
 					<option value="APPROVED">APPROVED</option>
@@ -48,7 +48,7 @@
 			</div>
 			<div>
 				<label class="d-block mb-1"><small>Pencarian</small></label>
-				<input type="text" id="adjFilterSearch" class="form-control form-control-sm" style="width:170px;" placeholder="Kode / Mov / Ket..." onkeyup="if(event.key==='Enter') refreshAdjData()" />
+				<input type="text" id="adjFilterSearch" class="text-black form-control form-control-sm" style="width:170px;" placeholder="Kode / Mov / Ket..." onkeyup="if(event.key==='Enter') refreshAdjData()" />
 			</div>
 			<div>
 				<button type="button" class="btn btn-sm btn-primary" onclick="refreshAdjData()">Filter</button>
@@ -126,7 +126,7 @@
 	InboundAdjustmentGrid.setInitWidths("50,150,100,150,140,130,130,140,120,100,200,110,120,130");
 	InboundAdjustmentGrid.attachHeader("&nbsp;,#text_filter,#text_filter,#text_filter,#select_filter,#select_filter,#text_filter,#text_filter,#text_filter,#select_filter,#text_filter,&nbsp;,#text_filter,#text_filter");
 	InboundAdjustmentGrid.setColAlign("center,left,center,left,left,left,right,right,right,center,left,center,left,center");
-	InboundAdjustmentGrid.setColTypes("dyn,ro,ro,ro,ro,ro,ro,ro,ro,cns_badge,ro,link,ro,ro");
+	InboundAdjustmentGrid.setColTypes("dyn,ro,ro,ro,ro,ro,ro,ro,ro,cns_badge,ro,cns_doc,ro,ro");
 	InboundAdjustmentGrid.attachEvent("onRowDblClicked", DetailInboundAdjustment);
 	InboundAdjustmentGrid.setColSorting("int,str,date,str,str,str,int,int,int,str,str,str,str,str");
 	InboundAdjustmentGrid.enableMultiline(true);

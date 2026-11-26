@@ -63,7 +63,7 @@ $Saya =  Auth::user()->username;
 							<div class="form-group">
 								<input type="hidden" name="WBT_No" id="WBT_No" value="{{ $wbt->WBT_No ?? '' }}">
 								<label for="Packing_List_No">Packing List No</label>
-                                <select name="Packing_List_No" id="Packing_List_No" class="form-control shadow-sm" required>
+                                <select name="Packing_List_No" id="Packing_List_No" class="text-black form-control shadow-sm" required>
                                     <option value="">-- Pilih Packing List No --</option>
                                     @foreach ($pls as $pl)
                                         <option value="{{ $pl->Packing_List_No }}" {{ trim((string) $wbt->Packing_List_No) === trim((string) $pl->Packing_List_No) ? 'selected' : '' }}>{{ $pl->Packing_List_No }}</option>
@@ -74,19 +74,19 @@ $Saya =  Auth::user()->username;
 						<div class="col-md-3 col-12">
 							<div class="form-group">
 								<label for="Voyage">Vessel / Voyage</label>
-								<input type="text" name="Voyage" id="Voyage" value="{{ $wbt->Voyage ?? '' }}" class="form-control shadow-sm">
+								<input type="text" name="Voyage" id="Voyage" value="{{ $wbt->Voyage ?? '' }}" class="text-black form-control shadow-sm">
 							</div>
 						</div>
 						<div class="col-md-3 col-12">
 							<div class="form-group">
 								<label for="Departure_Date">Date of Departure</label>
-								<input type="text" name="Departure_Date" id="Departure_Date" value="{{ $wbt->Departure_Date ?? '' }}" class="form-control bg-white shadow-sm" readonly>
+								<input type="text" name="Departure_Date" id="Departure_Date" value="{{ $wbt->Departure_Date ?? '' }}" class="text-black form-control bg-white shadow-sm" readonly>
 							</div>
 						</div>
 						<div class="col-md-3 col-12">
 							<div class="form-group">
 								<label for="BL_No">B/L No.</label>
-								<input type="text" name="BL_No" id="BL_No" value="{{ $wbt->BL_No ?? '' }}" class="form-control shadow-sm">
+								<input type="text" name="BL_No" id="BL_No" value="{{ $wbt->BL_No ?? '' }}" class="text-black form-control shadow-sm">
 							</div>
 						</div>
                         <div class="col-12">
@@ -95,7 +95,7 @@ $Saya =  Auth::user()->username;
                                 <div class="col-md-3 col-12">
                                     <div class="form-group">
                                         <label for="Nopol{{$item->VSD_ID}}">Nopol</label>
-                                        <input type="text" id="Nopol{{$item->VSD_ID}}" class="form-control bg-white shadow-sm" value="{{ $item->Police_No ?: '-' }}" readonly>
+                                        <input type="text" id="Nopol{{$item->VSD_ID}}" class="text-black form-control bg-white shadow-sm" value="{{ $item->Police_No ?: '-' }}" readonly>
                                     </div>
                                 </div>
                                 <div class="col-md-9 col-12">
@@ -194,7 +194,7 @@ $Saya =  Auth::user()->username;
 							<div class="col-md-3 col-12">
 								<div class="form-group">
 									<label for="Nopol${container.ID}">Nopol</label>
-									<input type="text" id="Nopol${container.ID}" class="form-control bg-white shadow-sm" value="${container.Police_No ? container.Police_No : '-'}" readonly>
+									<input type="text" id="Nopol${container.ID}" class="text-black form-control bg-white shadow-sm" value="${container.Police_No ? container.Police_No : '-'}" readonly>
 								</div>
 							</div>
 							<div class="col-md-9 col-12">

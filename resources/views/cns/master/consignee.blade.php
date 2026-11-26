@@ -14,6 +14,7 @@
 		<h5 class="card-title mb-0">Data Master Consignee</h5>
 		<div class="d-flex align-items-center flex-wrap" style="gap: 0.5rem;">
 			<button type="button" class="btn btn-sm btn-primary" id="NewConsigneeBtn" onclick="NewConsignee();">New Consignee</button>
+			<button type="button" class="btn btn-sm btn-info" id="ImportConsigneeBtn" data-bs-toggle="modal" data-bs-target="#ImportConsigneeModal" data-toggle="modal" data-target="#ImportConsigneeModal" onclick="$('#ImportConsigneeModal').modal('show');">Import Excel</button>
 			<button type="button" class="btn btn-sm btn-success" id="ExportConsigneeBtn" onclick="MasterConsignee.toExcel('./export/generate.php');">Excel</button>
 			<button type="button" class="btn btn-sm btn-outline-secondary" onclick="refreshdata();">Refresh</button>
 		</div>
@@ -22,7 +23,7 @@
 		<div class="cns-filter-bar">
 			<div>
 				<label for="filter_search" class="d-block mb-1"><small>Filter Name / Company ID</small></label>
-				<input type="text" id="filter_search" class="form-control form-control-sm" style="width:220px;" placeholder="Cari Name / Company ID..." onkeydown="if(event.key==='Enter'){refreshdata();}" />
+				<input type="text" id="filter_search" class="text-black form-control form-control-sm" style="width:220px;" placeholder="Cari Name / Company ID..." onkeydown="if(event.key==='Enter'){refreshdata();}" />
 			</div>
 			<div>
 				<button type="button" class="btn btn-sm btn-primary" onclick="refreshdata()">Filter</button>
@@ -34,6 +35,15 @@
 		</div>
 	</div>
 </div>
+
+@include('cns.master.partials.import-modal', [
+	'modalId' => 'ImportConsigneeModal',
+	'title' => 'Import Master Consignee (Excel)',
+	'templateUrl' => url('cns-master-consignee-import-template'),
+	'importUrl' => url('cns-master-consignee-import'),
+	'itemLabel' => 'consignee',
+	'hint' => 'Wajib isi <code>Company_Name</code>. Baris dengan Company Name yang sudah ada akan dilewati.',
+])
 <script>
 	function NewConsignee() {
 		LoadM('MasterCompanyDet', 'cns-master-consignee-new');

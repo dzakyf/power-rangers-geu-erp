@@ -213,9 +213,11 @@ class StuffingController extends Controller
             $bodyXml .= "<cell>" . htmlspecialchars(number_format($grossMt, 2, '.', ',')) . "</cell>";
             $bodyXml .= "<cell>" . htmlspecialchars((string) $vessel->Note) . "</cell>";
             if ($hasNote) {
-                $bodyXml .= "<cell><![CDATA[Ada (<a href=\"cns-stuffing-detail-note?Order_No=" . urlencode((string) $vessel->Order_No) . "\" target=\"_blank\" class=\"badge rounded-pill bg-success text-white p-1\">Lihat Nota</a>)]]></cell>";
+                $noteMeta = $noteMetadata[(string) $vesselId];
+                $noteCell = htmlspecialchars('cns-stuffing-detail-note?Order_No=' . urlencode((string) $vessel->Order_No)) . '^' . htmlspecialchars($noteMeta->Filename ?: basename((string) $noteMeta->Path));
+                $bodyXml .= "<cell>" . $noteCell . "</cell>";
             } else {
-                $bodyXml .= "<cell>Tidak Ada</cell>";
+                $bodyXml .= "<cell></cell>";
             }
             $bodyXml .= "<cell>" . htmlspecialchars((string) ($vesselId ?? '')) . "</cell>";
             $bodyXml .= "</row>\n";

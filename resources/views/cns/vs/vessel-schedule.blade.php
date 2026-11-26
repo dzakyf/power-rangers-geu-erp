@@ -38,11 +38,11 @@ $Saya =  Auth::user()->username;
 		<div class="cns-filter-bar">
 			<div>
 				<label for="tgl1" class="d-block mb-1"><small>Dari Tanggal</small></label>
-				<input type="date" id="tgl1" name="tgl1" value="{{ date('Y-m-01', strtotime('-7 days')) }}" class="form-control form-control-sm" style="width:auto;" />
+				<input type="date" id="tgl1" name="tgl1" value="{{ date('Y-m-01', strtotime('-7 days')) }}" class="text-black form-control form-control-sm" style="width:auto;" />
 			</div>
 			<div>
 				<label for="tgl2" class="d-block mb-1"><small>Sampai Tanggal</small></label>
-				<input type="date" id="tgl2" name="tgl2" value="{{ date('Y-m-d') }}" class="form-control form-control-sm" style="width:auto;" />
+				<input type="date" id="tgl2" name="tgl2" value="{{ date('Y-m-d') }}" class="text-black form-control form-control-sm" style="width:auto;" />
 			</div>
 			<div>
 				<button type="button" onclick="refreshdata()" class="btn btn-sm btn-primary">Filter</button>
@@ -84,7 +84,7 @@ $Saya =  Auth::user()->username;
 	VesselSchedule.setInitWidths("160,150,100,120,150,100,120,180,150,150,130,120,150,120,120,100");
 	VesselSchedule.setColAlign("left,left,left,left,left,right,left,left,left,left,center,center,center,center,center,center");
 	VesselSchedule.setColSorting("str,str,str,str,str,str,str,str,str,str,str,str,str,str,str,str");
-	VesselSchedule.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,link");
+	VesselSchedule.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,cns_doc");
 	// VesselSchedule.setNumberFormat("0,000", 7, ".", ",");
 	VesselSchedule.attachEvent("onRowDblClicked", VesselScheduleKlik);
 	VesselSchedule.setSkin("dhx_skyblue");

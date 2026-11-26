@@ -54,28 +54,16 @@ class KemasanInventoryTest extends TestCase
     }
 
     /** @test */
-    public function manual_mutation_rejects_inbound_type_and_view_only_exposes_outbound()
+    public function manual_mutation_is_removed_from_controller_routes_and_view()
     {
         $viewContent = file_get_contents(resource_path('views/cns/inventory-kemasan/index.blade.php'));
-        $this->assertStringContainsString('<input type="hidden" name="type" value="OUT"', $viewContent);
-        $this->assertStringNotContainsString('<option value="IN">', $viewContent);
+        $this->assertStringNotContainsString('modalManualMutation', $viewContent);
+        $this->assertStringNotContainsString('cns-inventory-kemasan.manual-mutation', $viewContent);
+        $this->assertStringNotContainsString('Catat Mutasi Stok Kemasan', $viewContent);
 
-        $controller = new KemasanInventoryController(new KemasanInventoryService());
-        $request = \Illuminate\Http\Request::create('/cns-inventory-kemasan/manual-mutation', 'POST', [
-            'site_id' => 1,
-            'item_name' => 'Flexibag 24KL',
-            'unit' => 'PCS',
-            'type' => 'IN',
-            'qty' => 5,
-            'reference_no' => 'REF-001',
-            'transaction_date' => '2026-11-22',
-        ]);
+        $routesContent = file_get_contents(base_path('routes/modules/cns.php'));
+        $this->assertStringNotContainsString('cnsKemasanPref-manual-mutation', $routesContent);
 
-        try {
-            $controller->manualMutation($request);
-            $this->fail('Expected ValidationException for type=IN');
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            $this->assertArrayHasKey('type', $e->errors());
-        }
+        $this->assertFalse(method_exists(KemasanInventoryController::class, 'manualMutation'));
     }
 }

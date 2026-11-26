@@ -11,10 +11,8 @@ use App\Support\DhtmlxGridPagination;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Validation\Rule;
 
 class KemasanInventoryController extends Controller
 {
@@ -236,52 +234,6 @@ class KemasanInventoryController extends Controller
             'initial_balance' => $initialBalance,
             'summaries'       => $this->service->getSummaryBalances(),
         ]);
-    }
-
-    /**
-     * Manual mutation (IN / OUT).
-     */
-    public function manualMutation(Request $request)
-    {
-        $sites = KemasanInventoryService::getSites();
-
-        $request->validate([
-            'site_id'          => ['required', 'integer', Rule::in(array_keys($sites))],
-            'item_name'        => 'required|string',
-            'unit'             => 'required|string',
-            'type'             => 'required|in:OUT',
-            'out_type'         => 'required|in:DROP,PENJUALAN',
-            'qty'              => 'required|numeric|min:0.01',
-            'reference_no'     => 'required|string|max:100',
-            'notes'            => 'nullable|string|max:255',
-            'transaction_date' => 'required|date',
-            'packaging_id'     => 'nullable|integer|exists:cns_master_kemasan,Kemasan_ID',
-        ]);
-
-        $siteId = (int) $request->site_id;
-        $siteName = $sites[$siteId] ?? null;
-
-        try {
-            $this->service->recordStockMutation(
-                $request->item_name,
-                $request->unit,
-                'OUT',
-                (float) $request->qty,
-                $request->reference_no,
-                $request->notes,
-                Auth::user()->username ?? 'admin',
-                $request->packaging_id ? (int) $request->packaging_id : null,
-                null,
-                $request->transaction_date,
-                $request->out_type,
-                $siteId,
-                $siteName
-            );
-
-            return back()->with('success', 'Mutasi stok kemasan berhasil dicatat.')->with('active_tab', 'report');
-        } catch (Exception $e) {
-            return back()->withInput()->with('error', 'Gagal mencatat mutasi: ' . $e->getMessage())->with('active_tab', 'report');
-        }
     }
 
     /**

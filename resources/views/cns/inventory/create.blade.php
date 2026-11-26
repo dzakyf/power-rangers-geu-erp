@@ -23,7 +23,7 @@
                     <div class="col-md-6">
                         <div class="form-group">
                             <label for="movement_kode">Nomor Movement <span style="color:red;">*</span></label>
-                            <select name="movement_kode" id="movement_kode" class="form-control" style="width:100%;" required>
+                            <select name="movement_kode" id="movement_kode" class="text-black form-control" style="width:100%;" required>
                                 <option value="">-- Pilih Nomor Movement --</option>
                             </select>
                             <small id="movementDetailLoading" class="text-muted" style="display:none;">Memuat detail movement...</small>
@@ -36,7 +36,7 @@
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label for="Type">Type <span style="color:red;">*</span></label>
-                                <select name="Type" id="Type" class="form-control" required>
+                                <select name="Type" id="Type" class="text-black form-control" required>
                                     <option value="">-- Pilih --</option>
                                     <option value="inbound">Inbound</option>
                                     <option value="outbound">Outbound</option>
@@ -46,13 +46,13 @@
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label for="Quantity">Quantity (Kg) <span style="color:red;">*</span></label>
-                                <input type="text" inputmode="decimal" name="Quantity" id="Quantity" class="form-control cns-decimal" required />
+                                <input type="text" inputmode="decimal" name="Quantity" id="Quantity" class="text-black form-control cns-decimal" required />
                             </div>
                         </div>
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label for="Transaction_Date">Transaction Date <span style="color:red;">*</span></label>
-                                <input type="date" name="Transaction_Date" id="Transaction_Date" class="form-control" required />
+                                <input type="date" name="Transaction_Date" id="Transaction_Date" class="text-black form-control" required />
                             </div>
                         </div>
                     </div>
@@ -60,7 +60,7 @@
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label for="Asal_Warehouse">Asal Warehouse</label>
-                                <select name="Asal_Warehouse" id="Asal_Warehouse" class="form-control">
+                                <select name="Asal_Warehouse" id="Asal_Warehouse" class="text-black form-control">
                                     <option value="">-- Pilih Warehouse --</option>
                                 </select>
                             </div>
@@ -68,7 +68,7 @@
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label for="Nama_Tangki">Nama Tangki</label>
-                                <select name="Nama_Tangki" id="Nama_Tangki" class="form-control">
+                                <select name="Nama_Tangki" id="Nama_Tangki" class="text-black form-control">
                                     <option value="">-- Pilih Tangki --</option>
                                 </select>
                             </div>
@@ -76,7 +76,7 @@
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label for="Quantity_PTU">Qty Pelindo / SJ</label>
-                                <input type="text" inputmode="decimal" name="Quantity_PTU" id="Quantity_PTU" class="form-control cns-decimal" />
+                                <input type="text" inputmode="decimal" name="Quantity_PTU" id="Quantity_PTU" class="text-black form-control cns-decimal" />
                             </div>
                         </div>
                     </div>
@@ -87,19 +87,19 @@
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label for="fleet_name">Fleet</label>
-                                <input type="text" name="fleet_name" id="fleet_name" class="form-control" readonly />
+                                <input type="text" name="fleet_name" id="fleet_name" class="text-black form-control" readonly />
                             </div>
                         </div>
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label for="fleet_plat">No. Polisi (Fleet Plat)</label>
-                                <input type="text" name="fleet_plat" id="fleet_plat" class="form-control" readonly />
+                                <input type="text" name="fleet_plat" id="fleet_plat" class="text-black form-control" readonly />
                             </div>
                         </div>
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label for="driver_name">Driver</label>
-                                <input type="text" name="driver_name" id="driver_name" class="form-control" readonly />
+                                <input type="text" name="driver_name" id="driver_name" class="text-black form-control" readonly />
                             </div>
                         </div>
                     </div>
@@ -107,19 +107,19 @@
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label for="Reference_Number">Reference Number</label>
-                                <input type="text" name="Reference_Number" id="Reference_Number" class="form-control" />
+                                <input type="text" name="Reference_Number" id="Reference_Number" class="text-black form-control" />
                             </div>
                         </div>
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label for="Attachment">Attachment Nota Timbang</label>
-                                <input type="file" name="Attachment" id="Attachment" class="form-control" accept=".pdf,.jpg,.jpeg,.png" />
+                                <input type="file" name="Attachment" id="Attachment" class="text-black form-control" accept=".pdf,.jpg,.jpeg,.png" />
                             </div>
                         </div>
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label for="QC_Attachment">Attachment QC</label>
-                                <input type="file" name="QC_Attachment" id="QC_Attachment" class="form-control" accept=".pdf,.jpg,.jpeg,.png" />
+                                <input type="file" name="QC_Attachment" id="QC_Attachment" class="text-black form-control" accept=".pdf,.jpg,.jpeg,.png" />
                             </div>
                         </div>
                     </div>
@@ -127,7 +127,7 @@
                         <div class="col-md-12">
                             <div class="form-group">
                                 <label for="Notes">Notes</label>
-                                <textarea name="Notes" id="Notes" class="form-control" rows="2"></textarea>
+                                <textarea name="Notes" id="Notes" class="text-black form-control" rows="2"></textarea>
                             </div>
                         </div>
                     </div>
@@ -160,18 +160,18 @@
                                                 </td>
                                                 <td>
                                                     <input type="text" inputmode="decimal" name="top_{{ $param['key'] }}" id="create_top_{{ $param['key'] }}"
-                                                           class="form-control text-right cns-decimal" oninput="onCreateQcInput('{{ $param['key'] }}')" />
+                                                           class="text-black form-control text-right cns-decimal" oninput="onCreateQcInput('{{ $param['key'] }}')" />
                                                 </td>
                                                 <td>
                                                     <input type="text" inputmode="decimal" name="middle_{{ $param['key'] }}" id="create_middle_{{ $param['key'] }}"
-                                                           class="form-control text-right cns-decimal" oninput="onCreateQcInput('{{ $param['key'] }}')" />
+                                                           class="text-black form-control text-right cns-decimal" oninput="onCreateQcInput('{{ $param['key'] }}')" />
                                                 </td>
                                                 <td>
                                                     <input type="text" inputmode="decimal" name="bottom_{{ $param['key'] }}" id="create_bottom_{{ $param['key'] }}"
-                                                           class="form-control text-right cns-decimal" oninput="onCreateQcInput('{{ $param['key'] }}')" />
+                                                           class="text-black form-control text-right cns-decimal" oninput="onCreateQcInput('{{ $param['key'] }}')" />
                                                 </td>
                                                 <td>
-                                                    <input type="text" id="create_avg_{{ $param['key'] }}" class="form-control text-right font-weight-bold"
+                                                    <input type="text" id="create_avg_{{ $param['key'] }}" class="text-black form-control text-right font-weight-bold"
                                                            readonly style="background-color:#f0f8ff;" placeholder="-" />
                                                 </td>
                                             </tr>

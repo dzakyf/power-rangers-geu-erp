@@ -24,7 +24,7 @@
                     <div class="col-md-4">
                         <div class="form-group">
                             <label for="edit_Type">Type <span style="color:red;">*</span></label>
-                            <select name="Type" id="edit_Type" disabled class="form-control" required>
+                            <select name="Type" id="edit_Type" disabled class="text-black form-control" required>
                                 <option value="inbound">Inbound</option>
                                 <option value="outbound">Outbound</option>
                             </select>
@@ -33,13 +33,13 @@
                     <div class="col-md-4">
                         <div class="form-group">
                             <label for="edit_Quantity">Quantity (Kg) <span style="color:red;">*</span></label>
-                            <input type="text" inputmode="decimal" name="Quantity" id="edit_Quantity" class="form-control cns-decimal" required />
+                            <input type="text" inputmode="decimal" name="Quantity" id="edit_Quantity" class="text-black form-control cns-decimal" required />
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="form-group">
                             <label for="edit_Transaction_Date">Transaction Date <span style="color:red;">*</span></label>
-                            <input type="date" name="Transaction_Date" id="edit_Transaction_Date" class="form-control" required />
+                            <input type="date" name="Transaction_Date" id="edit_Transaction_Date" class="text-black form-control" required />
                         </div>
                     </div>
                 </div>
@@ -47,7 +47,7 @@
                     <div class="col-md-4">
                         <div class="form-group">
                             <label for="edit_Asal_Warehouse">Asal Warehouse</label>
-                            <select name="Asal_Warehouse" id="edit_Asal_Warehouse" class="form-control">
+                            <select name="Asal_Warehouse" id="edit_Asal_Warehouse" class="text-black form-control">
                                 <option value="">-- Pilih Warehouse --</option>
                             </select>
                         </div>
@@ -55,7 +55,7 @@
                     <div class="col-md-4">
                         <div class="form-group">
                             <label for="edit_Nama_Tangki">Nama Tangki</label>
-                            <select name="Nama_Tangki" id="edit_Nama_Tangki" class="form-control">
+                            <select name="Nama_Tangki" id="edit_Nama_Tangki" class="text-black form-control">
                                 <option value="">-- Pilih Tangki --</option>
                             </select>
                         </div>
@@ -63,7 +63,7 @@
                     <div class="col-md-4">
                         <div class="form-group">
                             <label for="edit_Quantity_PTU">Qty Pelindo / SJ</label>
-                            <input type="text" inputmode="decimal" name="Quantity_PTU" id="edit_Quantity_PTU" class="form-control cns-decimal" />
+                            <input type="text" inputmode="decimal" name="Quantity_PTU" id="edit_Quantity_PTU" class="text-black form-control cns-decimal" />
                         </div>
                     </div>
                 </div>
@@ -74,19 +74,19 @@
                     <div class="col-md-4">
                         <div class="form-group">
                             <label for="edit_fleet_name">Fleet</label>
-                            <input type="text" id="edit_fleet_name" class="form-control" readonly />
+                            <input type="text" id="edit_fleet_name" class="text-black form-control" readonly />
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="form-group">
                             <label for="edit_fleet_plat">No. Polisi (Fleet Plat)</label>
-                            <input type="text" id="edit_fleet_plat" class="form-control" readonly />
+                            <input type="text" id="edit_fleet_plat" class="text-black form-control" readonly />
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="form-group">
                             <label for="edit_driver_name">Driver</label>
-                            <input type="text" id="edit_driver_name" class="form-control" readonly />
+                            <input type="text" id="edit_driver_name" class="text-black form-control" readonly />
                         </div>
                     </div>
                 </div>
@@ -94,20 +94,20 @@
                     <div class="col-md-4">
                         <div class="form-group">
                             <label for="edit_Reference_Number">Reference Number</label>
-                            <input type="text" name="Reference_Number" id="edit_Reference_Number" class="form-control" />
+                            <input type="text" name="Reference_Number" id="edit_Reference_Number" class="text-black form-control" />
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="form-group">
                             <label for="edit_Attachment">Attachment Nota Timbang</label>
-                            <input type="file" name="Attachment" id="edit_Attachment" class="form-control" accept=".pdf,.jpg,.jpeg,.png" />
+                            <input type="file" name="Attachment" id="edit_Attachment" class="text-black form-control" accept=".pdf,.jpg,.jpeg,.png" />
                             <div id="current_notim_link"></div>
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="form-group">
                             <label for="edit_QC_Attachment">QC Attachment</label>
-                            <input type="file" name="QC_Attachment" id="edit_QC_Attachment" class="form-control" accept=".pdf,.jpg,.jpeg,.png" />
+                            <input type="file" name="QC_Attachment" id="edit_QC_Attachment" class="text-black form-control" accept=".pdf,.jpg,.jpeg,.png" />
                             <div id="current_qc_link"></div>
                         </div>
                     </div>
@@ -116,7 +116,7 @@
                     <div class="col-md-12">
                         <div class="form-group">
                             <label for="edit_Notes">Notes</label>
-                            <textarea name="Notes" id="edit_Notes" class="form-control" rows="2"></textarea>
+                            <textarea name="Notes" id="edit_Notes" class="text-black form-control" rows="2"></textarea>
                         </div>
                     </div>
                 </div>
@@ -149,18 +149,18 @@
                                             </td>
                                             <td>
                                                 <input type="text" inputmode="decimal" name="top_{{ $param['key'] }}" id="edit_top_{{ $param['key'] }}"
-                                                       class="form-control text-right cns-decimal" oninput="calcInventoryQcAverage('{{ $param['key'] }}', 'edit')" />
+                                                       class="text-black form-control text-right cns-decimal" oninput="calcInventoryQcAverage('{{ $param['key'] }}', 'edit')" />
                                             </td>
                                             <td>
                                                 <input type="text" inputmode="decimal" name="middle_{{ $param['key'] }}" id="edit_middle_{{ $param['key'] }}"
-                                                       class="form-control text-right cns-decimal" oninput="calcInventoryQcAverage('{{ $param['key'] }}', 'edit')" />
+                                                       class="text-black form-control text-right cns-decimal" oninput="calcInventoryQcAverage('{{ $param['key'] }}', 'edit')" />
                                             </td>
                                             <td>
                                                 <input type="text" inputmode="decimal" name="bottom_{{ $param['key'] }}" id="edit_bottom_{{ $param['key'] }}"
-                                                       class="form-control text-right cns-decimal" oninput="calcInventoryQcAverage('{{ $param['key'] }}', 'edit')" />
+                                                       class="text-black form-control text-right cns-decimal" oninput="calcInventoryQcAverage('{{ $param['key'] }}', 'edit')" />
                                             </td>
                                             <td>
-                                                <input type="text" id="edit_avg_{{ $param['key'] }}" class="form-control text-right font-weight-bold"
+                                                <input type="text" id="edit_avg_{{ $param['key'] }}" class="text-black form-control text-right font-weight-bold"
                                                        readonly style="background-color:#f0f8ff;" placeholder="-" />
                                             </td>
                                         </tr>

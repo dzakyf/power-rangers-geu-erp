@@ -23,7 +23,7 @@
         <div class="row cns-filter-bar align-items-end">
             <div class="col-md-3">
                 <label for="filter_contract" class="d-block mb-1"><small>Kontrak</small></label>
-                <select id="filter_contract" class="form-control form-control-sm">
+                <select id="filter_contract" class="text-black form-control form-control-sm">
                     <option value="all">Semua</option>
                     <option value="with">Menggunakan kontrak</option>
                     <option value="without">Tidak menggunakan kontrak</option>
@@ -31,7 +31,7 @@
             </div>
             <div class="col-md-3">
                 <label for="filter_group" class="d-block mb-1"><small>Kelompok Pembelian</small></label>
-                <select id="filter_group" class="form-control form-control-sm">
+                <select id="filter_group" class="text-black form-control form-control-sm">
                     <option value="all">Semua</option>
                     <option value="UCO">UCO</option>
                     <option value="Non-UCO">Non UCO</option>
@@ -39,7 +39,7 @@
             </div>
             <div class="col-md-3">
                 <label for="filter_product" class="d-block mb-1"><small>Jenis Produk</small></label>
-                <select id="filter_product" class="form-control form-control-sm">
+                <select id="filter_product" class="text-black form-control form-control-sm">
                     <option value="all">Semua</option>
                     <option value="UCO">UCO</option>
                     <option value="Flexibag">Flexibag</option>
@@ -111,7 +111,7 @@
     BuyerContractGrid.setInitWidths('50,220,260,130,240,130,150,80,150,190,130,130,140,180,100');
     BuyerContractGrid.setColAlign('center,left,left,left,left,center,left,center,left,left,right,right,right,left,center');
     BuyerContractGrid.setColSorting('int,str,str,str,str,str,str,str,str,str,str,str,str,str,str');
-    BuyerContractGrid.setColTypes('ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,cns_badge,link');
+    BuyerContractGrid.setColTypes('ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,cns_badge,cns_doc');
     BuyerContractGrid.enableMultiline(true);
     BuyerContractGrid.attachEvent('onRowDblClicked', OpenProcurementDetail);
     BuyerContractGrid.setSkin('dhx_skyblue');

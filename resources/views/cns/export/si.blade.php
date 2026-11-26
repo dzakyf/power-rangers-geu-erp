@@ -33,7 +33,7 @@ $Saya =  Auth::user()->username;
 			<input type="button" id="DeleteSI" name="DeleteSI" value="Delete SI" class="btn btn-sm btn-danger" onclick="DeleteSI()" />
 			<input type="button" id="printSI" name="printSI" value="Print SI" class="btn btn-sm btn-secondary" onclick="PrintSI()" />
 			<div id="divFSIDate" style="display:none;">
-				<input type="text" name="FSI_Date" id="FSI_Date" class="form-control form-control-sm bg-white" placeholder="FSI Date" value="{{ date('Y-m-d') }}" style="width:110px;display:inline-block;" readonly />
+				<input type="text" name="FSI_Date" id="FSI_Date" class="text-black form-control form-control-sm bg-white" placeholder="FSI Date" value="{{ date('Y-m-d') }}" style="width:110px;display:inline-block;" readonly />
 				<button type="button" class="btn btn-sm btn-secondary" onclick="$('#divFSIDate').hide();">Batal</button>
 			</div>
 			<input type="button" id="createToFSI" name="createToFSI" value="Create Final SI" class="btn btn-sm btn-success" onclick="CreateToFSI()" />
@@ -45,11 +45,11 @@ $Saya =  Auth::user()->username;
 		<div class="cns-filter-bar">
 			<div>
 				<label for="tgl1" class="d-block mb-1"><small>Dari Tanggal</small></label>
-				<input type="date" id="tgl1" name="tgl1" value="{{ date('Y-m-01', strtotime('-7 days')) }}" class="form-control form-control-sm" style="width:auto;" />
+				<input type="date" id="tgl1" name="tgl1" value="{{ date('Y-m-01', strtotime('-7 days')) }}" class="text-black form-control form-control-sm" style="width:auto;" />
 			</div>
 			<div>
 				<label for="tgl2" class="d-block mb-1"><small>Sampai Tanggal</small></label>
-				<input type="date" id="tgl2" name="tgl2" value="{{ date('Y-m-d') }}" class="form-control form-control-sm" style="width:auto;" />
+				<input type="date" id="tgl2" name="tgl2" value="{{ date('Y-m-d') }}" class="text-black form-control form-control-sm" style="width:auto;" />
 			</div>
 			<div>
 				<button type="button" onclick="refreshdata()" class="btn btn-sm btn-primary">Filter</button>
@@ -76,7 +76,7 @@ $Saya =  Auth::user()->username;
 				<p>Pilih user yang menyetujui (Approved By) untuk dokumen <strong id="approveSiDocNo">-</strong>:</p>
 				<div class="form-group">
 					<label for="approveSiUser">Approved By <span class="text-danger">*</span></label>
-					<select id="approveSiUser" class="form-control">
+					<select id="approveSiUser" class="text-black form-control">
 						<option value="">-- Pilih Approver --</option>
 						@foreach ($approvers ?? [] as $appr)
 							<option value="{{ $appr->id }}">

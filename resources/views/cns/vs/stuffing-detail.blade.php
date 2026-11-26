@@ -6,49 +6,49 @@
 				<div class="col-md-3 col-12">
 					<div class="form-group">
 						<label>Order No</label>
-						<input type="text" value="{{ $vs->Order_No }}" class="form-control bg-white" readonly />
+						<input type="text" value="{{ $vs->Order_No }}" class="text-black form-control bg-white" readonly />
 					</div>
 				</div>
 				<div class="col-md-3 col-12">
 					<div class="form-group">
 						<label>Qty</label>
-						<input type="text" value="{{ $vs->Qty }}" class="form-control bg-white" readonly />
+						<input type="text" value="{{ $vs->Qty }}" class="text-black form-control bg-white" readonly />
 					</div>
 				</div>
 				<div class="col-md-3 col-12">
 					<div class="form-group">
 						<label>Vessel</label>
-						<input type="text" value="{{ $vs->Vessel }}" class="form-control bg-white" readonly />
+						<input type="text" value="{{ $vs->Vessel }}" class="text-black form-control bg-white" readonly />
 					</div>
 				</div>
 				<div class="col-md-3 col-12">
 					<div class="form-group">
 						<label>Stuffing</label>
-						<input type="text" value="{{ $vs->Stuffing ? date('d F Y', strtotime($vs->Stuffing)) : '' }}" class="form-control bg-white" readonly />
+						<input type="text" value="{{ $vs->Stuffing ? date('d F Y', strtotime($vs->Stuffing)) : '' }}" class="text-black form-control bg-white" readonly />
 					</div>
 				</div>
 				<div class="col-md-3 col-12">
 					<div class="form-group">
 						<label>PoL</label>
-						<input type="text" value="{{ $vs->POL }}" class="form-control bg-white" readonly />
+						<input type="text" value="{{ $vs->POL }}" class="text-black form-control bg-white" readonly />
 					</div>
 				</div>
 				<div class="col-md-3 col-12">
 					<div class="form-group">
 						<label>PoD</label>
-						<input type="text" value="{{ $vs->POD }}" class="form-control bg-white" readonly />
+						<input type="text" value="{{ $vs->POD }}" class="text-black form-control bg-white" readonly />
 					</div>
 				</div>
 				<div class="col-md-3 col-12">
 					<div class="form-group">
 						<label>Closing CY</label>
-						<input type="text" value="{{ $vs->Closing_CY ? date('d F Y', strtotime($vs->Closing_CY)) : '' }}" class="form-control bg-white" readonly />
+						<input type="text" value="{{ $vs->Closing_CY ? date('d F Y', strtotime($vs->Closing_CY)) : '' }}" class="text-black form-control bg-white" readonly />
 					</div>
 				</div>
 				<div class="col-md-3 col-12">
 					<div class="form-group">
 						<label>ETD / ETA</label>
-						<input type="text" value="{{ ($vs->ETD ? date('d F Y', strtotime($vs->ETD)) : '') . ($vs->ETA ? ' / ' . date('d F Y', strtotime($vs->ETA)) : '') }}" class="form-control bg-white" readonly />
+						<input type="text" value="{{ ($vs->ETD ? date('d F Y', strtotime($vs->ETD)) : '') . ($vs->ETA ? ' / ' . date('d F Y', strtotime($vs->ETA)) : '') }}" class="text-black form-control bg-white" readonly />
 					</div>
 				</div>
 			</div>
@@ -64,19 +64,19 @@
 				<div class="col-md-3 col-12">
 					<div class="form-group">
 						<label>Contract No</label>
-						<input type="text" value="{{ $vs->Contract_No }}" class="form-control bg-white" readonly />
+						<input type="text" value="{{ $vs->Contract_No }}" class="text-black form-control bg-white" readonly />
 					</div>
 				</div>
 				<div class="col-md-3 col-12">
 					<div class="form-group">
 						<label>Qty Kontrak (MT)</label>
-						<input type="text" value="{{ $contract ? number_format((float) $contract->Quantity_MT, 2, '.', ',') : '-' }}" class="form-control bg-white" readonly />
+						<input type="text" value="{{ $contract ? number_format((float) $contract->Quantity_MT, 2, '.', ',') : '-' }}" class="text-black form-control bg-white" readonly />
 					</div>
 				</div>
 				<div class="col-md-6 col-12">
 					<div class="form-group">
 						<label>File BC Saat Ini</label>
-						<div id="currentBookingConfirmation" class="form-control bg-white" style="min-height:38px;height:auto;">
+						<div id="currentBookingConfirmation" class="text-black form-control bg-white" style="min-height:38px;height:auto;">
 							@if($bookingConfirmation)
 								<a href="{{ asset('filevendor/' . $bookingConfirmation->Path) }}" target="_blank" rel="noopener">{{ $bookingConfirmation->Filename }}</a>
 							@else
@@ -91,20 +91,20 @@
 					<div class="col-md-4 col-12">
 						<div class="form-group">
 							<label for="BC_No">Nomor BC</label>
-							<input type="text" name="BC_No" id="BC_No" value="{{ $vs->BC_No ?: ($vs->Booking_No ?: $vs->Order_No) }}" class="form-control shadow-sm" />
+							<input type="text" name="BC_No" id="BC_No" value="{{ $vs->BC_No ?: ($vs->Booking_No ?: $vs->Order_No) }}" class="text-black form-control shadow-sm" />
 						</div>
 					</div>
 					<div class="col-md-4 col-12">
 						<div class="form-group">
 							<label for="BC_File">Upload BC (PDF/JPG/JPEG)</label>
-							<input type="file" name="BC_File" id="BC_File" class="form-control-file" accept=".pdf,.jpg,.jpeg" />
+							<input type="file" name="BC_File" id="BC_File" class="text-black form-control-file" accept=".pdf,.jpg,.jpeg" />
 							<small class="text-muted">Kosongkan jika hanya ingin mengubah status/catatan. File baru akan mengganti file lama.</small>
 						</div>
 					</div>
 					<div class="col-md-2 col-12">
 						<div class="form-group">
 							<label for="BC_Status">Status Qty</label>
-							<select name="BC_Status" id="BC_Status" class="form-control shadow-sm">
+							<select name="BC_Status" id="BC_Status" class="text-black form-control shadow-sm">
 								<option value="">-- Pilih Status --</option>
 								<option value="KURANG" {{ $vs->BC_Status === 'KURANG' ? 'selected' : '' }}>KURANG</option>
 								<option value="SESUAI" {{ $vs->BC_Status === 'SESUAI' ? 'selected' : '' }}>SESUAI</option>
@@ -115,7 +115,7 @@
 					<div class="col-md-2 col-12">
 						<div class="form-group">
 							<label for="BC_Note">Catatan</label>
-							<input type="text" name="BC_Note" id="BC_Note" value="{{ $vs->BC_Note }}" class="form-control shadow-sm" />
+							<input type="text" name="BC_Note" id="BC_Note" value="{{ $vs->BC_Note }}" class="text-black form-control shadow-sm" />
 						</div>
 					</div>
 				</div>
@@ -209,31 +209,31 @@
 				<div class="col-md-4 col-12">
 					<div class="form-group">
 						<label for="Order_No">Order No</label>
-						<input type="text" name="Order_No" id="Order_No" class="form-control bg-white" value="{{ $vs->Order_No }}" readonly />
+						<input type="text" name="Order_No" id="Order_No" class="text-black form-control bg-white" value="{{ $vs->Order_No }}" readonly />
 					</div>
 				</div>
 				<div class="col-md-2 col-12">
 					<div class="form-group">
 						<label for="Date">Tanggal</label>
-						<input type="date" name="Date" id="Date" class="form-control shadow-sm" required />
+						<input type="date" name="Date" id="Date" class="text-black form-control shadow-sm" required />
 					</div>
 				</div>
 				<div class="col-md-2 col-12">
 					<div class="form-group">
 						<label for="Time_From">Jam Awal</label>
-						<input type="time" name="Time_From" id="Time_From" class="form-control shadow-sm" />
+						<input type="time" name="Time_From" id="Time_From" class="text-black form-control shadow-sm" />
 					</div>
 				</div>
 				<div class="col-md-2 col-12">
 					<div class="form-group">
 						<label for="Time_To">Jam Akhir</label>
-						<input type="time" name="Time_To" id="Time_To" class="form-control shadow-sm" />
+						<input type="time" name="Time_To" id="Time_To" class="text-black form-control shadow-sm" />
 					</div>
 				</div>
 				<div class="col-md-2 col-12">
 					<div class="form-group">
 						<label for="Police_No">Nopol</label>
-						<input type="text" name="Police_No" id="Police_No" class="form-control shadow-sm" />
+						<input type="text" name="Police_No" id="Police_No" class="text-black form-control shadow-sm" />
 					</div>
 				</div>
 			</div>
@@ -241,19 +241,19 @@
 				<div class="col-md-3 col-12">
 					<div class="form-group">
 						<label for="Container">Kontainer</label>
-						<input type="text" name="Container" id="Container" class="form-control shadow-sm" required />
+						<input type="text" name="Container" id="Container" class="text-black form-control shadow-sm" required />
 					</div>
 				</div>
 				<div class="col-md-3 col-12">
 					<div class="form-group">
 						<label for="Seal">Seal</label>
-						<input type="text" name="Seal" id="Seal" class="form-control shadow-sm" />
+						<input type="text" name="Seal" id="Seal" class="text-black form-control shadow-sm" />
 					</div>
 				</div>
 				<div class="col-md-2 col-12">
 					<div class="form-group">
 						<label for="Serial_Number">Serial Number Flexibag</label>
-						<select name="serial_number" id="Serial_Number" class="form-control shadow-sm">
+						<select name="serial_number" id="Serial_Number" class="text-black form-control shadow-sm">
 							<option value="">-- Pilih SN (Opsional) --</option>
 							@foreach(($availableSerialNumbers ?? []) as $sn)
 								<option value="{{ $sn }}">{{ $sn }}</option>
@@ -264,13 +264,13 @@
 				<div class="col-md-2 col-12">
 					<div class="form-group">
 						<label for="Tare">Tare</label>
-						<input type="text" inputmode="decimal" name="Tare" id="Tare" class="form-control shadow-sm cns-decimal" value="0.00" />
+						<input type="text" inputmode="decimal" name="Tare" id="Tare" class="text-black form-control shadow-sm cns-decimal" value="0.00" />
 					</div>
 				</div>
 				<div class="col-md-2 col-12">
 					<div class="form-group">
 						<label for="Netto_KG">Netto (Kg)</label>
-						<input type="text" inputmode="decimal" name="Netto_KG" id="Netto_KG" class="form-control shadow-sm cns-decimal" value="0.00" />
+						<input type="text" inputmode="decimal" name="Netto_KG" id="Netto_KG" class="text-black form-control shadow-sm cns-decimal" value="0.00" />
 					</div>
 				</div>
 			</div>
@@ -278,25 +278,25 @@
 				<div class="col-md-3 col-12">
 					<div class="form-group">
 						<label for="Netto_MT">Netto (MT)</label>
-						<input type="text" name="Netto_MT" id="Netto_MT" class="form-control bg-white" value="0.00" readonly />
+						<input type="text" name="Netto_MT" id="Netto_MT" class="text-black form-control bg-white" value="0.00" readonly />
 					</div>
 				</div>
 				<div class="col-md-3 col-12">
 					<div class="form-group">
 						<label for="Gross_KG">Gross (Kg)</label>
-						<input type="text" name="Gross_KG" id="Gross_KG" class="form-control bg-white" value="0.00" readonly />
+						<input type="text" name="Gross_KG" id="Gross_KG" class="text-black form-control bg-white" value="0.00" readonly />
 					</div>
 				</div>
 				<div class="col-md-3 col-12">
 					<div class="form-group">
 						<label for="Gross_MT">Gross (MT)</label>
-						<input type="text" name="Gross_MT" id="Gross_MT" class="form-control bg-white" value="0.00" readonly />
+						<input type="text" name="Gross_MT" id="Gross_MT" class="text-black form-control bg-white" value="0.00" readonly />
 					</div>
 				</div>
 				<div class="col-md-3 col-12">
 					<div class="form-group">
 						<label for="Note">Note</label>
-						<input type="text" name="Note" id="Note" class="form-control shadow-sm" />
+						<input type="text" name="Note" id="Note" class="text-black form-control shadow-sm" />
 					</div>
 				</div>
 			</div>
@@ -304,14 +304,14 @@
 				<div class="col-md-6 col-12">
 					<div class="form-group">
 						<label for="Weighbridge_Note">Upload Nota Timbang (Order)</label>
-						<input type="file" name="Weighbridge_Note" id="Weighbridge_Note" class="form-control-file" accept=".pdf,.jpg,.jpeg,.png" />
+						<input type="file" name="Weighbridge_Note" id="Weighbridge_Note" class="text-black form-control-file" accept=".pdf,.jpg,.jpeg,.png" />
 						<small class="text-muted">PDF/JPG/JPEG/PNG, maksimal 8 MB. Kosongkan jika tidak ingin mengganti nota.</small>
 					</div>
 				</div>
 				<div class="col-md-6 col-12">
 					<div class="form-group">
 						<label>Nota Timbang Saat Ini</label>
-						<div id="currentWeighbridgeNote" class="form-control bg-white" style="min-height:38px;height:auto;">Tidak ada nota.</div>
+						<div id="currentWeighbridgeNote" class="text-black form-control bg-white" style="min-height:38px;height:auto;">Tidak ada nota.</div>
 					</div>
 				</div>
 			</div>
@@ -322,7 +322,7 @@
 				<div class="col-md-6 col-12">
 					<div class="form-group">
 						<label for="Flexibag_Photos">Foto Pemasangan Flexibag</label>
-						<input type="file" name="Flexibag_Photos[]" id="Flexibag_Photos" class="form-control-file" accept=".jpg,.jpeg,.png" multiple />
+						<input type="file" name="Flexibag_Photos[]" id="Flexibag_Photos" class="text-black form-control-file" accept=".jpg,.jpeg,.png" multiple />
 						<small class="text-muted">5-6 foto, maksimal 7 foto.</small>
 						<div id="existingFlexibagPhotos" class="mt-2 small text-muted">Belum ada foto.</div>
 					</div>
@@ -330,7 +330,7 @@
 				<div class="col-md-6 col-12">
 					<div class="form-group">
 						<label for="Loading_Start_Photo">Foto Loading Start</label>
-						<input type="file" name="Loading_Start_Photo" id="Loading_Start_Photo" class="form-control-file" accept=".jpg,.jpeg,.png" />
+						<input type="file" name="Loading_Start_Photo" id="Loading_Start_Photo" class="text-black form-control-file" accept=".jpg,.jpeg,.png" />
 						<small class="text-muted">Saat selang masih terhubung ke kontainer.</small>
 						<div id="existingLoadingStartPhoto" class="mt-2 small text-muted">Belum ada foto.</div>
 					</div>
@@ -338,7 +338,7 @@
 				<div class="col-md-6 col-12">
 					<div class="form-group">
 						<label for="Loading_Done_Photo">Foto Loading Done</label>
-						<input type="file" name="Loading_Done_Photo" id="Loading_Done_Photo" class="form-control-file" accept=".jpg,.jpeg,.png" />
+						<input type="file" name="Loading_Done_Photo" id="Loading_Done_Photo" class="text-black form-control-file" accept=".jpg,.jpeg,.png" />
 						<small class="text-muted">Saat selang terlepas dan flexibag menggembung.</small>
 						<div id="existingLoadingDonePhoto" class="mt-2 small text-muted">Belum ada foto.</div>
 					</div>
@@ -346,7 +346,7 @@
 				<div class="col-md-6 col-12">
 					<div class="form-group">
 						<label for="Seal_Customs_Photo">Foto Seal Bea Cukai</label>
-						<input type="file" name="Seal_Customs_Photo" id="Seal_Customs_Photo" class="form-control-file" accept=".jpg,.jpeg,.png" />
+						<input type="file" name="Seal_Customs_Photo" id="Seal_Customs_Photo" class="text-black form-control-file" accept=".jpg,.jpeg,.png" />
 						<small class="text-muted">Seal bea cukai terpasang di belakang kontainer.</small>
 						<div id="existingSealCustomsPhoto" class="mt-2 small text-muted">Belum ada foto.</div>
 					</div>
@@ -354,7 +354,7 @@
 				<div class="col-md-6 col-12">
 					<div class="form-group">
 						<label for="Seal_Shipping_Photo">Foto Seal Pelayaran</label>
-						<input type="file" name="Seal_Shipping_Photo" id="Seal_Shipping_Photo" class="form-control-file" accept=".jpg,.jpeg,.png" />
+						<input type="file" name="Seal_Shipping_Photo" id="Seal_Shipping_Photo" class="text-black form-control-file" accept=".jpg,.jpeg,.png" />
 						<small class="text-muted">Seal sudah terpasang.</small>
 						<div id="existingSealShippingPhoto" class="mt-2 small text-muted">Belum ada foto.</div>
 					</div>
@@ -362,7 +362,7 @@
 				<div class="col-md-6 col-12">
 					<div class="form-group">
 						<label for="Seal_Surveyor_Photo">Foto Seal Surveyor</label>
-						<input type="file" name="Seal_Surveyor_Photo" id="Seal_Surveyor_Photo" class="form-control-file" accept=".jpg,.jpeg,.png" />
+						<input type="file" name="Seal_Surveyor_Photo" id="Seal_Surveyor_Photo" class="text-black form-control-file" accept=".jpg,.jpeg,.png" />
 						<small class="text-muted">Seal sudah terpasang.</small>
 						<div id="existingSealSurveyorPhoto" class="mt-2 small text-muted">Belum ada foto.</div>
 					</div>
@@ -370,7 +370,7 @@
 				<div class="col-md-6 col-12">
 					<div class="form-group">
 						<label for="Road_Letter_Photo">Foto Surat Jalan</label>
-						<input type="file" name="Road_Letter_Photo" id="Road_Letter_Photo" class="form-control-file" accept=".jpg,.jpeg,.png" />
+						<input type="file" name="Road_Letter_Photo" id="Road_Letter_Photo" class="text-black form-control-file" accept=".jpg,.jpeg,.png" />
 						<small class="text-muted">Surat jalan sudah terisi lengkap.</small>
 						<div id="existingRoadLetterPhoto" class="mt-2 small text-muted">Belum ada foto.</div>
 					</div>
@@ -378,7 +378,7 @@
 				<div class="col-md-6 col-12">
 					<div class="form-group">
 						<label for="Weighbridge_Photo">Foto Nota Timbang</label>
-						<input type="file" name="Weighbridge_Photo" id="Weighbridge_Photo" class="form-control-file" accept=".jpg,.jpeg,.png" />
+						<input type="file" name="Weighbridge_Photo" id="Weighbridge_Photo" class="text-black form-control-file" accept=".jpg,.jpeg,.png" />
 						<small class="text-muted">Foto yang jelas, jangan buram, jangan berbayang.</small>
 						<div id="existingWeighbridgePhoto" class="mt-2 small text-muted">Belum ada foto.</div>
 					</div>

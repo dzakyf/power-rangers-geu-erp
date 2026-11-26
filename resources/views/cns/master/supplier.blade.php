@@ -14,6 +14,7 @@
 		<h5 class="card-title mb-0">Data Master Supplier</h5>
 		<div class="d-flex align-items-center flex-wrap" style="gap: 0.5rem;">
 			<button type="button" class="btn btn-sm btn-primary" id="NewProduct" onclick="NewCompany();">New Company</button>
+			<button type="button" class="btn btn-sm btn-info" id="ImportSupplierBtn" data-bs-toggle="modal" data-bs-target="#ImportSupplierModal" data-toggle="modal" data-target="#ImportSupplierModal" onclick="$('#ImportSupplierModal').modal('show');">Import Excel</button>
 			<button type="button" class="btn btn-sm btn-success" id="ExportProduct" onclick="MasterCompany.toExcel('./export/generate.php');">Excel</button>
 			<button type="button" class="btn btn-sm btn-outline-secondary" onclick="refreshdata();">Refresh</button>
 		</div>
@@ -24,6 +25,15 @@
 		</div>
 	</div>
 </div>
+
+@include('cns.master.partials.import-modal', [
+	'modalId' => 'ImportSupplierModal',
+	'title' => 'Import Master Supplier (Excel)',
+	'templateUrl' => url('cns-master-supplier-import-template'),
+	'importUrl' => url('cns-master-supplier-import'),
+	'itemLabel' => 'supplier',
+	'hint' => 'Wajib isi <code>Company_Name</code>. Baris dengan Company Name yang sudah ada akan dilewati.',
+])
 <script>
 	function NewCompany() {
 

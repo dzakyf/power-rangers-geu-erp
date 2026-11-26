@@ -16,25 +16,25 @@
 			<input type="hidden" name="fragment_id" value="{{ $fragment->id }}" />
 			<div class="form-group">
 				<label for="quantity_kg">Quantity (Kg)</label>
-				<input type="text" inputmode="decimal" name="quantity_kg" id="quantity_kg" class="form-control cns-decimal" value="{{ number_format((float) $fragment->quantity_kg, 2, '.', ',') }}" />
+				<input type="text" inputmode="decimal" name="quantity_kg" id="quantity_kg" class="text-black form-control cns-decimal" value="{{ number_format((float) $fragment->quantity_kg, 2, '.', ',') }}" />
 			</div>
 			<div class="form-group">
 				<label for="full_address">Full Address</label>
-				<textarea name="full_address" id="full_address" class="form-control" rows="2">{{ $fragment->full_address }}</textarea>
+				<textarea name="full_address" id="full_address" class="text-black form-control" rows="2">{{ $fragment->full_address }}</textarea>
 			</div>
 			<div class="form-row">
 				<div class="form-group col-md-6">
 					<label for="lat">Latitude</label>
-					<input type="text" name="lat" id="lat" class="form-control" value="{{ $fragment->lat }}" />
+					<input type="text" name="lat" id="lat" class="text-black form-control" value="{{ $fragment->lat }}" />
 				</div>
 				<div class="form-group col-md-6">
 					<label for="lng">Longitude</label>
-					<input type="text" name="lng" id="lng" class="form-control" value="{{ $fragment->lng }}" />
+					<input type="text" name="lng" id="lng" class="text-black form-control" value="{{ $fragment->lng }}" />
 				</div>
 			</div>
 			<div class="form-group">
 				<label for="oil_documentation">Oil Documentation / Notes</label>
-				<textarea name="oil_documentation" id="oil_documentation" class="form-control" rows="4">{{ $fragment->oil_documentation }}</textarea>
+				<textarea name="oil_documentation" id="oil_documentation" class="text-black form-control" rows="4">{{ $fragment->oil_documentation }}</textarea>
 			</div>
 			<input type="button" value="Save Changes" class="btn btn-primary" onclick="saveFragmentEdit()" />
 		</form>
@@ -54,7 +54,7 @@
 			<form id="photoForm" class="mt-2" enctype="multipart/form-data">
 				@csrf
 				<input type="hidden" name="fragment_id" value="{{ $fragment->id }}" />
-				<input type="file" name="photos[]" id="photos" class="form-control-file" accept="image/*" multiple />
+				<input type="file" name="photos[]" id="photos" class="text-black form-control-file" accept="image/*" multiple />
 				<input type="button" value="Upload Photos" class="btn btn-success mt-2" onclick="uploadPhotos()" />
 			</form>
 		@endif

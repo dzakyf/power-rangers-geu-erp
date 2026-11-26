@@ -40,20 +40,20 @@
 	</div>
 	<div class="card-body">
 		<form id="filterForm" class="form-inline cns-filter-bar">
-			<select id="fSource" name="source" class="form-control mr-2">
+			<select id="fSource" name="source" class="text-black form-control mr-2">
 				<option value="">All Sources</option>
 				<option value="BDP">BDP</option>
 				<option value="GREES">GREES</option>
 			</select>
-			<input type="text" id="fCity" name="city" placeholder="City / Regency" class="form-control mr-2" />
-			<select id="fSite" name="site" class="form-control mr-2">
+			<input type="text" id="fCity" name="city" placeholder="City / Regency" class="text-black form-control mr-2" />
+			<select id="fSite" name="site" class="text-black form-control mr-2">
 				<option value="">All Sites</option>
 				@foreach(($sites ?? []) as $s)
 				<option value="{{ $s }}">{{ $s }}</option>
 				@endforeach
 			</select>
-			<input type="date" id="fDateFrom" name="date_from" class="form-control mr-2" />
-			<input type="date" id="fDateTo" name="date_to" class="form-control mr-2" />
+			<input type="date" id="fDateFrom" name="date_from" class="text-black form-control mr-2" />
+			<input type="date" id="fDateTo" name="date_to" class="text-black form-control mr-2" />
 			<input type="button" value="Filter" class="btn btn-primary mr-2" onclick="applyFilter()" />
 			<input type="button" value="Reset" class="btn btn-secondary" onclick="resetFilter()" />
 		</form>

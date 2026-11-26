@@ -46,33 +46,34 @@
         <!-- Filter Bar -->
         <div class="row cns-filter-bar align-items-end">
             <div class="col-md-3">
-                <label for="filter_qc_category" class="font-weight-bold">Filter Pelaksana Lab:</label>
-                <select id="filter_qc_category" class="form-control" onchange="loadQualityGrid()">
+                <label for="filter_qc_category" class="font-weight-bold" style="font-size: 0.8rem;">Filter Pelaksana Lab:</label>
+                <select id="filter_qc_category" class="text-black form-control form-control-sm" onchange="loadQualityGrid()">
                     <option value="ALL" {{ $category === 'ALL' ? 'selected' : '' }}>-- Semua Pelaksana Lab --</option>
                     <option value="INTERNAL" {{ $category === 'INTERNAL' ? 'selected' : '' }}>Lab Internal</option>
                     <option value="EXTERNAL" {{ $category === 'EXTERNAL' ? 'selected' : '' }}>Lab External</option>
                 </select>
             </div>
             <div class="col-md-3">
-                <label for="filter_qc_type" class="font-weight-bold">Filter Jenis QC:</label>
-                <select id="filter_qc_type" class="form-control" onchange="loadQualityGrid()">
+                <label for="filter_qc_type" class="font-weight-bold" style="font-size: 0.8rem;">Filter Jenis QC:</label>
+                <select id="filter_qc_type" class="text-black form-control form-control-sm" onchange="loadQualityGrid()">
                     <option value="ALL">-- Semua Jenis QC --</option>
                     <option value="INBOUND">INBOUND</option>
                     <option value="OUTBOUND">OUTBOUND</option>
                     <option value="DAILY_QC">DAILY QC</option>
+                    <option value="SURVEYOR">SURVEYOR</option>
                 </select>
             </div>
             <div class="col-md-3">
-                <label for="filter_date" class="font-weight-bold">Filter Tanggal:</label>
-                <input type="date" id="filter_date" class="form-control" onchange="loadQualityGrid()" />
+                <label for="filter_date" class="font-weight-bold" style="font-size: 0.8rem;">Filter Tanggal:</label>
+                <input type="date" id="filter_date" class="text-black form-control form-control-sm" onchange="loadQualityGrid()" />
             </div>
             <div class="col-md-3">
-                <button type="button" class="btn btn-secondary" onclick="$('#filter_qc_category').val('{{ $category }}'); $('#filter_qc_type').val('ALL'); $('#filter_date').val(''); $('#filter_stat_month').val('{{ date('Y-m') }}'); loadQualityGrid();">Reset Filter</button>
+                <button type="button" class="btn btn-sm btn-secondary" onclick="$('#filter_qc_category').val('{{ $category }}'); $('#filter_qc_type').val('ALL'); $('#filter_date').val(''); $('#filter_stat_month').val('{{ date('Y-m') }}'); loadQualityGrid();">Reset Filter</button>
             </div>
         </div>
 
         <!-- Monthly Min/Max Parameter Summary Table (Collapsible) -->
-        <div class="card mb-3 border shadow-sm">
+        <div class="card mb-3 border shadow-sm" style="font-size: 0.8rem;">
             <div class="card-header bg-light d-flex flex-wrap justify-content-between align-items-center py-2" style="cursor: pointer;" onclick="toggleMonthlyStats()">
                 <div class="d-flex align-items-center">
                     <strong class="text-dark">
@@ -80,12 +81,9 @@
                     </strong>
                     <span class="badge badge-info ml-2" id="qcMonthlyTotalBadge">0 Data Pengujian</span>
                 </div>
-                <div class="d-flex align-items-center mt-1 mt-md-0" onclick="event.stopPropagation();">
-                    <label for="filter_stat_month" class="mb-0 mr-2 font-weight-bold text-secondary" style="font-size: 0.85rem;">Periode:</label>
-                    <input type="month" id="filter_stat_month" class="form-control form-control-sm mr-1" style="width: 170px;" value="{{ date('Y-m') }}" onchange="loadMonthlyStats()">
-                    <button type="button" class="btn btn-sm btn-outline-secondary ml-1" onclick="toggleMonthlyStats()" title="Buka/Tutup Ringkasan">
-                        <i id="qcStatsToggleIcon" class="fa fa-chevron-down"></i>
-                    </button>
+                <div class="d-flex align-items-center gap-2" onclick="event.stopPropagation();">
+                    <label for="filter_stat_month" class="mb-0 mr-2 font-weight-bold text-secondary" style="font-size: 0.8rem;">Periode:</label>
+                    <input type="month" id="filter_stat_month" class="text-black form-control form-control-sm" style="width: 170px;" value="{{ date('Y-m') }}" onchange="loadMonthlyStats()">
                 </div>
             </div>
             <div id="qcMonthlyStatsCollapse" style="display: none;">
@@ -93,7 +91,7 @@
                     <div class="row">
                         <div class="col-md-6 mb-2 mb-md-0">
                             <div class="table-responsive">
-                                <table class="table table-bordered table-sm table-striped mb-0 text-center" style="font-size: 0.88rem;">
+                                <table class="table table-bordered table-sm table-striped mb-0 text-center" style="font-size: 0.8rem;">
                                     <thead class="thead-light">
                                         <tr>
                                             <th style="width: 35%; text-align: left;">Parameter</th>
@@ -110,7 +108,7 @@
                         </div>
                         <div class="col-md-6">
                             <div class="table-responsive">
-                                <table class="table table-bordered table-sm table-striped mb-0 text-center" style="font-size: 0.88rem;">
+                                <table class="table table-bordered table-sm table-striped mb-0 text-center" style="font-size: 0.8rem;">
                                     <thead class="thead-light">
                                         <tr>
                                             <th style="width: 35%; text-align: left;">Parameter</th>
@@ -136,8 +134,8 @@
     </div>
 </div>
 
-@include('cns.quality.create', ['category' => $category, 'contracts' => $contracts, 'tanks' => $tanks ?? collect()])
-@include('cns.quality.edit', ['category' => $category, 'contracts' => $contracts, 'tanks' => $tanks ?? collect()])
+@include('cns.quality.create', ['category' => $category, 'contracts' => $contracts, 'tanks' => $tanks ?? collect(), 'bookings' => $bookings ?? collect()])
+@include('cns.quality.edit', ['category' => $category, 'contracts' => $contracts, 'tanks' => $tanks ?? collect(), 'bookings' => $bookings ?? collect()])
 
 <script>
     var currentCategory = "{{ $category }}";
@@ -313,7 +311,7 @@
         // 26..35: Bottom (10 cols)
         // 36..45: Average (10 cols)
         // 46: Attachment
-        // 47: Contract_ID (hidden), 48: Booking_ID (hidden), 49: QC_Category (hidden), 50: Tank_ID (hidden)
+        // 47: Contract_ID (hidden), 48: Booking_ID (hidden), 49: QC_Category (hidden), 50: Tank_ID (hidden), 51: QC_Method (hidden)
         let tHeader = [
             'No', 'Kode QC', 'Tanggal', 'Jenis QC', 'Lab', 'Source',
             'Top', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan',
@@ -321,7 +319,7 @@
             'Bottom', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan',
             'Average', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan', '#cspan',
             'Attachment',
-            'Contract_ID', 'Booking_ID', 'QC_Category', 'Tank_ID'
+            'Contract_ID', 'Booking_ID', 'QC_Category', 'Tank_ID', 'QC_Method'
         ];
 
         let tGroupHeader = [
@@ -331,7 +329,7 @@
             'FFA Palmitic', 'FFA Oleic', 'Moisture', 'Impurities', 'Unsaponifiables', 'Sulfur', 'IV', 'Chlorides', 'Phosphorus', 'Metals',
             'FFA Palmitic', 'FFA Oleic', 'Moisture', 'Impurities', 'Unsaponifiables', 'Sulfur', 'IV', 'Chlorides', 'Phosphorus', 'Metals',
             '#rspan',
-            '#rspan', '#rspan', '#rspan', '#rspan'
+            '#rspan', '#rspan', '#rspan', '#rspan', '#rspan'
         ];
 
         let tTopHeader = [
@@ -341,7 +339,7 @@
             '%', '%', '%', '%', '%', 'ppm', 'g I2', 'ppm', 'ppm', 'ppm',
             '%', '%', '%', '%', '%', 'ppm', 'g I2', 'ppm', 'ppm', 'ppm',
             '#rspan',
-            '#rspan', '#rspan', '#rspan', '#rspan'
+            '#rspan', '#rspan', '#rspan', '#rspan', '#rspan'
         ];
 
         let tWidth = [
@@ -351,7 +349,7 @@
             '85', '85', '75', '80', '100', '75', '75', '75', '80', '80',
             '85', '85', '75', '80', '100', '75', '75', '75', '80', '80',
             '110',
-            '50', '50', '50', '50'
+            '50', '50', '50', '50', '50'
         ];
 
         let tColType = tHeader.map(() => 'ro');
@@ -374,6 +372,7 @@
         ProjectionGrid.setColumnHidden(48, true);
         ProjectionGrid.setColumnHidden(49, true);
         ProjectionGrid.setColumnHidden(50, true);
+        ProjectionGrid.setColumnHidden(51, true);
 
         QualityPagination = initCnsGridPagination(ProjectionGrid, {
             pageSize: 25,

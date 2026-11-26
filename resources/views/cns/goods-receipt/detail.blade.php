@@ -97,7 +97,9 @@
             <table class="table table-bordered table-striped mb-0">
                 @php
                     $hasSerialColumn = $gr->details->contains(function ($d) {
-                        return stripos((string) $d->item_name, 'flexibag') !== false || !empty($d->serial_number);
+                        return stripos((string) $d->item_name, 'flexibag') !== false
+                            || !empty($d->serial_number)
+                            || !empty($d->serial_photos);
                     });
                 @endphp
                 <thead class="bg-secondary text-white small text-center">
@@ -126,7 +128,59 @@
                             </td>
                             <td class="text-center">{{ $item->unit }}</td>
                             @if($hasSerialColumn)
-                                <td>{{ $item->serial_number ?: '-' }}</td>
+                                @php
+                                    $serialList = array_values(array_filter(array_map('trim', preg_split('/[\r\n,]+/', (string) ($item->serial_number ?? ''))), function ($sn) {
+                                        return $sn !== '';
+                                    }));
+                                    $rawPhotos = $item->serial_photos ?? [];
+                                    if (is_string($rawPhotos)) {
+                                        $decodedPhotos = json_decode($rawPhotos, true);
+                                        $rawPhotos = is_array($decodedPhotos) ? $decodedPhotos : [];
+                                    }
+                                    $photoList = is_array($rawPhotos) ? array_values(array_filter($rawPhotos, function ($p) {
+                                        return is_string($p) && trim($p) !== '';
+                                    })) : [];
+                                    $pairCount = max(count($serialList), count($photoList));
+                                @endphp
+                                <td>
+                                    @if(!empty($photoList))
+                                        <div class="d-flex flex-column" style="gap: 6px;">
+                                            @for($sIdx = 0; $sIdx < $pairCount; $sIdx++)
+                                                @php
+                                                    $snText = $serialList[$sIdx] ?? null;
+                                                    $photoPath = $photoList[$sIdx] ?? null;
+                                                    $photoUrl = $photoPath ? asset($photoPath) : null;
+                                                    $previewTitle = 'Foto Flexibag ' . ($snText ? ('SN: ' . $snText) : ('#' . ($sIdx + 1)));
+                                                @endphp
+                                                <div class="d-flex align-items-center justify-content-between border rounded px-2 py-1 bg-light" style="gap: 8px;">
+                                                    <div class="small">
+                                                        <span class="text-muted mr-1">#{{ $sIdx + 1 }}</span>
+                                                        <span class="font-weight-bold">{{ $snText ?: '-' }}</span>
+                                                    </div>
+                                                    @if($photoUrl)
+                                                        <a href="{{ $photoUrl }}"
+                                                           target="_blank"
+                                                           class="d-inline-flex align-items-center text-decoration-none no-cns-preview"
+                                                           style="gap: 6px;"
+                                                           data-preview-title="{{ $previewTitle }}"
+                                                           title="Klik untuk perbesar {{ $previewTitle }}"
+                                                           onclick="if (typeof window.cnsOpenDocPreview === 'function') { event.preventDefault(); window.cnsOpenDocPreview(this.href, this.getAttribute('data-preview-title')); }">
+                                                            <img src="{{ $photoUrl }}"
+                                                                 alt="{{ $previewTitle }}"
+                                                                 class="rounded border"
+                                                                 style="width: 36px; height: 36px; object-fit: cover;" />
+                                                            <span class="badge bg-info text-white"><i class="fa fa-search-plus mr-1"></i>Lihat</span>
+                                                        </a>
+                                                    @else
+                                                        <span class="text-muted small">-</span>
+                                                    @endif
+                                                </div>
+                                            @endfor
+                                        </div>
+                                    @else
+                                        {{ $item->serial_number ?: '-' }}
+                                    @endif
+                                </td>
                             @endif
                             <td>{{ $item->notes ?: '-' }}</td>
                         </tr>
@@ -218,7 +272,7 @@
                     <p class="small text-muted">Sistem akan secara otomatis membuat transaksi pembalik (OUT) di kartu stok Inventory Non-UCO dan mengembalikan sisa kuantiti di PO terkait.</p>
                     <div class="form-group">
                         <label for="void_reason" class="font-weight-bold">Alasan Pembatalan (Void) <span class="text-danger">*</span></label>
-                        <textarea name="reason" id="void_reason" class="form-control" rows="3" placeholder="Masukkan alasan pembatalan..." required></textarea>
+                        <textarea name="reason" id="void_reason" class="text-black form-control" rows="3" placeholder="Masukkan alasan pembatalan..." required></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">

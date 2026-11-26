@@ -23,7 +23,7 @@ $notifyAddr = !empty($shipment->Notify_Address) ? $shipment->Notify_Address : ($
 						<div class="col-md-4 col-12">
 							<div class="form-group">
 								<label for="SI_No">SI No</label>
-                                <select name="SI_No" id="SI_No" class="form-control bg-white" readonly>
+                                <select name="SI_No" id="SI_No" class="text-black form-control bg-white" readonly>
                                     <option value="{{ $shipment->SI_No }}">{{ $shipment->SI_No }}</option>
                                 </select>
 							</div>
@@ -31,13 +31,13 @@ $notifyAddr = !empty($shipment->Notify_Address) ? $shipment->Notify_Address : ($
 						<div class="col-md-4 col-12">
 							<div class="form-group">
 								<label for="SI_Date">Final SI Date</label>
-                                <input name="SI_Date" id="SI_Date" class="form-control bg-white" value="{{ $shipment->Final_SI_Date ?? date('Y-m-d') }}" readonly />
+                                <input name="SI_Date" id="SI_Date" class="text-black form-control bg-white" value="{{ $shipment->Final_SI_Date ?? date('Y-m-d') }}" readonly />
 							</div>
 						</div>
 						<div class="col-md-4 col-12">
 							<div class="form-group">
 								<label for="Order_No">Order No</label>
-                                <input type="text" name="Order_No" id="Order_No" value="{{ $shipment->Order_No ?? '' }}" class="form-control bg-white" readonly />
+                                <input type="text" name="Order_No" id="Order_No" value="{{ $shipment->Order_No ?? '' }}" class="text-black form-control bg-white" readonly />
 							</div>
 						</div>
 						<div class="col-12">
@@ -45,7 +45,7 @@ $notifyAddr = !empty($shipment->Notify_Address) ? $shipment->Notify_Address : ($
 								<label for="Qty1">Qty</label>
 								<div class="row">
 									<div class="col-6">
-										<select name="Qty1" id="Qty1" class="form-control bg-white" readonly>
+										<select name="Qty1" id="Qty1" class="text-black form-control bg-white" readonly>
 											<option value="">-- Pilih Qty --</option>
 											@foreach (range(1,1000) as $item)
 											<option value="{{$item}}" {{ $shipment->Qty1 == $item ? 'selected' : '' }}>{{$item}}</option>
@@ -53,7 +53,7 @@ $notifyAddr = !empty($shipment->Notify_Address) ? $shipment->Notify_Address : ($
 										</select>
 									</div>
 									<div class="col-6">
-										<select name="Qty2" id="Qty2" class="form-control bg-white" readonly>
+										<select name="Qty2" id="Qty2" class="text-black form-control bg-white" readonly>
 											<option value="">-- Pilih Qty --</option>
 											<option value="20 FT" {{ $shipment->Qty2 == '20 FT' ? 'selected' : '' }}>20 FT</option>
 											<option value="20 ISOTANK" {{ $shipment->Qty2 == '20 ISOTANK' ? 'selected' : '' }}>20 ISOTANK</option>
@@ -67,10 +67,10 @@ $notifyAddr = !empty($shipment->Notify_Address) ? $shipment->Notify_Address : ($
                                 <label for="Jam">Jam</label>
                                 <div class="row">
                                     <div class="col-6">
-                                        <input type="text" name="Hour_From" id="Hour_From" value="" class="form-control bg-white" readonly />
+                                        <input type="text" name="Hour_From" id="Hour_From" value="" class="text-black form-control bg-white" readonly />
                                     </div>
                                     <div class="col-6">
-                                        <input type="text" name="Hour_To" id="Hour_To" value="" class="form-control bg-white" readonly />
+                                        <input type="text" name="Hour_To" id="Hour_To" value="" class="text-black form-control bg-white" readonly />
                                     </div>
                                 </div>
                             </div>
@@ -79,7 +79,7 @@ $notifyAddr = !empty($shipment->Notify_Address) ? $shipment->Notify_Address : ($
                         <div class="col-md-4 col-12">
                             <div class="form-group">
                                 <label for="Shipper">Shipper</label>
-                                <select name="Shipper" id="Shipper" class="form-control">
+                                <select name="Shipper" id="Shipper" class="text-black form-control">
                                     <option value="">-- Pilih Shipper --</option>
                                     @foreach ($companies as $shipper)
                                         <option value="{{ $shipper->Supplier_ID }}" data-address="{{ $shipper->Address }}" {{ $shipment->Shipper == $shipper->Supplier_ID ? 'selected' : '' }}>{{ $shipper->Company_Name }}</option>
@@ -88,13 +88,13 @@ $notifyAddr = !empty($shipment->Notify_Address) ? $shipment->Notify_Address : ($
                             </div>
                             <div class="form-group">
                                 <label for="Shipper_Address">Shipper Address</label>
-                                <textarea name="Shipper_Address" id="Shipper_Address" rows="2" class="form-control" placeholder="Alamat Shipper">{{ $shipperAddr }}</textarea>
+                                <textarea name="Shipper_Address" id="Shipper_Address" rows="2" class="text-black form-control" placeholder="Alamat Shipper">{{ $shipperAddr }}</textarea>
                             </div>
                         </div>
                         <div class="col-md-4 col-12">
                             <div class="form-group">
                                 <label for="Consignee">Consignee</label>
-                                <select name="Consignee" id="Consignee" class="form-control">
+                                <select name="Consignee" id="Consignee" class="text-black form-control">
                                     <option value="">-- Pilih Consignee --</option>
                                     @foreach ($companies as $consignee)
                                         <option value="{{ $consignee->Supplier_ID }}" data-address="{{ $consignee->Address }}" {{ $shipment->Consignee == $consignee->Supplier_ID ? 'selected' : '' }}>{{ $consignee->Company_Name }}</option>
@@ -103,13 +103,13 @@ $notifyAddr = !empty($shipment->Notify_Address) ? $shipment->Notify_Address : ($
                             </div>
                             <div class="form-group">
                                 <label for="Consignee_Address">Consignee Address</label>
-                                <textarea name="Consignee_Address" id="Consignee_Address" rows="2" class="form-control" placeholder="Alamat Consignee">{{ $consigneeAddr }}</textarea>
+                                <textarea name="Consignee_Address" id="Consignee_Address" rows="2" class="text-black form-control" placeholder="Alamat Consignee">{{ $consigneeAddr }}</textarea>
                             </div>
                         </div>
                         <div class="col-md-4 col-12">
                             <div class="form-group">
                                 <label for="Notify">Notify Party</label>
-                                <select name="Notify" id="Notify" class="form-control">
+                                <select name="Notify" id="Notify" class="text-black form-control">
                                     <option value="">-- Pilih Notify --</option>
                                     @foreach ($companies as $notify)
                                         <option value="{{ $notify->Supplier_ID }}" data-address="{{ $notify->Address }}" {{ $shipment->Notify == $notify->Supplier_ID ? 'selected' : '' }}>{{ $notify->Company_Name }}</option>
@@ -118,31 +118,31 @@ $notifyAddr = !empty($shipment->Notify_Address) ? $shipment->Notify_Address : ($
                             </div>
                             <div class="form-group">
                                 <label for="Notify_Address">Notify Party Address</label>
-                                <textarea name="Notify_Address" id="Notify_Address" rows="2" class="form-control" placeholder="Alamat Notify Party">{{ $notifyAddr }}</textarea>
+                                <textarea name="Notify_Address" id="Notify_Address" rows="2" class="text-black form-control" placeholder="Alamat Notify Party">{{ $notifyAddr }}</textarea>
                             </div>
                         </div>
                         <div class="col-md-3 col-12">
                             <div class="form-group">
                                 <label for="Destination_Port">Destination Port</label>
-                                <input type="text" id="Destination_Port" name="Destination_Port" class="form-control" value="{{ $shipment->Destination_Port }}" />
+                                <input type="text" id="Destination_Port" name="Destination_Port" class="text-black form-control" value="{{ $shipment->Destination_Port }}" />
                             </div>
                         </div>
                         <div class="col-md-3 col-12">
                             <div class="form-group">
                                 <label for="Delivery_Terms">Delivery Terms</label>
-                                <input type="text" name="Delivery_Terms" id="Delivery_Terms" value="{{ $shipment->Delivery_Terms }}" class="form-control bg-white" readonly />
+                                <input type="text" name="Delivery_Terms" id="Delivery_Terms" value="{{ $shipment->Delivery_Terms }}" class="text-black form-control bg-white" readonly />
                             </div>
                         </div>
                         <div class="col-md-3 col-12">
                             <div class="form-group">
                                 <label for="Contract_No">Contract No</label>
-                                <input type="text" name="Contract_No" id="Contract_No" value="{{ $shipment->Contract_No }}" class="form-control bg-white" readonly />
+                                <input type="text" name="Contract_No" id="Contract_No" value="{{ $shipment->Contract_No }}" class="text-black form-control bg-white" readonly />
                             </div>
                         </div>
                         <div class="col-md-3 col-12">
                             <div class="form-group">
                                 <label for="Voyage">Voyage</label>
-                                <input type="text" name="Voyage" id="Voyage" value="{{ $shipment->Voyage }}" class="form-control bg-white" readonly />
+                                <input type="text" name="Voyage" id="Voyage" value="{{ $shipment->Voyage }}" class="text-black form-control bg-white" readonly />
                             </div>
                         </div>
                         <div class="col-12">
@@ -150,19 +150,19 @@ $notifyAddr = !empty($shipment->Notify_Address) ? $shipment->Notify_Address : ($
                                 <div class="col-md-4 col-12">
                                     <div class="form-group">
                                         <label for="ETD">ETD</label>
-                                        <input type="text" name="ETD" id="ETD" value="{{ $shipment->ETD }}" class="form-control bg-white" readonly />
+                                        <input type="text" name="ETD" id="ETD" value="{{ $shipment->ETD }}" class="text-black form-control bg-white" readonly />
                                     </div>
                                 </div>
                                 <div class="col-md-4 col-12">
                                     <div class="form-group">
                                         <label for="ETA">ETA</label>
-                                        <input type="text" name="ETA" id="ETA" value="{{ $shipment->ETA }}" class="form-control bg-white" readonly />
+                                        <input type="text" name="ETA" id="ETA" value="{{ $shipment->ETA }}" class="text-black form-control bg-white" readonly />
                                     </div>
                                 </div>
                                 <div class="col-md-4 col-12">
                                     <div class="form-group">
                                         <label for="Stuffing">Stuffing</label>
-                                        <input type="text" name="Stuffing" id="Stuffing" value="{{ $shipment->Stuffing }}" class="form-control bg-white" readonly />
+                                        <input type="text" name="Stuffing" id="Stuffing" value="{{ $shipment->Stuffing }}" class="text-black form-control bg-white" readonly />
                                     </div>
                                 </div>
                             </div>
@@ -170,43 +170,43 @@ $notifyAddr = !empty($shipment->Notify_Address) ? $shipment->Notify_Address : ($
                         <div class="col-md-6 col-12">
                             <div class="form-group">
                                 <label for="PEB_No">PEB No</label>
-                                <input type="text" name="PEB_No" id="PEB_No" value="{{ $shipment->PEB_No }}" class="form-control bg-white" />
+                                <input type="text" name="PEB_No" id="PEB_No" value="{{ $shipment->PEB_No }}" class="text-black form-control bg-white" />
                             </div>
                         </div>
                         <div class="col-md-6 col-12">
                             <div class="form-group">
                                 <label for="PEB_Date">PEB Date</label>
-                                <input type="text" name="PEB_Date" id="PEB_Date" value="{{ $shipment->PEB_Date }}" class="form-control bg-white" />
+                                <input type="text" name="PEB_Date" id="PEB_Date" value="{{ $shipment->PEB_Date }}" class="text-black form-control bg-white" />
                             </div>
                         </div>
                         <div class="col-md-4 col-12">
                             <div class="form-group">
                                 <label for="BL_No">B/L No</label>
-                                <input type="text" name="BL_No" id="BL_No" value="{{ $shipment->BL_No }}" class="form-control bg-white" />
+                                <input type="text" name="BL_No" id="BL_No" value="{{ $shipment->BL_No }}" class="text-black form-control bg-white" />
                             </div>
                         </div>
                         <div class="col-md-4 col-12">
                             <div class="form-group">
                                 <label for="POL">Port of Loading</label>
-                                <input type="text" name="POL" id="POL" value="{{ $shipment->POL }}" class="form-control bg-white" />
+                                <input type="text" name="POL" id="POL" value="{{ $shipment->POL }}" class="text-black form-control bg-white" />
                             </div>
                         </div>
                         <div class="col-md-4 col-12">
                             <div class="form-group">
                                 <label for="POD">Port of Discharge</label>
-                                <input type="text" name="POD" id="POD" value="{{ $shipment->POD }}" class="form-control bg-white" />
+                                <input type="text" name="POD" id="POD" value="{{ $shipment->POD }}" class="text-black form-control bg-white" />
                             </div>
                         </div>
                         <div class="col-md-4 col-12">
                             <div class="form-group">
                                 <label for="Product_Name">Product Name</label>
-                                <input type="text" name="Product_Name" id="Product_Name" value="{{ $shipment->Product_Name }}" class="form-control" />
+                                <input type="text" name="Product_Name" id="Product_Name" value="{{ $shipment->Product_Name }}" class="text-black form-control" />
                             </div>
                         </div>
                         <div class="col-md-4 col-12">
                             <div class="form-group">
                                 <label for="HS_Code">HS Code</label>
-                                <select name="HS_Code" id="HS_Code" class="form-control bg-white" disabled>
+                                <select name="HS_Code" id="HS_Code" class="text-black form-control bg-white" disabled>
                                     <option value="">-- Pilih HS Code --</option>
                                     <option value="15180090" {{ $shipment->HS_Code == '15180090' ? 'selected' : '' }}>15180090</option>
                                     <option value="15119020" {{ $shipment->HS_Code == '15119020' ? 'selected' : '' }}>15119020</option>
@@ -216,14 +216,14 @@ $notifyAddr = !empty($shipment->Notify_Address) ? $shipment->Notify_Address : ($
                         <div class="col-12">
                             <div class="form-group">
                                 <label for="Remarks">Remarks</label>
-                                <textarea name="Remarks" id="Remarks" rows="3" class="form-control" placeholder="Remarks">{{ $shipment->Remarks }}</textarea>
+                                <textarea name="Remarks" id="Remarks" rows="3" class="text-black form-control" placeholder="Remarks">{{ $shipment->Remarks }}</textarea>
                             </div>
                         </div>
                         @foreach ($shipment->orderDetails as $item)
                         <div class="col-md-6 col-12">
                             <div class="form-group">
                                 <label for="Container{{$loop->iteration}}">Container {{$loop->iteration}}</label>
-                                <select name="Container{{$loop->iteration}}" id="Container{{$loop->iteration}}" class="form-control bg-white" disabled>
+                                <select name="Container{{$loop->iteration}}" id="Container{{$loop->iteration}}" class="text-black form-control bg-white" disabled>
                                         <option value="{{ $item->ID }}">{{ $item->Container }} ({{ $item->Seal }})</option>
                                 </select>
                             </div>
@@ -303,7 +303,7 @@ $notifyAddr = !empty($shipment->Notify_Address) ? $shipment->Notify_Address : ($
                     <div class="col-12">
                         <div class="form-group">
                             <label for="Container${counter}">Container ${counter}</label>
-                            <select name="Container${counter}" id="Container${counter}" class="form-control bg-white">
+                            <select name="Container${counter}" id="Container${counter}" class="text-black form-control bg-white">
                                 <option value="">-- Pilih Container --</option>
                         `+ string + `
                                     </select>

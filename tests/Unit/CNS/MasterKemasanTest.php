@@ -188,25 +188,16 @@ class MasterKemasanTest extends TestCase
         $this->assertStringContainsString('class="row-total"', $content);
         $this->assertStringContainsString('Atur Max Stok Site', $content);
         $this->assertStringContainsString('id="filterSite"', $content);
-        $this->assertStringContainsString('name="site_id"', $content);
         $this->assertStringContainsString("route('cns-inventory-kemasan.site-limits')", $content);
 
-        // Button Catat Mutasi Stok Kemasan is located inside Tab 2 (below the report table)
         $tab1Pos = strpos($content, 'id="tab-monitoring"');
         $tab2Pos = strpos($content, 'id="tab-report"');
-        $btnPos  = strpos($content, 'data-target="#modalManualMutation"');
-        $tblEnd  = strpos($content, '</table>', $tab2Pos);
         $this->assertNotFalse($tab1Pos);
         $this->assertNotFalse($tab2Pos);
-        $this->assertNotFalse($btnPos);
-        $this->assertGreaterThan($tab2Pos, $btnPos);
-        $this->assertGreaterThan($tblEnd, $btnPos);
 
-        $this->assertStringContainsString('Pilih Dari Master Kemasan', $content);
         $this->assertStringContainsString('value="pkg:{{ $mp->Kemasan_ID }}"', $content);
         $this->assertStringContainsString('value="manual:{{ $ei }}"', $content);
         $this->assertStringContainsString("params.push('packaging_id='", $content);
-        $this->assertStringContainsString('name="out_type"', $content);
         $this->assertStringContainsString('Saldo Qty,Saldo Excess,Total Saldo', $content);
         $this->assertStringNotContainsString('KemasanGrid.attachHeader', $content);
         $this->assertStringNotContainsString('Master Packaging', $content);

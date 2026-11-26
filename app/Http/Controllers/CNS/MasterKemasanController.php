@@ -5,6 +5,7 @@ namespace App\Http\Controllers\CNS;
 use App\CnsInventoryKemasan;
 use App\CnsKemasanSerialNumber;
 use App\CnsMasterKemasan;
+use App\Http\Controllers\CNS\Concerns\HandlesCompanyExcelImport;
 use App\Http\Controllers\Controller;
 use App\Support\DhtmlxGridPagination;
 use Illuminate\Http\Request;
@@ -14,6 +15,7 @@ use Illuminate\Validation\ValidationException;
 
 class MasterKemasanController extends Controller
 {
+    use HandlesCompanyExcelImport;
     public function index()
     {
         return view('cns.master.kemasan');
@@ -229,5 +231,131 @@ class MasterKemasanController extends Controller
         $kemasan->delete();
 
         return back()->with('success', 'Master kemasan berhasil dihapus.');
+    }
+
+    public function downloadImportTemplate()
+    {
+        return $this->streamExcelTemplate(
+            ['Name', 'product_type', 'Volume', 'Is_Ampas', 'Max_Stock', 'Unit', 'Price'],
+            ['Jerrycan 20L', 'Kemasan', 20, '0', 100, 'Pcs', 25000],
+            'master-kemasan-import-template.xlsx',
+            ['Name', 'product_type', 'Volume', 'Is_Ampas'],
+            [
+                'product_type' => [
+                    'comment' => 'Pilihan tipe produk: Kemasan atau Export',
+                    'options' => ['Kemasan', 'Export'],
+                ],
+                'Is_Ampas' => [
+                    'comment' => 'Tinyint: 1 = Ya, 0 = Tidak',
+                    'options' => ['1', '0'],
+                ],
+            ]
+        );
+    }
+
+    public function importMasterKemasan(Request $request)
+    {
+        $parsed = $this->readExcelRows($request);
+        if (!is_array($parsed)) {
+            return $parsed;
+        }
+        [$colMap, $rows] = $parsed;
+
+        if (!isset($colMap['name'])) {
+            return response()->json(['message' => 'Header wajib Name tidak ditemukan.'], 422);
+        }
+
+        $imported = 0;
+        $skipped = [];
+        $errors = [];
+
+        foreach ($rows as $i => $row) {
+            $rowNum = $i + 2;
+            if (count(array_filter($row, fn($v) => trim((string) $v) !== '')) === 0) {
+                continue;
+            }
+
+            $get = fn(string $col) => isset($colMap[strtolower($col)])
+                ? trim((string) ($row[$colMap[strtolower($col)]] ?? ''))
+                : '';
+
+            $name = $get('Name');
+            if ($name === '') {
+                $errors[] = ['row' => $rowNum, 'name' => '', 'reason' => 'Name wajib diisi.'];
+                continue;
+            }
+            if (strlen($name) > 150) {
+                $errors[] = ['row' => $rowNum, 'name' => $name, 'reason' => 'Name maksimal 150 karakter.'];
+                continue;
+            }
+
+            $productType = $get('product_type') ?: 'Kemasan';
+            if (!in_array($productType, ['Kemasan', 'Export'], true)) {
+                $errors[] = ['row' => $rowNum, 'name' => $name, 'reason' => 'product_type harus Kemasan atau Export.'];
+                continue;
+            }
+
+            $rawIsAmpas = $get('Is_Ampas');
+            $isAmpas = ($rawIsAmpas !== '' ? $this->parseExcelImportBool($rawIsAmpas) === 1 : false) || stripos($name, 'ampas') !== false;
+            $isProductSpec = $productType === 'Export';
+
+            $volumeRaw = $get('Volume');
+            if (!$isProductSpec && ($volumeRaw === '' || !is_numeric($volumeRaw) || (float) $volumeRaw < 0)) {
+                $errors[] = ['row' => $rowNum, 'name' => $name, 'reason' => 'Volume wajib diisi (>= 0) untuk tipe Kemasan.'];
+                continue;
+            }
+            if ($volumeRaw !== '' && (!is_numeric($volumeRaw) || (float) $volumeRaw < 0)) {
+                $errors[] = ['row' => $rowNum, 'name' => $name, 'reason' => 'Volume harus berupa angka >= 0.'];
+                continue;
+            }
+
+            $maxStockRaw = $get('Max_Stock');
+            if ($maxStockRaw !== '' && (!is_numeric($maxStockRaw) || (float) $maxStockRaw < 0)) {
+                $errors[] = ['row' => $rowNum, 'name' => $name, 'reason' => 'Max_Stock harus berupa angka >= 0.'];
+                continue;
+            }
+
+            $priceRaw = $get('Price');
+            if ($priceRaw !== '' && (!is_numeric($priceRaw) || (float) $priceRaw < 0)) {
+                $errors[] = ['row' => $rowNum, 'name' => $name, 'reason' => 'Price harus berupa angka >= 0.'];
+                continue;
+            }
+
+            $unit = $get('Unit');
+            if (strlen($unit) > 50) {
+                $errors[] = ['row' => $rowNum, 'name' => $name, 'reason' => 'Unit maksimal 50 karakter.'];
+                continue;
+            }
+
+            $payload = [
+                'Name'         => $name,
+                'product_type' => $productType,
+                'Volume'       => $volumeRaw !== '' ? (float) $volumeRaw : 0.0,
+                'Is_Ampas'     => $isAmpas,
+                'Max_Stock'    => ($isAmpas || $isProductSpec || $maxStockRaw === '') ? null : (float) $maxStockRaw,
+                'Unit'         => $unit,
+                'Price'        => $priceRaw !== '' ? (float) $priceRaw : 0.0,
+            ];
+            $serialInput = $get('serial_numbers');
+
+            try {
+                DB::transaction(function () use ($payload, $serialInput) {
+                    $kemasan = CnsMasterKemasan::create($payload);
+                    if ($serialInput !== '') {
+                        $this->syncAvailableSerialNumbers($kemasan, $serialInput);
+                    }
+                });
+                $imported++;
+            } catch (ValidationException $e) {
+                $firstError = collect($e->errors())->flatten()->first() ?: $e->getMessage();
+                $errors[] = ['row' => $rowNum, 'name' => $name, 'reason' => $firstError];
+            }
+        }
+
+        return response()->json([
+            'imported' => $imported,
+            'skipped'  => $skipped,
+            'errors'   => $errors,
+        ]);
     }
 }

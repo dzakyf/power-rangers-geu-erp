@@ -62,6 +62,7 @@ class CnsPermissionService
         'SI00315' => 'delivery_note',
         'SI00325' => 'annex_vii',
         'SI00350' => 'export_checklist',
+        'SI00356' => 'customs_clearance',
         'SI00351' => 'cost_allocation_shipment',
         'SI00352' => 'product_allocation',
         'SI00354' => 'sales_forecast',

@@ -2,17 +2,17 @@
 
 namespace App\Http\Controllers\CNS;
 
+use App\Http\Controllers\CNS\Concerns\HandlesCompanyExcelImport;
 use App\Http\Controllers\Controller;
 use App\Support\DhtmlxGridPagination;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use PhpOffice\PhpSpreadsheet\IOFactory;
-use PhpOffice\PhpSpreadsheet\Spreadsheet;
-use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 class MasterCompanyController extends Controller
 {
+    use HandlesCompanyExcelImport;
     public function indexMasterCompany()
     {
         return view('cns.master.company');
@@ -392,44 +392,7 @@ class MasterCompanyController extends Controller
 
     public function downloadImportTemplate()
     {
-        $columns = $this->importColumns();
-        $sample = [
-            'PT Contoh Makmur',
-            'Yes',
-            'No',
-            'Budi Santoso',
-            '01.234.567.8-901.000',
-            'Jakarta',
-            'Jl. Sudirman No. 1',
-            'Jl. Sudirman No. 1, Jakarta',
-            '021-5550100',
-            '021-5550101',
-            '08123456789',
-            'budi@contoh.co.id',
-            'Andi',
-            '08129876543',
-            'TOP 30 Days',
-            'Sample row',
-            'BCA',
-            '1234567890',
-            'PT Contoh Makmur',
-            '',
-            '',
-            '',
-            '',
-        ];
-
-        $spreadsheet = new Spreadsheet();
-        $sheet = $spreadsheet->getActiveSheet();
-        $sheet->fromArray($columns, null, 'A1');
-        $sheet->fromArray($sample, null, 'A2');
-        $sheet->getStyle('A1:' . $sheet->getHighestColumn() . '1')->getFont()->setBold(true);
-
-        return response()->streamDownload(function () use ($spreadsheet) {
-            (new Xlsx($spreadsheet))->save('php://output');
-        }, 'master-company-import-template.xlsx', [
-            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        ]);
+        return $this->downloadSupplierTableTemplate('master-company-import-template.xlsx', 'Yes', 'No');
     }
 
     public function importMasterCompany(Request $request)

@@ -180,6 +180,9 @@
             border-radius: 50rem !important;
             letter-spacing: 0.02em;
         }
+        .swal-overlay {
+            z-index: 100000 !important;
+        }
     </style>
 </head>
 <body class="main-body app sidebar-mini ltr">
@@ -238,6 +241,142 @@
                 };
                 window.eXcell_cns_badge.prototype = new window.eXcell();
             }
+
+            (function () {
+                var DOC_ICON_MAP = {
+                    pdf: 'fas fa-file-pdf text-danger',
+                    jpg: 'fas fa-file-image text-success',
+                    jpeg: 'fas fa-file-image text-success',
+                    png: 'fas fa-file-image text-success',
+                    webp: 'fas fa-file-image text-success',
+                    gif: 'fas fa-file-image text-success',
+                    svg: 'fas fa-file-image text-success',
+                    doc: 'fas fa-file-word text-primary',
+                    docx: 'fas fa-file-word text-primary',
+                    xls: 'fas fa-file-excel text-success',
+                    xlsx: 'fas fa-file-excel text-success',
+                    csv: 'fas fa-file-excel text-success'
+                };
+
+                function parseDocValue(val) {
+                    var raw = String(val === null || val === undefined ? '' : val).trim();
+                    if (!raw || raw === '-' || raw === '&nbsp;' || raw === '\u00a0' || raw.toLowerCase() === 'tidak ada') {
+                        return null;
+                    }
+                    var parts = raw.split('^');
+                    var url = (parts[0] || '').trim();
+                    var title = parts.length > 1 ? (parts[1] || '').trim() : '';
+                    if (!url || url === '-' || url === '#' || url.toLowerCase() === 'tidak ada' || /^(javascript|vbscript|data):/i.test(url)) {
+                        return null;
+                    }
+                    if (!title) {
+                        var cleanForName = url.split('?')[0].split('#')[0];
+                        title = cleanForName.split('/').pop() || 'Dokumen';
+                    }
+                    return { raw: raw, url: url, title: title };
+                }
+
+                function extractDocExt(str) {
+                    var clean = String(str || '').split('?')[0].split('#')[0].trim();
+                    var base = clean.split('/').pop().split('\\').pop();
+                    var idx = base.lastIndexOf('.');
+                    if (idx <= 0 || idx === base.length - 1) {
+                        return '';
+                    }
+                    var ext = base.slice(idx + 1).toLowerCase();
+                    return /^[a-z0-9]{1,10}$/.test(ext) ? ext : '';
+                }
+
+                function resolveDocIconClass(url, title) {
+                    var titleExt = extractDocExt(title);
+                    if (titleExt && DOC_ICON_MAP[titleExt]) {
+                        return DOC_ICON_MAP[titleExt];
+                    }
+                    var urlExt = extractDocExt(url);
+                    if (urlExt && DOC_ICON_MAP[urlExt]) {
+                        return DOC_ICON_MAP[urlExt];
+                    }
+                    return 'fas fa-file-alt text-info';
+                }
+
+                function escapeAttr(str) {
+                    return String(str)
+                        .replace(/&/g, '&amp;')
+                        .replace(/</g, '&lt;')
+                        .replace(/>/g, '&gt;')
+                        .replace(/"/g, '&quot;')
+                        .replace(/'/g, '&#39;');
+                }
+
+                window.cnsDocIconButton = function (val) {
+                    var parsed = parseDocValue(val);
+                    if (!parsed) {
+                        return '-';
+                    }
+                    var iconClass = resolveDocIconClass(parsed.url, parsed.title);
+                    var safeUrl = escapeAttr(parsed.url);
+                    var safeTitle = escapeAttr(parsed.title);
+                    return '<button type="button" class="btn btn-sm btn-light border px-2 py-0" data-cns-doc-url="' + safeUrl + '" data-cns-doc-title="' + safeTitle + '" title="' + safeTitle + '" aria-label="' + safeTitle + '"><i class="' + iconClass + '"></i></button>';
+                };
+
+                if (!window._cnsDocPreviewBound) {
+                    window._cnsDocPreviewBound = true;
+                    document.addEventListener('click', function (e) {
+                        var btn = e.target && e.target.closest ? e.target.closest('button[data-cns-doc-url]') : null;
+                        if (!btn) {
+                            return;
+                        }
+                        e.preventDefault();
+                        e.stopPropagation();
+                        var url = btn.getAttribute('data-cns-doc-url') || '';
+                        var title = btn.getAttribute('data-cns-doc-title') || '';
+                        if (url && typeof window.cnsOpenDocPreview === 'function') {
+                            window.cnsOpenDocPreview(url, title);
+                        }
+                    });
+                }
+
+                if (typeof window.eXcell === 'function') {
+                    window.eXcell_cns_doc = function (cell) {
+                        if (cell) {
+                            this.cell = cell;
+                            this.grid = this.cell.parentNode.grid;
+                        }
+                        this.edit = function () {};
+                        this.isDisabled = function () { return true; };
+                        this.setValue = function (val) {
+                            var raw = String(val === null || val === undefined ? '' : val).trim();
+                            this.cell._cnsRawValue = raw;
+                            var parsed = parseDocValue(raw);
+                            if (!parsed) {
+                                this.setCValue('-', raw);
+                                return;
+                            }
+                            this.setCValue(window.cnsDocIconButton(raw), raw);
+                            var btn = this.cell.querySelector('button[data-cns-doc-url]');
+                            if (btn) {
+                                btn.addEventListener('click', function (e) {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    if (typeof window.cnsOpenDocPreview === 'function') {
+                                        window.cnsOpenDocPreview(parsed.url, parsed.title);
+                                    }
+                                });
+                                btn.addEventListener('dblclick', function (e) {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                });
+                            }
+                        };
+                        this.getValue = function () {
+                            return this.cell._cnsRawValue !== undefined
+                                ? this.cell._cnsRawValue
+                                : String(this.cell.textContent || this.cell.innerText || '').trim();
+                        };
+                    };
+                    window.eXcell_cns_doc.prototype = new window.eXcell();
+                }
+            })();
         </script>
 
         <div class="main-content app-content">

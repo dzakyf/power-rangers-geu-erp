@@ -122,43 +122,43 @@
 
                     <div class="col-md-4">
                         <label for="displaySupplier" class="form-label">Nama Supplier / Vendor</label>
-                        <input type="text" id="displaySupplier" class="form-control form-control-sm bg-light" readonly placeholder="Otomatis dari PO" />
+                        <input type="text" id="displaySupplier" class="text-black form-control form-control-sm bg-light" readonly placeholder="Otomatis dari PO" />
                     </div>
 
                     <div class="col-md-4">
                         <label for="receipt_date" class="form-label">Tanggal Penerimaan <span class="text-danger">*</span></label>
-                        <input type="date" name="receipt_date" id="receipt_date" class="form-control form-control-sm" value="{{ old('receipt_date', date('Y-m-d')) }}" required />
+                        <input type="date" name="receipt_date" id="receipt_date" class="text-black form-control form-control-sm" value="{{ old('receipt_date', date('Y-m-d')) }}" required />
                     </div>
 
                     <div class="col-md-4">
                         <label for="delivery_note_no" class="form-label">No. Surat Jalan Vendor</label>
-                        <input type="text" name="delivery_note_no" id="delivery_note_no" class="form-control form-control-sm" placeholder="Contoh: SJ/2026/XI/0012" value="{{ old('delivery_note_no') }}" />
+                        <input type="text" name="delivery_note_no" id="delivery_note_no" class="text-black form-control form-control-sm" placeholder="Contoh: SJ/2026/XI/0012" value="{{ old('delivery_note_no') }}" />
                     </div>
 
                     <div class="col-md-4">
                         <label for="driver_name" class="form-label">Nama Supir / Kurir</label>
-                        <input type="text" name="driver_name" id="driver_name" class="form-control form-control-sm" placeholder="Nama pengantar barang" value="{{ old('driver_name') }}" />
+                        <input type="text" name="driver_name" id="driver_name" class="text-black form-control form-control-sm" placeholder="Nama pengantar barang" value="{{ old('driver_name') }}" />
                     </div>
 
                     <div class="col-md-4">
                         <label for="vehicle_no" class="form-label">Nomor Polisi Truk / Kendaraan</label>
-                        <input type="text" name="vehicle_no" id="vehicle_no" class="form-control form-control-sm" placeholder="Contoh: B 9123 XYZ" value="{{ old('vehicle_no') }}" />
+                        <input type="text" name="vehicle_no" id="vehicle_no" class="text-black form-control form-control-sm" placeholder="Contoh: B 9123 XYZ" value="{{ old('vehicle_no') }}" />
                     </div>
 
                     <div class="col-md-4">
                         <label for="received_by" class="form-label">Petugas Penerima Gudang</label>
-                        <input type="text" name="received_by" id="received_by" class="form-control form-control-sm" value="{{ old('received_by', auth()->user()->Name ?? auth()->user()->username ?? 'Petugas Gudang') }}" />
+                        <input type="text" name="received_by" id="received_by" class="text-black form-control form-control-sm" value="{{ old('received_by', auth()->user()->Name ?? auth()->user()->username ?? 'Petugas Gudang') }}" />
                     </div>
 
                     <div class="col-md-4">
                         <label for="attachment" class="form-label">Upload Surat Jalan / Foto Bukti Fisik</label>
-                        <input type="file" name="attachment" id="attachment" class="form-control form-control-sm" accept=".jpg,.jpeg,.png,.pdf" />
+                        <input type="file" name="attachment" id="attachment" class="text-black form-control form-control-sm" accept=".jpg,.jpeg,.png,.pdf" />
                         <small class="form-text text-muted">Format: JPG, PNG, atau PDF (maks. 10MB).</small>
                     </div>
 
                     <div class="col-md-4">
                         <label for="notes" class="form-label">Catatan Pengiriman</label>
-                        <input type="text" name="notes" id="notes" class="form-control form-control-sm" placeholder="Catatan kondisi fisik, segel, dll." value="{{ old('notes') }}" />
+                        <input type="text" name="notes" id="notes" class="text-black form-control form-control-sm" placeholder="Catatan kondisi fisik, segel, dll." value="{{ old('notes') }}" />
                     </div>
                 </div>
             </div>
@@ -257,31 +257,57 @@
         var $subrow = $('#itemsTableBody .serial-number-subrow[data-item-idx="' + idx + '"]');
         if ($subrow.length === 0) return;
 
-        var existing = Array.isArray(presetValues) ? presetValues : [];
-        if (!Array.isArray(presetValues)) {
-            $subrow.find('.sn-box-input').each(function() {
-                existing.push($(this).val());
-            });
-        }
+        var $grid = $subrow.find('.sn-boxes-grid');
 
         if (qtyInt <= 0) {
             $subrow.hide();
-            $subrow.find('.sn-boxes-grid').empty();
+            $grid.find('.sn-photo-preview').each(function() {
+                var oldBlob = $(this).data('blobUrl');
+                if (oldBlob) {
+                    URL.revokeObjectURL(oldBlob);
+                }
+            });
+            $grid.empty();
             syncAllSerialNumbers();
             return;
         }
 
-        var html = '';
-        for (var i = 0; i < qtyInt; i++) {
-            var val = existing[i] != null ? existing[i] : '';
-            html += '<div class="col-6 col-md-4 col-lg-3">';
-            html += '<div class="input-group input-group-sm">';
-            html += '<span class="input-group-text text-muted" style="min-width:38px;justify-content:center;">#' + (i + 1) + '</span>';
-            html += '<input type="text" class="form-control form-control-sm sn-box-input" data-item-idx="' + idx + '" data-sn-pos="' + i + '" value="' + escapeHtml(val) + '" placeholder="Scan / ketik SN #' + (i + 1) + '" autocomplete="off" />';
-            html += '</div>';
-            html += '</div>';
+        var hasPreset = Array.isArray(presetValues);
+        var existingCount = $grid.children('.sn-unit-box').length;
+
+        if (existingCount > qtyInt) {
+            $grid.children('.sn-unit-box').slice(qtyInt).each(function() {
+                var oldBlob = $(this).find('.sn-photo-preview').data('blobUrl');
+                if (oldBlob) {
+                    URL.revokeObjectURL(oldBlob);
+                }
+            }).remove();
         }
-        $subrow.find('.sn-boxes-grid').html(html);
+
+        if (hasPreset) {
+            $grid.children('.sn-unit-box').each(function(pos) {
+                if (presetValues[pos] != null) {
+                    $(this).find('.sn-box-input').val(presetValues[pos]);
+                }
+            });
+        }
+
+        for (var i = existingCount; i < qtyInt; i++) {
+            var val = hasPreset && presetValues[i] != null ? presetValues[i] : '';
+            var boxHtml = '';
+            boxHtml += '<div class="col-6 col-md-4 col-lg-3 sn-unit-box" data-sn-pos="' + i + '">';
+            boxHtml += '<div class="border rounded bg-white p-2 h-100">';
+            boxHtml += '<div class="input-group input-group-sm">';
+            boxHtml += '<span class="input-group-text text-muted" style="min-width:38px;justify-content:center;">#' + (i + 1) + '</span>';
+            boxHtml += '<input type="text" class="text-black form-control form-control-sm sn-box-input" data-item-idx="' + idx + '" data-sn-pos="' + i + '" value="' + escapeHtml(val) + '" placeholder="Scan / ketik SN #' + (i + 1) + '" autocomplete="off" />';
+            boxHtml += '</div>';
+            boxHtml += '<input type="file" name="items[' + idx + '][serial_photos][' + i + ']" class="text-black form-control form-control-sm sn-photo-input mt-1" accept=".jpg,.jpeg,.png,image/jpeg,image/png" data-item-idx="' + idx + '" data-sn-pos="' + i + '" />';
+            boxHtml += '<img class="sn-photo-preview mt-1 rounded border" style="display:none;max-height:48px;max-width:100%;object-fit:cover;cursor:pointer;" alt="Preview Foto Flexibag #' + (i + 1) + '" />';
+            boxHtml += '</div>';
+            boxHtml += '</div>';
+            $grid.append(boxHtml);
+        }
+
         $subrow.show();
         syncAllSerialNumbers();
     }
@@ -397,7 +423,7 @@
                         rowsHtml += '<input type="hidden" name="items[' + idx + '][category]" value="' + category + '" />';
                         rowsHtml += '<input type="hidden" name="items[' + idx + '][unit]" value="' + unit + '" />';
                         rowsHtml += '<input type="hidden" name="items[' + idx + '][qty_ordered]" value="' + escapeHtml(item.qty_ordered) + '" />';
-                        rowsHtml += '<input type="text" inputmode="decimal" data-max="' + escapeHtml(maxQty) + '" data-remain="' + escapeHtml(item.qty_remain > 0 ? item.qty_remain : 0) + '" name="items[' + idx + '][qty_received]" value="' + escapeHtml(cnsFormatNumber(defaultQty, 2)) + '" class="form-control form-control-sm text-end fw-bold qty-received-input cns-decimal" required />';
+                        rowsHtml += '<input type="text" inputmode="decimal" data-max="' + escapeHtml(maxQty) + '" data-remain="' + escapeHtml(item.qty_remain > 0 ? item.qty_remain : 0) + '" name="items[' + idx + '][qty_received]" value="' + escapeHtml(cnsFormatNumber(defaultQty, 2)) + '" class="text-black form-control form-control-sm text-end fw-bold qty-received-input cns-decimal" required />';
                         rowsHtml += '</td>';
                         if (hasFlexibag) {
                             rowsHtml += '<td class="col-serial-number text-center">';
@@ -410,7 +436,7 @@
                             rowsHtml += '</td>';
                         }
                         rowsHtml += '<td>';
-                        rowsHtml += '<input type="text" name="items[' + idx + '][notes]" value="' + escapeHtml(oldItem && oldItem.notes ? oldItem.notes : '') + '" class="form-control form-control-sm" placeholder="Kondisi barang / keterangan" />';
+                        rowsHtml += '<input type="text" name="items[' + idx + '][notes]" value="' + escapeHtml(oldItem && oldItem.notes ? oldItem.notes : '') + '" class="text-black form-control form-control-sm" placeholder="Kondisi barang / keterangan" />';
                         rowsHtml += '</td>';
                         rowsHtml += '</tr>';
 
@@ -419,10 +445,10 @@
                             rowsHtml += '<tr class="serial-number-subrow bg-light" data-item-idx="' + idx + '" style="display:none;">';
                             rowsHtml += '<td colspan="' + colSpan + '" class="p-2 ps-4">';
                             rowsHtml += '<div class="d-flex justify-content-between align-items-center mb-2">';
-                            rowsHtml += '<small class="fw-semibold text-dark"><i class="fa fa-barcode me-1"></i> Serial Number ' + itemName + ' <span class="text-muted fw-normal">(Tekan Enter setelah scan untuk lanjut, atau paste daftar dari Excel/WA)</span></small>';
+                            rowsHtml += '<small class="fw-semibold text-dark"><i class="fa fa-barcode me-1"></i> Serial Number &amp; Foto Unit ' + itemName + ' <span class="text-muted fw-normal">(Wajib 1 SN &amp; 1 foto JPG/PNG maks 10MB per unit; tekan Enter setelah scan untuk lanjut)</span></small>';
                             rowsHtml += '<small class="text-danger fw-semibold sn-dup-warning" style="display:none;"><i class="fa fa-exclamation-triangle me-1"></i> Ada Serial Number duplikat!</small>';
                             rowsHtml += '</div>';
-                            rowsHtml += '<div class="row g-2 sn-boxes-grid" style="max-height:240px;overflow-y:auto;"></div>';
+                            rowsHtml += '<div class="row g-2 sn-boxes-grid" style="max-height:360px;overflow-y:auto;"></div>';
                             rowsHtml += '</td>';
                             rowsHtml += '</tr>';
                         }
@@ -509,6 +535,64 @@
             syncAllSerialNumbers();
         });
 
+        $('#itemsTableBody').on('change', '.sn-photo-input', function() {
+            var input = this;
+            var $input = $(input);
+            var $preview = $input.closest('.sn-unit-box').find('.sn-photo-preview');
+            var file = input.files && input.files[0] ? input.files[0] : null;
+
+            var prevBlob = $preview.data('blobUrl');
+            if (prevBlob) {
+                URL.revokeObjectURL(prevBlob);
+                $preview.removeData('blobUrl');
+            }
+
+            if (!file) {
+                $input.removeClass('is-invalid');
+                $preview.hide().attr('src', '');
+                return;
+            }
+
+            var extValid = /\.(jpe?g|png)$/i.test(file.name || '');
+            var mimeValid = !file.type || /^image\/(jpe?g|pjpeg|png|x-png)$/i.test(file.type);
+            if (!extValid || !mimeValid) {
+                input.value = '';
+                $input.addClass('is-invalid');
+                $preview.hide().attr('src', '');
+                swal('Format Tidak Valid', 'Foto unit Flexibag harus berformat JPG, JPEG, atau PNG.', 'warning');
+                return;
+            }
+
+            if (file.size > 10 * 1024 * 1024) {
+                input.value = '';
+                $input.addClass('is-invalid');
+                $preview.hide().attr('src', '');
+                swal('Ukuran File Terlalu Besar', 'Ukuran foto unit Flexibag maksimal 10MB.', 'warning');
+                return;
+            }
+
+            $input.removeClass('is-invalid');
+            if (window.URL && typeof URL.createObjectURL === 'function') {
+                var blobUrl = URL.createObjectURL(file);
+                $preview.data('blobUrl', blobUrl).attr('src', blobUrl).show();
+            } else if (window.FileReader) {
+                var reader = new FileReader();
+                reader.onload = function(evt) {
+                    $preview.attr('src', evt.target.result).show();
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        $('#itemsTableBody').on('click', '.sn-photo-preview', function() {
+            var $box = $(this).closest('.sn-unit-box');
+            var input = $box.find('.sn-photo-input')[0];
+            var pos = parseInt($box.attr('data-sn-pos'), 10);
+            if (input && input.files && input.files[0] && typeof window.cnsOpenDocPreview === 'function') {
+                window.cnsOpenDocPreview(input.files[0], 'Foto Flexibag #' + (pos + 1));
+            }
+        });
+
         $('#formCreateGR').on('submit', function(e) {
             if (isLoadingPoItems) {
                 e.preventDefault();
@@ -583,6 +667,40 @@
                     snErrorMsg = 'Terdapat Serial Number duplikat di form. Periksa kotak berwarna merah.';
                     snErrorFocus = $dupBox;
                 }
+            }
+
+            if (!snErrorMsg) {
+                $('#itemsTableBody tr.item-main-row[data-flexibag="1"]').each(function() {
+                    var $row = $(this);
+                    var idx = $row.attr('data-item-idx');
+                    var rawQty = cnsParseNumber($row.find('.qty-received-input').val(), 0);
+                    if (rawQty <= 0) {
+                        return true;
+                    }
+
+                    var qtyInt = Math.round(rawQty);
+                    var $photoInputs = $('#itemsTableBody .sn-photo-input[data-item-idx="' + idx + '"]');
+                    var emptyPhoto = null;
+                    var missingPos = null;
+
+                    $photoInputs.each(function(pIdx) {
+                        if (!this.files || this.files.length === 0) {
+                            if (!emptyPhoto) {
+                                emptyPhoto = $(this);
+                                missingPos = pIdx + 1;
+                            }
+                            $(this).addClass('is-invalid');
+                        } else {
+                            $(this).removeClass('is-invalid');
+                        }
+                    });
+
+                    if ($photoInputs.length !== qtyInt || emptyPhoto) {
+                        snErrorMsg = 'Foto unit Flexibag #' + (missingPos || 1) + ' wajib diunggah (1 foto JPG/PNG maks 10MB per unit).';
+                        snErrorFocus = emptyPhoto || $photoInputs.first();
+                        return false;
+                    }
+                });
             }
 
             if (snErrorMsg) {

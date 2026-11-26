@@ -15,6 +15,7 @@
 		<div class="d-flex align-items-center flex-wrap" style="gap: 0.5rem;">
 			<button type="button" class="btn btn-sm btn-primary" id="NewTankBtn" onclick="NewTank();">New Tangki</button>
 			<button type="button" class="btn btn-sm btn-info" id="DetailTankBtn" onclick="DetailTank();">Detail Tangki</button>
+			<button type="button" class="btn btn-sm btn-info" id="ImportTankBtn" data-bs-toggle="modal" data-bs-target="#ImportTankModal" data-toggle="modal" data-target="#ImportTankModal" onclick="$('#ImportTankModal').modal('show');">Import Excel</button>
 			<button type="button" class="btn btn-sm btn-success" id="ExportTank" onclick="MasterTank.toExcel('./export/generate.php');">Excel</button>
 			<button type="button" class="btn btn-sm btn-outline-secondary" onclick="refreshdata();">Refresh</button>
 		</div>
@@ -23,15 +24,15 @@
 		<div class="cns-filter-bar">
 			<!-- <div>
 				<label class="d-block mb-1"><small>Dari Tanggal</small></label>
-				<input type="date" id="filterStartDate" class="form-control form-control-sm" style="width:140px;" />
+				<input type="date" id="filterStartDate" class="text-black form-control form-control-sm" style="width:140px;" />
 			</div>
 			<div>
 				<label class="d-block mb-1"><small>Sampai Tanggal</small></label>
-				<input type="date" id="filterEndDate" class="form-control form-control-sm" style="width:140px;" />
+				<input type="date" id="filterEndDate" class="text-black form-control form-control-sm" style="width:140px;" />
 			</div>
 			<div>
 				<label class="d-block mb-1"><small>Status</small></label>
-				<select id="filterStatus" class="form-control form-control-sm" style="width:140px;" onchange="refreshdata()">
+				<select id="filterStatus" class="text-black form-control form-control-sm" style="width:140px;" onchange="refreshdata()">
 					<option value="">Semua Status</option>
 					<option value="ACTIVE" selected>ACTIVE</option>
 					<option value="INACTIVE">INACTIVE</option>
@@ -39,7 +40,7 @@
 			</div> -->
 			<div>
 				<label for="filterTankName" class="d-block mb-1"><small>Nama Tangki</small></label>
-				<input type="text" id="filterTankName" class="form-control form-control-sm" style="width:170px;" placeholder="Semua Tangki" onkeyup="if(event.key==='Enter') refreshdata()" />
+				<input type="text" id="filterTankName" class="text-black form-control form-control-sm" style="width:170px;" placeholder="Semua Tangki" onkeyup="if(event.key==='Enter') refreshdata()" />
 			</div>
 			<div>
 				<button type="button" class="btn btn-sm btn-primary" onclick="refreshdata()">Filter</button>
@@ -52,6 +53,15 @@
 		</div>
 	</div>
 </div>
+
+@include('cns.master.partials.import-modal', [
+	'modalId' => 'ImportTankModal',
+	'title' => 'Import Master Tangki UCO (Excel)',
+	'templateUrl' => url('cns-master-tank-import-template'),
+	'importUrl' => url('cns-master-tank-import'),
+	'itemLabel' => 'tangki',
+	'hint' => 'Wajib isi <code>name</code> dan <code>capacity</code> (>= 0). <code>status</code>: <code>ACTIVE</code> atau <code>INACTIVE</code> (default <code>ACTIVE</code>). Nama tangki yang sudah ada akan dilewati.',
+])
 
 <div id="MasterTankDet"></div>
 

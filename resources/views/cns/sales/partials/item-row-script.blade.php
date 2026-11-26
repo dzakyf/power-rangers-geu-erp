@@ -33,7 +33,7 @@
         optionsHtml += `<option value="${escapeHtml(selectedDesc)}" data-id="" data-price="" data-unit="" selected>${escapeHtml(selectedDesc)}</option>`;
       }
 
-      return `<select class="form-control form-control-sm desc-select" id="description${idx}" style="width:100%;">${optionsHtml}</select>
+      return `<select class="text-black form-control form-control-sm desc-select" id="description${idx}" style="width:100%;">${optionsHtml}</select>
               <input type="hidden" id="product_code${idx}" name="product_code${idx}" value="">`;
     }
 
@@ -50,9 +50,9 @@
       <td class="num-col text-center row-num">${tbody.rows.length + 1}</td>
       <td class="desc-col">${buildKemasanSelectHtml(idx, desc)}</td>
       <td class="stock-col text-center align-middle" style="white-space:nowrap;"><span id="stock_info_${idx}" style="color: #000; font-size: 15px; font-weight: 700;">-</span></td>
-      <td class="qty-col"><input type="text" inputmode="decimal" id="qty${idx}" class="form-control form-control-sm text-center qty-inp cns-decimal" value="${cnsFormatNumber(qtyNum, 2)}" oninput="validateRowQty(${idx}); recalc();" onchange="validateRowQty(${idx}); recalc();"/></td>
-      <td class="unit-col"><input type="text" id="item_unit${idx}" class="form-control form-control-sm text-center" value="${escapeHtml(unit)}" placeholder="Unit"/></td>
-      <td class="price-col"><input type="text" inputmode="decimal" id="unit${idx}" class="form-control form-control-sm text-right price-inp cns-decimal" value="${cnsFormatNumber(priceNum, 2)}" onchange="recalc()" placeholder="0.00"/></td>
+      <td class="qty-col"><input type="text" inputmode="decimal" id="qty${idx}" class="text-black form-control form-control-sm text-center qty-inp cns-decimal" value="${cnsFormatNumber(qtyNum, 2)}" oninput="validateRowQty(${idx}); recalc();" onchange="validateRowQty(${idx}); recalc();"/></td>
+      <td class="unit-col"><input type="text" id="item_unit${idx}" class="text-black form-control form-control-sm text-center" value="${escapeHtml(unit)}" placeholder="Unit"/></td>
+      <td class="price-col"><input type="text" inputmode="decimal" id="unit${idx}" class="text-black form-control form-control-sm text-right price-inp cns-decimal" value="${cnsFormatNumber(priceNum, 2)}" onchange="recalc()" placeholder="0.00"/></td>
       <td class="total-col text-right total-cell" style="font-weight:600;">${fmt(total)}</td>
       <td class="no-print text-center"><button class="btn btn-danger btn-remove-row" onclick="removeRow('row_${idx}')">X</button></td>
     `;

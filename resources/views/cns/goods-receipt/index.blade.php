@@ -28,15 +28,15 @@
         <div class="cns-filter-bar">
             <div>
                 <label class="d-block mb-1"><small>Dari Tanggal</small></label>
-                <input type="date" id="filterStartDate" class="form-control form-control-sm" style="width:145px;" />
+                <input type="date" id="filterStartDate" class="text-black form-control form-control-sm" style="width:145px;" />
             </div>
             <div>
                 <label class="d-block mb-1"><small>Sampai Tanggal</small></label>
-                <input type="date" id="filterEndDate" class="form-control form-control-sm" style="width:145px;" />
+                <input type="date" id="filterEndDate" class="text-black form-control form-control-sm" style="width:145px;" />
             </div>
             <div>
                 <label class="d-block mb-1"><small>Status</small></label>
-                <select id="filterStatus" class="form-control form-control-sm" style="width:130px;">
+                <select id="filterStatus" class="text-black form-control form-control-sm" style="width:130px;">
                     <option value="">Semua Status</option>
                     <option value="DRAFT">DRAFT</option>
                     <option value="APPROVED">APPROVED</option>

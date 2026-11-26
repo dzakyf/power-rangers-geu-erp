@@ -23,6 +23,7 @@
             <button type="button" class="btn btn-sm btn-primary" onclick="openCreateModal()">Tambah Kemasan</button>
             <button type="button" class="btn btn-sm btn-info" onclick="openEditModal()">Edit Kemasan</button>
             <button type="button" class="btn btn-sm btn-danger" onclick="submitDelete()">Hapus Kemasan</button>
+            <button type="button" class="btn btn-sm btn-info" id="ImportKemasanBtn" data-bs-toggle="modal" data-bs-target="#ImportKemasanModal" data-toggle="modal" data-target="#ImportKemasanModal" onclick="$('#ImportKemasanModal').modal('show');">Import Excel</button>
             <button type="button" class="btn btn-sm btn-success" onclick="MasterKemasanGrid.toExcel('./export/generate.php');">Excel</button>
             <button type="button" class="btn btn-sm btn-outline-secondary" onclick="refreshdata()">Refresh</button>
         </div>
@@ -31,7 +32,7 @@
         <div class="cns-filter-bar">
             <div>
                 <label for="filterKemasanName" class="d-block mb-1"><small>Nama Kemasan</small></label>
-                <input type="text" id="filterKemasanName" class="form-control form-control-sm" style="width:200px;" placeholder="Semua Kemasan" onkeyup="if(event.key==='Enter') refreshdata()" />
+                <input type="text" id="filterKemasanName" class="text-black form-control form-control-sm" style="width:200px;" placeholder="Semua Kemasan" onkeyup="if(event.key==='Enter') refreshdata()" />
             </div>
             <div>
                 <button type="button" class="btn btn-sm btn-primary" onclick="refreshdata()">Filter</button>
@@ -44,6 +45,15 @@
         </div>
     </div>
 </div>
+
+@include('cns.master.partials.import-modal', [
+    'modalId' => 'ImportKemasanModal',
+    'title' => 'Import Master Kemasan (Excel)',
+    'templateUrl' => url('cns-master-kemasan-import-template'),
+    'importUrl' => url('cns-master-kemasan-import'),
+    'itemLabel' => 'kemasan',
+    'hint' => 'Wajib isi <code>Name</code>, <code>product_type</code> (<code>Kemasan</code>/<code>Export</code>), dan <code>Volume</code> (untuk tipe <code>Kemasan</code>).',
+])
 
 <!-- Modal Tambah / Edit Master Kemasan -->
 <div class="modal fade" id="modalKemasan" tabindex="-1" role="dialog" aria-hidden="true">
@@ -58,18 +68,18 @@
                 <div class="modal-body">
                     <div class="form-group">
                         <label class="font-weight-bold">Nama Kemasan <span class="text-danger">*</span></label>
-                        <input type="text" name="Name" id="inputKemasanName" class="form-control form-control-sm" maxlength="150" placeholder="Contoh: Flexibag 24KL / Drum 200L" required />
+                        <input type="text" name="Name" id="inputKemasanName" class="text-black form-control form-control-sm" maxlength="150" placeholder="Contoh: Flexibag 24KL / Drum 200L" required />
                     </div>
                     <div class="form-group">
                         <label class="font-weight-bold">Product Type <span class="text-danger">*</span></label>
-                        <select name="product_type" id="inputKemasanProductType" class="form-control form-control-sm" onchange="toggleMaxStockField()" required>
+                        <select name="product_type" id="inputKemasanProductType" class="text-black form-control form-control-sm" onchange="toggleMaxStockField()" required>
                             <option value="Kemasan">Kemasan</option>
                             <option value="Product Specification">Product Specification</option>
                         </select>
                     </div>
                     <div class="form-group">
                         <label class="font-weight-bold">Volume (Liter) <span class="text-danger" id="reqKemasanVolume">*</span></label>
-                        <input type="text" inputmode="decimal" name="Volume" id="inputKemasanVolume" class="form-control form-control-sm text-right cns-decimal" placeholder="Contoh: 200.00" required />
+                        <input type="text" inputmode="decimal" name="Volume" id="inputKemasanVolume" class="text-black form-control form-control-sm text-right cns-decimal" placeholder="Contoh: 200.00" required />
                     </div>
                     <div class="form-group form-check">
                         <input type="checkbox" class="form-check-input" name="Is_Ampas" id="inputKemasanIsAmpas" value="1" onchange="toggleMaxStockField()" />
@@ -77,19 +87,19 @@
                     </div>
                     <div class="form-group" id="groupKemasanMaxStock">
                         <label class="font-weight-bold">Max Stock <span class="text-danger">*</span></label>
-                        <input type="text" inputmode="decimal" name="Max_Stock" id="inputKemasanMaxStock" class="form-control form-control-sm text-right cns-decimal" placeholder="Contoh: 100.00" required />
+                        <input type="text" inputmode="decimal" name="Max_Stock" id="inputKemasanMaxStock" class="text-black form-control form-control-sm text-right cns-decimal" placeholder="Contoh: 100.00" required />
                     </div>
                     <div class="form-group">
                         <label class="font-weight-bold">Unit</label>
-                        <input type="text" name="Unit" id="inputKemasanUnit" class="form-control form-control-sm" maxlength="50" placeholder="Contoh: Pcs / Kg / Liter" />
+                        <input type="text" name="Unit" id="inputKemasanUnit" class="text-black form-control form-control-sm" maxlength="50" placeholder="Contoh: Pcs / Kg / Liter" />
                     </div>
                     <div class="form-group">
                         <label class="font-weight-bold">Price (IDR)</label>
-                        <input type="text" inputmode="decimal" name="Price" id="inputKemasanPrice" class="form-control form-control-sm text-right cns-decimal" placeholder="Contoh: 50,000.00" value="0.00" />
+                        <input type="text" inputmode="decimal" name="Price" id="inputKemasanPrice" class="text-black form-control form-control-sm text-right cns-decimal" placeholder="Contoh: 50,000.00" value="0.00" />
                     </div>
                     <div class="form-group">
                         <label class="font-weight-bold">Serial Number Tersedia</label>
-                        <textarea name="serial_numbers" id="inputKemasanSerialNumbers" class="form-control form-control-sm" rows="2" placeholder="Pisahkan dengan koma atau baris baru (opsional)"></textarea>
+                        <textarea name="serial_numbers" id="inputKemasanSerialNumbers" class="text-black form-control form-control-sm" rows="2" placeholder="Pisahkan dengan koma atau baris baru (opsional)"></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
