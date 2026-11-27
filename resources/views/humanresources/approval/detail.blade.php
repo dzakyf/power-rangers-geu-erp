@@ -197,6 +197,241 @@
             </div>
         @endif
 
+
+        {{{-- Section 2d: Rincian Produk Berdasarkan PR --}}
+        @if(!empty($prItems) && count($prItems) > 0)
+            @php
+                $prHeader = $prContext ?? null;
+                $prNoLabel = is_object($prHeader) ? ($prHeader->PR_No ?? $task->Request_No) : ($prHeader['PR_No'] ?? $task->Request_No);
+                $prTotal = 0;
+            @endphp
+            <div class="mt-4 border rounded p-3 bg-white">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 border-bottom pb-2 mb-3">
+                    <h6 class="fw-bold text-primary mb-0">
+                        <i class="fe fe-shopping-cart me-2"></i>Rincian Produk Berdasarkan PR — {{ $prNoLabel }}
+                    </h6>
+                    <span class="badge bg-light text-secondary border">{{ count($prItems) }} Item</span>
+                </div>
+
+                @if(!empty($prHeader))
+                    @php
+                        $prDept = is_object($prHeader) ? ($prHeader->Department ?? '-') : ($prHeader['Department'] ?? '-');
+                        $prPic  = is_object($prHeader) ? ($prHeader->PIC ?? '-') : ($prHeader['PIC'] ?? '-');
+                        $prUrg  = is_object($prHeader) ? ($prHeader->Urgency ?? '-') : ($prHeader['Urgency'] ?? '-');
+                        $prNote = is_object($prHeader) ? ($prHeader->Note ?? '-') : ($prHeader['Note'] ?? '-');
+                    @endphp
+                    <div class="row g-2 small mb-3">
+                        <div class="col-md-4"><strong>Departemen PR:</strong> {{ $prDept ?: '-' }}</div>
+                        <div class="col-md-4"><strong>PIC / Pemohon:</strong> {{ $prPic ?: '-' }}</div>
+                        <div class="col-md-4"><strong>Urgency:</strong> {{ $prUrg ?: '-' }}</div>
+                        @if(!empty($prNote) && $prNote !== '-')
+                            <div class="col-12"><strong>Catatan PR:</strong> {{ $prNote }}</div>
+                        @endif
+                    </div>
+                @endif
+
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered table-hover align-middle mb-0" style="font-size: 0.82rem;">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="text-center" style="width: 45px;">No</th>
+                                <th style="width: 120px;">Kode Produk</th>
+                                <th>Nama / Spesifikasi Produk</th>
+                                <th class="text-end" style="width: 55px;">Qty</th>
+                                <th style="width: 75px;">Satuan</th>
+                                <th class="text-end text-nowrap" style="width: 150px;">Harga Satuan</th>
+                                <th class="text-end text-nowrap" style="width: 155px;">Subtotal</th>
+                                <th class="text-center text-nowrap" style="width: 130px;">Lampiran</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($prItems as $idx => $it)
+                                @php
+                                    $row = (array) $it;
+                                    $qty = (float) ($row['Qty'] ?? $row['qty'] ?? 0);
+                                    $price = (float) (
+                                        $row['Default_Price']
+                                        ?? $row['Price']
+                                        ?? $row['Unit_Price']
+                                        ?? $row['Master_UnitPrice']
+                                        ?? $row['Master_Price']
+                                        ?? 0
+                                    );
+                                    $subtotal = isset($row['Subtotal']) && is_numeric($row['Subtotal'])
+                                        ? (float) $row['Subtotal']
+                                        : (isset($row['Total']) && is_numeric($row['Total']) ? (float) $row['Total'] : ($qty * $price));
+                                    $prTotal += $subtotal;
+
+                                    $code = $row['Product_Code'] ?? $row['Item_Code'] ?? '-';
+                                    $name = $row['Product_Desc'] ?? $row['Master_Description'] ?? $row['Description'] ?? '-';
+                                    $spec = $row['Specification'] ?? $row['Master_Specification'] ?? '';
+                                    $brand = $row['Product_Brand'] ?? '';
+                                    $cat = $row['Category'] ?? '';
+                                    $stock = $row['Qty_Stock'] ?? null;
+                                    $unit = $row['Unit'] ?? $row['Master_Unit_Name'] ?? $row['UOM'] ?? 'PCS';
+
+                                    $metaParts = array_filter([
+                                        $brand ? 'Brand: ' . $brand : '',
+                                        $cat ? 'Kategori: ' . $cat : '',
+                                        ($stock !== null && $stock !== '') ? 'Stok: ' . $stock : '',
+                                    ]);
+
+                                    // Parse lampiran per item PR (kolom Attachment di purchase_request_dtl)
+                                    $rawAtt = trim((string) ($row['Attachment'] ?? ''));
+                                    $itemFiles = [];
+                                    if ($rawAtt !== '') {
+                                        $decodedJson = json_decode($rawAtt, true);
+                                        $parts = is_array($decodedJson) ? $decodedJson : explode(',', $rawAtt);
+
+                                        foreach ($parts as $part) {
+                                            $rawVal = is_array($part)
+                                                ? trim((string) ($part['url'] ?? $part['path'] ?? $part['file'] ?? ''))
+                                                : trim((string) $part, " \t\n\r\0\x0B\"'[]");
+
+                                            if ($rawVal === '') {
+                                                continue;
+                                            }
+
+                                            if (preg_match('/^https?:\/\//i', $rawVal)) {
+                                                $fileUrl = $rawVal;
+                                            } else {
+                                                $normalized = ltrim(str_replace('\\', '/', $rawVal), '/');
+                                                if (str_starts_with($normalized, 'public/')) {
+                                                    $normalized = substr($normalized, 7);
+                                                }
+                                                $fileUrl = url($normalized);
+                                            }
+
+                                            $fileName = basename(parse_url($fileUrl, PHP_URL_PATH) ?: $rawVal);
+                                            $ext = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+
+                                            $itemFiles[] = [
+                                                'file_name'  => $fileName ?: $rawVal,
+                                                'ext'        => $ext,
+                                                'url'        => $fileUrl,
+                                                'is_preview' => in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'pdf'], true),
+                                            ];
+                                        }
+                                    }
+                                @endphp
+                                <tr>
+                                    <td class="text-center">{{ $idx + 1 }}</td>
+                                    <td><code class="fw-semibold">{{ $code }}</code></td>
+                                    <td>
+                                        <div class="fw-semibold text-dark">{{ $name }}</div>
+                                        @if($spec)
+                                            <div class="text-muted small">Spec: {{ $spec }}</div>
+                                        @endif
+                                        @if(!empty($metaParts))
+                                            <div class="text-secondary" style="font-size: 0.74rem;">{{ implode(' • ', $metaParts) }}</div>
+                                        @endif
+                                    </td>
+                                    <td class="text-end">{{ rtrim(rtrim(number_format($qty, 2, ',', '.'), '0'), ',') }}</td>
+                                    <td>{{ $unit }}</td>
+                                    <td class="text-end text-nowrap">Rp {{ number_format($price, 2, ',', '.') }}</td>
+                                    <td class="text-end text-nowrap fw-semibold">Rp {{ number_format($subtotal, 2, ',', '.') }}</td>
+                                    <td class="text-center">
+                                        @if(!empty($itemFiles))
+                                            <div class="d-flex flex-column align-items-center gap-1">
+                                                @foreach($itemFiles as $fIdx => $f)
+                                                    <div class="d-inline-flex align-items-center gap-1" title="{{ $f['file_name'] }}">
+                                                        <button type="button"
+                                                                class="btn btn-sm btn-outline-primary py-0 px-2"
+                                                                title="Lihat Lampiran: {{ $f['file_name'] }}"
+                                                                onclick="ApprovalOpenAttachmentPreview(@json($f['url']), @json($f['file_name']), @json($f['ext']), {{ $f['is_preview'] ? 'true' : 'false' }});">
+                                                            <i class="fe fe-eye"></i>
+                                                        </button>
+                                                        <span class="text-truncate d-inline-block text-start small" style="max-width: 78px;">
+                                                            {{ $f['file_name'] }}
+                                                        </span>
+                                                    </div>
+                                                @endforeach
+                                            </div>
+                                        @else
+                                            <span class="text-muted">-</span>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                        <tfoot class="table-light">
+                            <tr>
+                                <th colspan="6" class="text-end fw-bold">Total Estimasi PR</th>
+                                <th class="text-end text-nowrap fw-bold text-success">Rp {{ number_format($prTotal, 2, ',', '.') }}</th>
+                                <th></th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        @endif
+        
+
+        {{-- Section 2c: Detail & Dokumen BAST Asset Handover / Return --}}
+        @if(!empty($assetHandoverContext) && !empty($assetHandoverContext['handover']))
+            @php
+                $ahCtx = $assetHandoverContext['handover'];
+                $ahDocType = $assetHandoverContext['doc_type'];
+                $ahItems = $assetHandoverContext['items'] ?? collect();
+                $ahBastDocs = $assetHandoverContext['bast_docs'] ?? [];
+                $ahBastPrintUrl = $assetHandoverContext['bast_print_url'] ?? url('hrd-asset-handover-bast-print?Handover_No=' . urlencode($ahCtx->Handover_No) . '&doc_type=' . $ahDocType);
+            @endphp
+            <div class="mt-4 border rounded p-3 bg-white">
+                <h6 class="fw-bold text-primary mb-3 border-bottom pb-2">
+                    <i class="fe fe-package me-2"></i>Rincian Serah Terima Aset ({{ $ahDocType === 'RETURN' ? 'Pengembalian' : 'Handover' }}) — {{ $ahCtx->Handover_No }}
+                </h6>
+                <div class="row g-2 small mb-3">
+                    <div class="col-md-4"><strong>Lead Pemberi:</strong> {{ $ahCtx->Lead_Name ?? '-' }} ({{ $ahCtx->Lead_NIK ?? '-' }})</div>
+                    <div class="col-md-4"><strong>PIC Penerima:</strong> {{ $ahCtx->PIC_Name ?: '-' }} ({{ $ahCtx->PIC_Department ?: '-' }})</div>
+                    <div class="col-md-4"><strong>Status Handover:</strong> <span class="badge bg-info text-white">{{ $ahCtx->Status }}</span></div>
+                    @if($ahDocType === 'RETURN')
+                        <div class="col-md-4"><strong>PIC Approval Return:</strong> {{ $ahCtx->Return_Lead_Name ?? '-' }} ({{ $ahCtx->Return_Lead_NIK ?? '-' }})</div>
+                        <div class="col-md-4"><strong>Penerima Pengembalian:</strong> {{ $ahCtx->Return_Receiver_Name ?? '-' }} ({{ $ahCtx->Return_Receiver_NIK ?? '-' }})</div>
+                    @endif
+                </div>
+
+                @if($ahItems->isNotEmpty())
+                    <div class="table-responsive mb-3">
+                        <table class="table table-sm table-bordered mb-0" style="font-size: 0.8rem;">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>No</th>
+                                    <th>Asset No</th>
+                                    <th>Kode Produk</th>
+                                    <th>Deskripsi</th>
+                                    <th class="text-end">Qty</th>
+                                    <th>Kondisi</th>
+                                    <th>Status Item</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($ahItems as $idx => $it)
+                                    <tr>
+                                        <td>{{ $idx + 1 }}</td>
+                                        <td>{{ $it->Asset_No ?? '-' }}</td>
+                                        <td>{{ $it->Product_Code }}</td>
+                                        <td>{{ $it->Description }}</td>
+                                        <td class="text-end">{{ $it->Qty }} {{ $it->Unit }}</td>
+                                        <td>{{ $ahDocType === 'RETURN' ? ($it->Returned_Condition ?: $it->Condition) : $it->Condition }}</td>
+                                        <td><span class="badge bg-secondary text-white">{{ $it->Status ?: '-' }}</span></td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @endif
+
+                @include('humanresources.asset-handover.partials.bast-panel', [
+                    'handoverNo'   => $ahCtx->Handover_No,
+                    'docType'      => $ahDocType,
+                    'docs'         => $ahBastDocs,
+                    'bastPrintUrl' => $ahBastPrintUrl,
+                    'panelId'      => 'bastInboxPanel_' . (int) $task->ID,
+                    'allowUpload'  => true,
+                ])
+            </div>
+        @endif
+
         {{-- Section 3: Candidates --}}
         <div class="mt-4">
             <h6 class="fw-bold text-dark mb-2 d-flex justify-content-between align-items-center">
@@ -248,6 +483,18 @@
                 </table>
             </div>
         </div>
+
+        {{-- Section 3.5: Jenjang Approval Lengkap (Policy Plan & Status) --}}
+        @if(!empty($approvalTrail))
+        <div class="mt-4">
+            <h6 class="fw-bold text-dark mb-2">
+                <i class="fe fe-git-branch me-2 text-primary"></i>Jenjang Approval Lengkap (Termasuk Stage Dilewati / Mendatang)
+            </h6>
+            <div class="border rounded">
+                @include('humanresources.approval.partials.trail-table', ['trail' => $approvalTrail])
+            </div>
+        </div>
+        @endif
 
         {{-- Section 4: History / Audit Logs --}}
         <div class="mt-4">

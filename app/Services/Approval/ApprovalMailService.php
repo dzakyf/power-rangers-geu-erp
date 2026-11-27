@@ -24,9 +24,12 @@ class ApprovalMailService
             'REQUISITION'            => 'Permintaan Tenaga Kerja (PTK / Requisition)',
             'PROCUREMENT'            => 'Pengadaan Barang & Jasa (Procurement / PR)',
             'GA_WORK_ORDER'          => 'General Affairs Work Order (GA WO)',
+            'HR_VOUCHER'             => 'Pengajuan Voucher & AP Manual',
             'ASSET_FIXING'           => 'Perbaikan Aset (Asset Fixing)',
             'ASSET_MOVING'           => 'Pemindahan Aset (Asset Moving)',
             'ASSET_DISPOSAL'         => 'Pemusnahan Aset (Asset Disposal)',
+            'ASSET_HANDOVER'         => 'Serah Terima Aset (Asset Handover)',
+            'ASSET_HANDOVER_RETURN'  => 'Pengembalian Aset (Asset Handover Return)',
             'ATTENDANCE_LEAVE'       => 'Pengajuan Cuti & Izin Karyawan',
             'ATTENDANCE_OVERTIME'    => 'Pengajuan Lembur / Overtime',
             'ATTENDANCE_CORRECTION'  => 'Koreksi Absensi Karyawan',
@@ -59,6 +62,14 @@ class ApprovalMailService
             $actionUrl = url('hrd-disciplinary-sanction-detail/' . $mapTo);
         } elseif ($type === 'DISCIPLINARY_SANCTION') {
             $actionUrl = url('hrd-disciplinary-sanction-index');
+        } elseif ($type === 'HR_VOUCHER' && !empty($mapTo)) {
+            $actionUrl = url('hrd-voucher-index') . '?open_id=' . $mapTo;
+        } elseif ($type === 'HR_VOUCHER') {
+            $actionUrl = url('hrd-voucher-index');
+        } elseif ($type === 'ASSET_HANDOVER') {
+            $actionUrl = url('hrd-asset-handover-confirmation-index');
+        } elseif ($type === 'ASSET_HANDOVER_RETURN') {
+            $actionUrl = url('hrd-asset-handover-returned-approval-index');
         }
 
         return [

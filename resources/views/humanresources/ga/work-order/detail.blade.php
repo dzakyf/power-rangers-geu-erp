@@ -106,6 +106,18 @@
         </div>
     </div>
 
+    @if (!empty($approvalTrail))
+        <div class="card mt-3 border-primary">
+            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                <h5 class="card-title m-1"><i class="fa fa-sitemap me-1 text-primary"></i> Alur Approval Berjenjang (Audit Trail)</h5>
+                <span class="badge bg-primary text-white">Approval #{{ (int) $wo->Approval_Request_ID }}</span>
+            </div>
+            <div class="card-body p-2">
+                @include('humanresources.approval.partials.trail-table', ['trail' => $approvalTrail])
+            </div>
+        </div>
+    @endif
+
     @if (!empty($voucher))
         <div class="card mt-3 border-info">
             <div class="card-header d-flex justify-content-between align-items-center bg-light">
@@ -185,6 +197,15 @@
                             <div class="form-group mb-3">
                                 <label>Nama Penerima / Vendor <span class="text-danger">*</span></label>
                                 <input type="text" name="Payee_Name" id="GAWOVoucherPayeeName" class="form-control" maxlength="150" value="{{ $defaultVendorObj ? $defaultVendorObj->Company_Name : ($wo->Assignee_Name ?: '') }}" required />
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group mb-3">
+                                <label>Jalur Voucher (Usulan ke Finance)</label>
+                                <select name="Voucher_Channel" class="form-select">
+                                    <option value="DIRECT" selected>Pembayaran Langsung (Cash/Bank)</option>
+                                    <option value="AP">Hutang Dagang (AP / Tenor)</option>
+                                </select>
                             </div>
                         </div>
                         <div class="col-md-3">

@@ -23,7 +23,7 @@ $Saya =  Auth::user()->username;
 			<a href="#">Account Payable </a>
 		</li>
 		<li class="breadcrumb-item active">
-			<span class="active">Receive Invoice</span>
+			<span class="active">Receive From Other Department</span>
 		</li>
 	</ol>
 </div>

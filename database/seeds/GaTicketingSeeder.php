@@ -359,22 +359,24 @@ class GaTicketingSeeder extends Seeder
     {
         $this->createPolicy(
             'GA-WO-LOW',
-            'GA Work Order <= 2.500.000 (Manager Departemen)',
+            'GA Work Order <= Rp 3.000.000 (Manager Dept + Manager HCGA)',
             null,
-            2500000.00,
+            3000000.00,
             [
-                ['Stage_Order' => 1, 'Level_Number' => 3, 'Position_Code' => null, 'Department' => null, 'Label' => 'Manager departemen pemohon'],
+                ['Stage_Order' => 1, 'Level_Number' => 3, 'Position_Code' => null,    'Department' => null,   'Label' => 'Manager departemen pemohon'],
+                ['Stage_Order' => 2, 'Level_Number' => 3, 'Position_Code' => 'MHCGA', 'Department' => 'HCGA', 'Label' => 'Manager HCGA'],
             ]
         );
 
         $this->createPolicy(
             'GA-WO-HIGH',
-            'GA Work Order > 2.500.000 (Manager Departemen + VP Director)',
-            2500000.01,
+            'GA Work Order > Rp 3.000.000 (Manager Dept + Manager HCGA + VP Director)',
+            3000000.01,
             null,
             [
-                ['Stage_Order' => 1, 'Level_Number' => 3, 'Position_Code' => null, 'Department' => null, 'Label' => 'Manager departemen pemohon'],
-                ['Stage_Order' => 2, 'Level_Number' => 1, 'Position_Code' => 'VPD', 'Department' => null, 'Label' => 'Vice President Director'],
+                ['Stage_Order' => 1, 'Level_Number' => 3, 'Position_Code' => null,    'Department' => null,   'Label' => 'Manager departemen pemohon'],
+                ['Stage_Order' => 2, 'Level_Number' => 3, 'Position_Code' => 'MHCGA', 'Department' => 'HCGA', 'Label' => 'Manager HCGA'],
+                ['Stage_Order' => 3, 'Level_Number' => 1, 'Position_Code' => 'VPD',   'Department' => null,   'Label' => 'Vice President Director'],
             ]
         );
     }

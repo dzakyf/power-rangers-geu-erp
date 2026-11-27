@@ -116,6 +116,37 @@ class GaPaymentVoucherService
                 'Updated_At'        => $now,
             ]);
 
+            if (\Illuminate\Support\Facades\Schema::hasTable('finance_hr_vouchers')) {
+                app(\App\Services\Finance\FinanceHrVoucherService::class)->createOrSyncFromSource(
+                    \App\Services\Finance\FinanceHrVoucherService::SOURCE_GA_WORK_ORDER,
+                    $voucherId,
+                    [
+                        'Voucher_No'        => $voucherNo,
+                        'Source_No'         => (string) $ticket->Ticket_No,
+                        'Location'          => trim((string) ($ticket->Location ?: $user->Location ?: 'GEU-HO')),
+                        'Company_ID'        => trim((string) ($ticket->Company_ID ?: $user->Company_ID ?: 'GEU')),
+                        'Department'        => trim((string) ($ticket->Department ?: $ga->Reporter_Department ?: $user->Department ?: 'HCGA')),
+                        'Expense_Category'  => 'GA ORDER PEKERJAAN',
+                        'Requested_Channel' => strtoupper(trim((string) ($data['Voucher_Channel'] ?? 'DIRECT'))) === 'AP' ? 'AP' : 'DIRECT',
+                        'Payment_Method'    => $prepared['payment_method'] === 'CASH' ? 'CASH' : 'BANK',
+                        'Vendor_ID'         => $prepared['supplier_id'] ? (string) DB::table('supplier')->where('ID', $prepared['supplier_id'])->value('Supplier_ID') : '',
+                        'Vendor_Name'       => $prepared['payee_name'],
+                        'Bank_Name'         => $prepared['bank_name'],
+                        'Bank_Acc'          => $prepared['bank_acc_no'],
+                        'Bank_Acc_Name'     => $prepared['bank_acc_name'],
+                        'Reference'         => trim((string) ($data['Reference'] ?? $ticket->Ticket_No)),
+                        'PO_References'     => trim((string) ($data['PO_References'] ?? '')),
+                        'Due_Date'          => $prepared['due_date'] ?: date('Y-m-d'),
+                        'Subject_Payment'   => (string) $ticket->Ticket_Subject,
+                        'Description'       => $prepared['description'],
+                        'Attachment_Path'   => $attachmentPath,
+                        'Subtotal'          => $amount,
+                        'Total'             => $amount,
+                    ],
+                    (string) $user->username
+                );
+            }
+
             DB::table('ticket')->where('ID', $ticketId)->update([
                 'Ticket_Status' => TicketService::STATUS_VOUCHER_CREATED,
             ]);
@@ -268,6 +299,37 @@ class GaPaymentVoucherService
                 'Updated_By'        => (string) $user->username,
                 'Updated_At'        => $now,
             ]);
+
+            if (\Illuminate\Support\Facades\Schema::hasTable('finance_hr_vouchers')) {
+                app(\App\Services\Finance\FinanceHrVoucherService::class)->createOrSyncFromSource(
+                    \App\Services\Finance\FinanceHrVoucherService::SOURCE_GA_WORK_ORDER,
+                    $voucherId,
+                    [
+                        'Voucher_No'        => $voucherNo,
+                        'Source_No'         => (string) $wo->WO_No,
+                        'Location'          => trim((string) ($wo->Location ?: ($ticket ? $ticket->Location : '') ?: $user->Location ?: 'GEU-HO')),
+                        'Company_ID'        => trim((string) ($wo->Company_ID ?: ($ticket ? $ticket->Company_ID : '') ?: $user->Company_ID ?: 'GEU')),
+                        'Department'        => trim((string) ($wo->Department ?: ($ticket ? $ticket->Department : '') ?: $user->Department ?: 'HCGA')),
+                        'Expense_Category'  => 'GA ORDER PEKERJAAN',
+                        'Requested_Channel' => strtoupper(trim((string) ($data['Voucher_Channel'] ?? 'DIRECT'))) === 'AP' ? 'AP' : 'DIRECT',
+                        'Payment_Method'    => $prepared['payment_method'] === 'CASH' ? 'CASH' : 'BANK',
+                        'Vendor_ID'         => $prepared['supplier_id'] ? (string) DB::table('supplier')->where('ID', $prepared['supplier_id'])->value('Supplier_ID') : '',
+                        'Vendor_Name'       => $prepared['payee_name'],
+                        'Bank_Name'         => $prepared['bank_name'],
+                        'Bank_Acc'          => $prepared['bank_acc_no'],
+                        'Bank_Acc_Name'     => $prepared['bank_acc_name'],
+                        'Reference'         => trim((string) ($data['Reference'] ?? $wo->WO_No)),
+                        'PO_References'     => trim((string) ($data['PO_References'] ?? '')),
+                        'Due_Date'          => $prepared['due_date'] ?: date('Y-m-d'),
+                        'Subject_Payment'   => trim((string) $wo->WO_No . ' - ' . $wo->Title),
+                        'Description'       => $prepared['description'],
+                        'Attachment_Path'   => $attachmentPath,
+                        'Subtotal'          => $amount,
+                        'Total'             => $amount,
+                    ],
+                    (string) $user->username
+                );
+            }
 
             $historyNote = 'Voucher Pembayaran ' . $voucherNo . ' (Rp ' . number_format($amount, 0, ',', '.')
                 . ' - ' . $prepared['payee_name'] . ') dibuat dari Work Order & diteruskan ke Finance.';

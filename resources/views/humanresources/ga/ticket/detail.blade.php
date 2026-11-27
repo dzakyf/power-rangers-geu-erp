@@ -236,6 +236,15 @@
                         </div>
                         <div class="col-md-3">
                             <div class="form-group mb-3">
+                                <label>Jalur Voucher (Usulan ke Finance)</label>
+                                <select name="Voucher_Channel" class="form-control">
+                                    <option value="DIRECT" selected>Pembayaran Langsung (Cash/Bank)</option>
+                                    <option value="AP">Hutang Dagang (AP / Tenor)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group mb-3">
                                 <label>Metode Bayar</label>
                                 <select name="Payment_Method" class="form-control">
                                     <option value="TRANSFER" selected>Transfer Bank</option>

@@ -34,6 +34,7 @@ class SyncModuleApprovalStatus
             'STATUS_CHANGE'           => 'handleStatusChange',
             'REQUISITION'             => 'handleRequisition',
             'GA_WORK_ORDER'           => 'handleGaWorkOrder',
+            'HR_VOUCHER'              => 'handleHrVoucher',
             'ATTENDANCE_OVERTIME'     => 'handleAttendanceOvertime',
             'ATTENDANCE_LEAVE'        => 'handleAttendanceLeave',
             'ATTENDANCE_CORRECTION'   => 'handleAttendanceCorrection',
@@ -61,6 +62,8 @@ class SyncModuleApprovalStatus
             'GA_TICKET_DEPT_HEAD'        => 'handleGaTicketDeptHead',
             'GA_TICKET_BUDGET'           => 'handleGaTicketBudget',
             'STORAGE_DOCUMENT'           => 'handleStorageDocument',
+            'ASSET_HANDOVER'             => 'handleAssetHandover',
+            'ASSET_HANDOVER_RETURN'      => 'handleAssetHandoverReturn',
         ];
 
         $method = $handlers[$type] ?? null;
@@ -123,6 +126,43 @@ class SyncModuleApprovalStatus
         $wo = DB::table('ga_work_order')->where('Approval_Request_ID', $requestId)->first();
         if ($wo) {
             app(WorkOrderService::class)->syncApprovalStatus((int) $wo->ID);
+        }
+    }
+
+    protected function handleHrVoucher(int $requestId, ?string $status): void
+    {
+        $voucher = DB::table('finance_hr_vouchers')->where('Approval_Request_ID', $requestId)->first();
+        if (!$voucher) {
+            $voucher = DB::table('finance_hr_vouchers')->where('ID', function ($query) use ($requestId) {
+                $query->select('Map_To')->from('approval_request')->where('ID', $requestId);
+            })->first();
+        }
+        if (!$voucher) {
+            return;
+        }
+
+        $statusUpper = strtoupper((string) $status);
+        $svc = app(\App\Services\Finance\FinanceHrVoucherService::class);
+
+        if (in_array($statusUpper, ['APPROVED', 'COMPLETED'], true)) {
+            $svc->onWorkflowApproved((int) $voucher->ID);
+        } elseif (in_array($statusUpper, ['RETURNED', 'REJECTED'], true)) {
+            $lastLog = DB::table('approval_log')
+                ->where('Request_Id', $requestId)
+                ->whereIn('Action', ['REJECT', 'REJECTED'])
+                ->whereNotNull('Notes')
+                ->where('Notes', '!=', '')
+                ->orderBy('ID', 'DESC')
+                ->first();
+            $taskNote = DB::table('approval_request_task')
+                ->where('Request_ID', $requestId)
+                ->where('Status', 'REJECTED')
+                ->orderBy('ID', 'DESC')
+                ->value('Notes');
+            $reason = ($lastLog && !empty($lastLog->Notes))
+                ? (string) $lastLog->Notes
+                : (!empty($taskNote) ? (string) $taskNote : 'Ditolak pada proses approval.');
+            $svc->onWorkflowRejected((int) $voucher->ID, $reason, $statusUpper);
         }
     }
 
@@ -763,6 +803,18 @@ class SyncModuleApprovalStatus
         if ($version) {
             app(\App\Services\HCGA\StorageApprovalService::class)->syncApprovalStatus((int) $version->id, 'system');
         }
+    }
+
+    protected function handleAssetHandover(int $requestId, ?string $status): void
+    {
+        app(\App\Services\Approval\AssetHandoverApprovalService::class)
+            ->syncHandoverFromWorkflow($requestId, $status);
+    }
+
+    protected function handleAssetHandoverReturn(int $requestId, ?string $status): void
+    {
+        app(\App\Services\Approval\AssetHandoverApprovalService::class)
+            ->syncReturnFromWorkflow($requestId, $status);
     }
 }
 

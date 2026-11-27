@@ -9,6 +9,7 @@
         <div class="card-body">
             <div id="ContentPages">
                 <input type="hidden" id="ID" value="{{ $ah->ID }}" />
+                @include('humanresources.asset-handover.partials.lifecycle-stepper', ['ah' => $ah])
 
                 <h6 class="fw-bold text-primary border-bottom pb-2 mb-3">1. Informasi Handover &amp; Pembuat</h6>
                 <div class="row g-3 mb-4">
@@ -16,252 +17,171 @@
                         <label class="form-label small fw-semibold">Handover No</label>
                         <input type="text" id="Handover_No" class="form-control form-control-sm bg-light" readonly value="{{ $ah->Handover_No }}" />
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <label class="form-label small fw-semibold">Handover Date</label>
                         <input type="text" id="Handover_Date" class="form-control form-control-sm bg-light" readonly value="{{ date('Y-m-d', strtotime($ah->Handover_Date)) }}" />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small fw-semibold">Status</label>
+                        <input type="text" class="form-control form-control-sm bg-light fw-bold" readonly value="{{ $ah->Status ?? 'CREATED' }}" />
                     </div>
                     <div class="col-md-2">
                         <label class="form-label small fw-semibold">User NIK</label>
                         <input type="text" id="User_NIK" class="form-control form-control-sm bg-light" value="{{ $ah->User_NIK }}" readonly />
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <label class="form-label small fw-semibold">User Create</label>
                         <input type="text" id="User_Name" class="form-control form-control-sm bg-light" value="{{ $ah->User_Name }}" readonly />
                     </div>
                 </div>
 
-                <h6 class="fw-bold text-primary border-bottom pb-2 mb-3">2. Penerima Barang (PIC) &amp; Catatan</h6>
+                <h6 class="fw-bold text-primary border-bottom pb-2 mb-3">2. Lead Pemberi, Penerima Barang (PIC) &amp; Catatan</h6>
                 <div class="row g-3 mb-4">
                     <div class="col-md-4">
-                        <label class="form-label small fw-semibold">PIC to Receive <span class="text-danger">*</span></label>
-                        <input type="text" id="PIC_Name" class="form-control form-control-sm" value="{{ $ah->PIC_Name }}" required />
+                        <label class="form-label small fw-semibold">Lead Pemberi (Stage 1)</label>
+                        <input type="text" class="form-control form-control-sm bg-light" readonly value="{{ ($ah->Lead_Name ?? '-') . (!empty($ah->Lead_NIK) ? ' (' . $ah->Lead_NIK . ')' : '') }}" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold">PIC to Receive (Stage 2)</label>
+                        <input type="text" id="PIC_Name" class="form-control form-control-sm bg-light" readonly value="{{ $ah->PIC_Name }}" />
                         <input type="hidden" id="PIC_NIK" value="{{ $ah->PIC_NIK }}" />
-                        <div class="form-text">Penerima Barang</div>
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label small fw-semibold">PIC Department <span class="text-danger">*</span></label>
-                        <input type="text" id="PIC_Department" class="form-control form-control-sm" required value="{{ $ah->PIC_Department }}" />
+                        <label class="form-label small fw-semibold">PIC Department</label>
+                        <input type="text" id="PIC_Department" class="form-control form-control-sm bg-light" readonly value="{{ $ah->PIC_Department }}" />
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label small fw-semibold">PIC Phone <span class="text-danger">*</span></label>
-                        <input type="text" id="PIC_Phone" class="form-control form-control-sm" required value="{{ $ah->PIC_Phone }}" />
+                        <label class="form-label small fw-semibold">PIC Phone</label>
+                        <input type="text" id="PIC_Phone" class="form-control form-control-sm bg-light" readonly value="{{ $ah->PIC_Phone }}" />
                     </div>
                     <div class="col-md-4">
                         <label class="form-label small fw-semibold">References/FPB (Manual)</label>
-                        <input type="text" id="Reference" class="form-control form-control-sm" value="{{ $ah->Reference }}" />
+                        <input type="text" id="Reference" class="form-control form-control-sm bg-light" readonly value="{{ $ah->Reference }}" />
                     </div>
-                    <div class="col-md-8">
-                        <label class="form-label small fw-semibold">Remark <span class="text-danger">*</span></label>
-                        <textarea id="Remark" class="form-control form-control-sm" rows="2" required>{{ $ah->Remark }}</textarea>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold">Remark</label>
+                        <textarea id="Remark" class="form-control form-control-sm bg-light" rows="2" readonly>{{ $ah->Remark }}</textarea>
                     </div>
                 </div>
 
-                <h6 class="fw-bold text-primary border-bottom pb-2 mb-3">3. Detail Item Handover (Centang &amp; Isi Tanggal Penerimaan)</h6>
+                <h6 class="fw-bold text-primary border-bottom pb-2 mb-3">3. Detail Item Handover</h6>
                 <div id="gridAssetHandoverDetail" style="width:100%;height:220px;background-color:white;overflow:hidden"></div>
+
+                <h6 class="fw-bold text-primary border-bottom pb-2 mt-4 mb-2">4. Cetak BAST Sistem (mPDF) &amp; Lampiran Pendukung (Opsional)</h6>
+                @include('humanresources.asset-handover.partials.bast-panel', [
+                    'handoverNo'  => $ah->Handover_No,
+                    'docType'     => 'HANDOVER',
+                    'docs'        => $bastHandoverDocs ?? [],
+                    'panelId'     => 'bastApprovalHandoverPanel',
+                    'allowUpload' => true,
+                ])
+
+                @if(!empty($approvalTrail))
+                    <h6 class="fw-bold text-primary border-bottom pb-2 mt-4 mb-2">5. Jenjang Approval (ApprovalWorkflowService)</h6>
+                    <div class="border rounded">
+                        @include('humanresources.approval.partials.trail-table', ['trail' => $approvalTrail])
+                    </div>
+                @endif
 
                 <div class="row g-3 mt-3">
                     <div class="col-md-12">
-                        <label class="form-label small fw-semibold">Approval Note <span class="text-danger">*</span></label>
-                        <textarea id="Approval_Note" class="form-control form-control-sm" rows="2" required placeholder="Tambahkan catatan approval..."></textarea>
+                        <label class="form-label small fw-semibold">Approval Note @if(!empty($canAct))<span class="text-muted fw-normal">(wajib jika Reject)</span>@endif</label>
+                        <textarea id="Approval_Note" class="form-control form-control-sm {{ empty($canAct) ? 'bg-light' : '' }}" rows="2" placeholder="Tambahkan catatan approval..." {{ empty($canAct) ? 'readonly' : '' }}>{{ empty($canAct) ? ($ah->Approval_Note ?? '') : '' }}</textarea>
                     </div>
                 </div>
 
-                <div class="mt-4 d-flex justify-content-end gap-2">
-                    <button type="button" id="RejectAssetHandoverDetail" name="RejectAssetHandoverDetail" class="btn btn-danger btn-sm" onclick="approval(2)">
-                        <i class="fa fa-times me-1"></i> Reject
-                    </button>
-                    <button type="button" id="SubmitAssetHandoverDetail" name="SubmitAssetHandoverDetail" class="btn btn-success btn-sm" onclick="approval(1)">
-                        <i class="fa fa-check me-1"></i> Approve
-                    </button>
-                </div>
-                <div id="WinCOA"></div>
+                @if(empty($canAct))
+                    <div class="alert alert-info small mt-3 mb-0">
+                        <i class="fa fa-info-circle me-1"></i>
+                        Saat ini bukan giliran Anda pada stage aktif, atau task approval sudah diproses.
+                    </div>
+                @else
+                    <div class="mt-4 d-flex justify-content-end gap-2">
+                        <button type="button" id="RejectAssetHandoverDetail" name="RejectAssetHandoverDetail" class="btn btn-danger btn-sm" onclick="approval(2)">
+                            <i class="fa fa-times me-1"></i> Reject
+                        </button>
+                        <button type="button" id="SubmitAssetHandoverDetail" name="SubmitAssetHandoverDetail" class="btn btn-success btn-sm" onclick="approval(1)">
+                            <i class="fa fa-check me-1"></i> Approve
+                        </button>
+                    </div>
+                @endif
             </div>
         </div>
     </div>
 </div>
 
-<script src="{{ asset('jquery.coolautosuggest.js') }}"></script>
-<script src="{{ asset('jquery.coolfieldset.js') }}"></script>
 <script>
-    $("#PIC_Name").coolautosuggest({
-        url: "finance-ap-search-employee?chars=",
-        showThumbnail: false,
-        showDescription: true,
-        idField: $("#PIC_Name"),
-        width: 500,
-        minChars: 1,
-        onSelected: function(result) {
-            if (result != null) {
-                $("#PIC_Name").val(result.data);
-                $("#PIC_NIK").val(result.id);
-                $("#PIC_Department").val(result.thumbnail);
-                $("#PIC_Phone").val(result.phone);
-            }
-        }
-    });
-
-    var WinPR;
-    var WPR;
-
-    function loadPR_Product(text, url, width, height) {
-        WinPR = new dhtmlXWindows();
-        WinPR.attachViewportTo("ContentPages");
-        WPR = WinPR.createWindow("WPR", 0, 0, width, height);
-        WPR.keepInViewport(false);
-        WPR.setText(text);
-        WPR.attachURL(url, true);
-        WPR.button("minmax1").hide();
-        WPR.button("park").hide();
-        WPR.centerOnScreen();
-        WPR.allowMove();
-    }
-
-    function getAllValues() {
-        var inputValues = [];
-        $('#ContentPages input,select,textarea').each(function() {
-            var id = $(this).attr("id");
-            if (!id) return;
-            var type = $(this).attr("type");
-            if ((type == "checkbox" || type == "radio") && this.checked) {
-                inputValues.push(id + "=" + encodeURIComponent($(this).val()));
-            } else if (type != "button" && type != "submit") {
-                inputValues.push(id + "=" + encodeURIComponent($(this).val()));
-            }
-        });
-        return inputValues.join('&');
-    }
-
     AssetHandoverDetail = new dhtmlXGridObject('gridAssetHandoverDetail');
     AssetHandoverDetail.setImagePath("dhtmlx/imgs/");
-    AssetHandoverDetail.setHeader("Checkbox,Purchase Type,Product Code,Product Desc,Qty,Product Brand, Product Type,Specification,Condition,Measurement,Note,Category,SubCat,Price@unit, Total Price,Received Date,Status");
-    AssetHandoverDetail.setInitWidths("50,100,100,100,200,200,200,200,200,100,200,100,100,0,0,100,0");
-    AssetHandoverDetail.setColTypes("ch,ro,ro,ro,edn,ed,ed,ed,ed,ed,ed,ro,ro,edn,ron,dhxCalendar,ro");
-    AssetHandoverDetail.setColAlign("center,left,center,left,right,left,center,left,left,center,center,center,center,right,right,center,center");
-    AssetHandoverDetail.setColSorting("int,str,str,str,str,str,str,str,str,str,str,str,str");
-    AssetHandoverDetail.setEditable(true);
+    AssetHandoverDetail.setHeader("No,Purchase Type,Product Code,Product Desc,Qty,Product Brand,Product Type,Specification,Condition,Measurement,Note,Category,SubCat,Price@unit,Total Price,Received Date,Asset No");
+    AssetHandoverDetail.setInitWidths("50,100,100,140,80,120,120,150,110,90,140,100,100,0,0,100,130");
+    AssetHandoverDetail.setColTypes("ro,ro,ro,ro,ron,ro,ro,ro,ro,ro,ro,ro,ro,ron,ron,ro,ro");
+    AssetHandoverDetail.setColAlign("center,left,center,left,right,left,center,left,left,center,left,center,center,right,right,center,center");
+    AssetHandoverDetail.setColSorting("int,str,str,str,int,str,str,str,str,str,str,str,str,int,int,str,str");
+    AssetHandoverDetail.setEditable(false);
     AssetHandoverDetail.setNumberFormat("0,000.00", 4, ".", ",");
-    AssetHandoverDetail.setNumberFormat("0,000.00", 13, ".", ",");
-    AssetHandoverDetail.setNumberFormat("0,000.00", 14, ".", ",");
-    AssetHandoverDetail.setDateFormat("%Y-%m-%d");
-    AssetHandoverDetail.enableKeyboardSupport(true);
     AssetHandoverDetail.setColumnHidden(13, true);
     AssetHandoverDetail.setColumnHidden(14, true);
-    AssetHandoverDetail.setColumnHidden(16, true);
     AssetHandoverDetail.setSkin("dhx_skyblue");
-    AssetHandoverDetail.attachEvent("onRowDblClicked", loadPrProduct);
     AssetHandoverDetail.enableMultiline(true);
-
-    PAssetHandoverDetail = new dataProcessor("hrd-asset-handover-confirmation-submit");
-    PAssetHandoverDetail.setTransactionMode({
-        mode: "POST",
-        total: true,
-        headers: {
-            'X-CSRF-TOKEN': "{{ csrf_token() }}"
-        },
-        payload: {
-            "Handover_No": "{{ $ah->Handover_No }}"
-        }
-    });
-    PAssetHandoverDetail.setUpdateMode("Off");
-    PAssetHandoverDetail.init(AssetHandoverDetail);
     AssetHandoverDetail.init();
-    AssetHandoverDetail.attachEvent("onEditCell", function(stage, rId, cInd, nValue, oValue) {
-        if (stage == 2) {
-            if (cInd == 4 || cInd == 13) {
-                let qty = Number(AssetHandoverDetail.cells(rId, 4).getValue());
-                let price = Number(AssetHandoverDetail.cells(rId, 13).getValue());
-                if (qty == '' || price == '') {
-                    AssetHandoverDetail.cells(rId, 14).setValue('');
-                    return true;
-                }
-                AssetHandoverDetail.cells(rId, 14).setValue(qty * price);
+    AssetHandoverDetail.clearAndLoad("hrd-asset-handover-confirmation-detail-data?Handover_No={{ urlencode($ah->Handover_No) }}", function() {
+        var rowNo = 1;
+        AssetHandoverDetail.forEachRow(function(rId) {
+            if (!String(AssetHandoverDetail.cells(rId, 0).getValue() || '').trim()) {
+                AssetHandoverDetail.cells(rId, 0).setValue(rowNo);
             }
-        }
-        return true;
+            rowNo++;
+        });
     });
 
-    refreshDataDetail();
-    function refreshDataDetail() {
-        AssetHandoverDetail.clearAndLoad("hrd-asset-handover-confirmation-detail-data?Handover_No={{ $ah->Handover_No }}");
-    }
-
-    function loadPrProduct(rId, cInd, event) {
-        if (cInd == 2 || cInd == 3)
-            loadPR_Product('Product Lists', 'hrd-asset-handover-product', 1024, 450);
-        return true;
-    }
+    var isSubmittingApproval = false;
 
     function approval(stat) {
-        if (stat == 1) {
-            stat = "APPROVED";
-        } else if (stat == 2) {
-            stat = "REJECTED";
-        }
-        let broke = 0;
-        let checkedCount = 0;
-        let rowIds = AssetHandoverDetail.getAllRowIds();
-        if (rowIds) {
-            let ids = rowIds.split(',');
-            for (let i = 0; i < ids.length; i++) {
-                const ele = ids[i];
-                const check = AssetHandoverDetail.cells(ele, 0).getValue();
-                if (check == 1 || check == '1' || check == true) {
-                    checkedCount++;
-                    let date = AssetHandoverDetail.cells(ele, 15).getValue();
-                    if (date == '') {
-                        alert("Tanggal penerimaan wajib diisi pada item yang dipilih");
-                        broke = 1;
-                        break;
-                    }
-                    AssetHandoverDetail.cells(ele, 16).setValue(stat);
-                    PAssetHandoverDetail.setUpdated(ele, true, "updated");
-                }
-            }
-        }
+        if (isSubmittingApproval) return;
+        var targetStatus = (stat == 1) ? "APPROVED" : "REJECTED";
 
-        if (broke) return;
-
-        if (checkedCount === 0) {
-            alert("Pilih minimal satu item detail (centang checkbox) yang ingin di-approve/reject");
+        var note = ($("#Approval_Note").val() || '').trim();
+        if (targetStatus === "REJECTED" && note === '') {
+            alert("Mohon isi Approval Note saat menolak handover.");
+            $("#Approval_Note").focus();
             return;
         }
 
-        PAssetHandoverDetail.sendData();
+        isSubmittingApproval = true;
+        $("#SubmitAssetHandoverDetail, #RejectAssetHandoverDetail").prop('disabled', true);
         if ($.blockUI) $.blockUI();
 
-        var dapat = getAllValues();
-        dapat += "&status=" + stat;
         $.ajax({
             headers: {
                 'X-CSRF-TOKEN': "{{ csrf_token() }}"
             },
-            url: "hrd-asset-handover-confirmation-submit?_token={{ csrf_token() }}",
+            url: "hrd-asset-handover-confirmation-submit",
             type: "POST",
-            data: dapat,
+            data: {
+                Handover_No: "{{ $ah->Handover_No }}",
+                status: targetStatus,
+                Approval_Note: note
+            },
             success: function(data) {
+                if ($.unblockUI) $.unblockUI();
                 if (data.status == 'success') {
-                    alert('Asset Handover ' + stat + ' successfully for No: {{ $ah->Handover_No }}!');
-                    setTimeout(function() {
-                        if ($.unblockUI) $.unblockUI();
-                        if (typeof refreshData === 'function') refreshData();
-                        $('#AssetHandoverDiv').html("");
-                    }, 800);
+                    alert(data.message || ('Asset Handover ' + targetStatus + ' berhasil diproses!'));
+                    if (typeof refreshData === 'function') refreshData();
+                    $('#AssetHandoverDiv').html("");
                 } else {
+                    isSubmittingApproval = false;
+                    $("#SubmitAssetHandoverDetail, #RejectAssetHandoverDetail").prop('disabled', false);
                     alert(data.message || 'Terjadi kesalahan saat memproses approval');
-                    if ($.unblockUI) $.unblockUI();
                 }
             },
-            error: function() {
-                alert("Error processing approval request");
+            error: function(xhr) {
+                isSubmittingApproval = false;
+                $("#SubmitAssetHandoverDetail, #RejectAssetHandoverDetail").prop('disabled', false);
                 if ($.unblockUI) $.unblockUI();
+                var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Error processing approval request';
+                alert(msg);
             }
         });
     }
-
-    function selesai() {
-        if ($.unblockUI) $.unblockUI();
-        return true;
-    }
 </script>
-
-<div id="PRSupplierDet"></div>

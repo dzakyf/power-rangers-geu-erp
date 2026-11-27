@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\HCGA\GA;
 
 use App\Http\Controllers\Controller;
+use App\Services\Approval\ApprovalWorkflowService;
 use App\Services\GA\GaPaymentVoucherService;
 use App\Services\GA\TicketService;
 use App\Services\GA\WorkOrderService;
@@ -142,6 +143,9 @@ class WorkOrderController extends Controller
         $history = $this->workOrders->history($woId);
         $totalCost = $this->workOrders->totalCost($woId);
         $allowedTransitions = $this->workOrders->allowedTransitions(strtoupper((string) $wo->Status), !empty($wo->Approval_Request_ID));
+        $approvalTrail = !empty($wo->Approval_Request_ID)
+            ? app(ApprovalWorkflowService::class)->buildApprovalTrail((int) $wo->Approval_Request_ID)
+            : [];
         $voucher = $this->vouchers->findByWorkOrderId($woId);
         $vendors = DB::table('supplier')
             ->where('Status', 'ACTIVE')
@@ -149,7 +153,7 @@ class WorkOrderController extends Controller
             ->limit(500)
             ->get(['ID', 'Company_Name', 'Bank_Rupiah', 'Bank_Rupiah_Account', 'Bank_Rupiah_Name']);
 
-        return view('humanresources.ga.work-order.detail', compact('wo', 'materials', 'costs', 'history', 'totalCost', 'allowedTransitions', 'voucher', 'vendors'));
+        return view('humanresources.ga.work-order.detail', compact('wo', 'materials', 'costs', 'history', 'totalCost', 'allowedTransitions', 'approvalTrail', 'voucher', 'vendors'));
     }
 
     public function transition(Request $request)

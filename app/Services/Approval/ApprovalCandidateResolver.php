@@ -27,6 +27,12 @@ class ApprovalCandidateResolver
      */
     public function resolve($policy, $step, array $context, int $requesterId = null): array
     {
+        $stageKey = (string) ((int) ($step->Stage_Order ?? 0));
+        $posCode = strtoupper(trim((string) ($step->Position_Code ?? '')));
+        if (strpos($posCode, 'CONTEXT_USER_STAGE_') === 0 || !empty($context['Stage_Candidate_User_Ids'][$stageKey])) {
+            return $this->resolveContextUserStage($policy, $step, $context, $stageKey);
+        }
+
         $positions = $this->positionsForStep($step, $context);
         $fallbackType = null;
 
@@ -810,5 +816,106 @@ class ApprovalCandidateResolver
         if (!empty($context['Company_ID'])) {
             $query->where('Company_ID', $context['Company_ID']);
         }
+    }
+
+    /**
+     * Resolve approver candidates directly from context user IDs for dynamic
+     * per-transaction workflows (e.g. ASSET_HANDOVER Lead -> PIC).
+     */
+    protected function resolveContextUserStage($policy, $step, array $context, string $stageKey): array
+    {
+        if (!empty($context['Skip_Stages'][$stageKey])) {
+            return [
+                'positions' => [],
+                'Action'    => 'AUTO_APPROVE',
+                'Reason'    => (string) $context['Skip_Stages'][$stageKey],
+            ];
+        }
+
+        $rawIds = $context['Stage_Candidate_User_Ids'][$stageKey] ?? [];
+        if (!is_array($rawIds)) {
+            $rawIds = [$rawIds];
+        }
+        $userIds = array_values(array_unique(array_filter(array_map('intval', $rawIds), function ($id) {
+            return $id > 0;
+        })));
+
+        $candidates = [];
+        if (!empty($userIds)) {
+            $activeIds = DB::table('users')
+                ->whereIn('id', $userIds)
+                ->where('Status', 'ACTIVE')
+                ->pluck('id')
+                ->all();
+
+            foreach ($activeIds as $uid) {
+                $this->addCandidate($candidates, (int) $uid, 'HOLDER', null);
+            }
+
+            if ((int) ($policy->Allow_Delegation ?? 1) === 1 && !empty($candidates)) {
+                $today = Carbon::now()->toDateString();
+                foreach (array_keys($candidates) as $delegatorId) {
+                    $delegations = DB::table('approval_delegation')
+                        ->where('Delegator_Id', $delegatorId)
+                        ->where('Status', 'ACTIVE')
+                        ->where(function ($query) use ($context) {
+                            $query->whereNull('Request_Type')->orWhere('Request_Type', $context['Request_Type']);
+                        })
+                        ->where(function ($query) use ($today) {
+                            $query->whereNull('Start_Date')->orWhere('Start_Date', '<=', $today);
+                        })
+                        ->where(function ($query) use ($today) {
+                            $query->whereNull('End_Date')->orWhere('End_Date', '>=', $today);
+                        })
+                        ->get();
+
+                    foreach ($delegations as $delegation) {
+                        $delegateActive = DB::table('users')
+                            ->where('id', (int) $delegation->Delegate_Id)
+                            ->where('Status', 'ACTIVE')
+                            ->exists();
+                        if ($delegateActive) {
+                            $this->addCandidate($candidates, (int) $delegation->Delegate_Id, 'DELEGATE', (int) $delegation->ID);
+                        }
+                    }
+                }
+            }
+        }
+
+        $meta = $context['Stage_Candidate_Meta'][$stageKey] ?? [];
+        $position = (object) [
+            'ID'         => 0,
+            'Level'      => (int) ($meta['Level'] ?? ($step->Level_Number ?? 3)),
+            'Initial'    => (string) ($meta['Code'] ?? ($step->Position_Code ?? ('STAGE_' . $stageKey))),
+            'Position'   => (string) ($meta['Name'] ?? ($step->Label ?? ('Stage ' . $stageKey))),
+            'Department' => (string) ($meta['Department'] ?? ($step->Department ?? ($context['Department'] ?? ''))),
+        ];
+
+        $candidateList = array_values($candidates);
+        if (empty($candidateList)) {
+            return [
+                'positions' => [[
+                    'Position'   => $position,
+                    'Candidates' => [],
+                    'Fallback'   => null,
+                    'Action'     => 'HOLD',
+                    'Reason'     => 'NO_CANDIDATE',
+                ]],
+                'Action' => 'TASK',
+                'Reason' => null,
+            ];
+        }
+
+        return [
+            'positions' => [[
+                'Position'   => $position,
+                'Candidates' => $candidateList,
+                'Fallback'   => null,
+                'Action'     => 'TASK',
+                'Reason'     => null,
+            ]],
+            'Action' => 'TASK',
+            'Reason' => null,
+        ];
     }
 }

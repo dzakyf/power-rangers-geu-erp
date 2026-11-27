@@ -226,6 +226,21 @@ class ApprovalInboxController extends Controller
                 'icon' => 'fa-screwdriver-wrench',
                 'badge_color' => 'warning',
             ],
+            'ASSET_HANDOVER' => [
+                'label' => 'Asset Handover',
+                'icon' => 'fa-hands-helping',
+                'badge_color' => 'info',
+            ],
+            'ASSET_HANDOVER_RETURN' => [
+                'label' => 'Return Asset Handover',
+                'icon' => 'fa-undo',
+                'badge_color' => 'primary',
+            ],
+            'HR_VOUCHER' => [
+                'label' => 'Voucher & AP Manual',
+                'icon' => 'fa-file-invoice-dollar',
+                'badge_color' => 'info',
+            ],
             'EMPLOYEE_RESIGNATION' => [
                 'label' => 'Pengajuan Resign',
                 'icon' => 'fa-user-times',
@@ -588,17 +603,96 @@ class ApprovalInboxController extends Controller
             }
         }
 
+        $assetHandoverContext = null;
+        $reqTypeUpper = strtoupper(trim((string) $task->Request_Type));
+        if (in_array($reqTypeUpper, ['ASSET_HANDOVER', 'ASSET_HANDOVER_RETURN'], true)) {
+            try {
+                $handoverApprovalSvc = app(\App\Services\Approval\AssetHandoverApprovalService::class);
+                $bastSvc = app(\App\Services\HCGA\AssetHandoverBastService::class);
+                $approvalReq = $this->workflow->getRequest((int) $task->Request_ID);
+                $handover = $approvalReq ? $handoverApprovalSvc->resolveHandoverFromRequest($approvalReq) : null;
+                if ($handover) {
+                    $docType = $reqTypeUpper === 'ASSET_HANDOVER_RETURN'
+                        ? \App\Services\HCGA\AssetHandoverBastService::DOC_TYPE_RETURN
+                        : \App\Services\HCGA\AssetHandoverBastService::DOC_TYPE_HANDOVER;
+                    $assetHandoverContext = [
+                        'handover'          => $handover,
+                        'doc_type'          => $docType,
+                        'items'             => DB::table('asset_handover_dtl')->where('Handover_No', $handover->Handover_No)->get(),
+                        'bast_docs'         => $bastSvc->listDocuments($handover->Handover_No, $docType, Auth::user()),
+                        'bast_print_url'    => url('hrd-asset-handover-bast-print?Handover_No=' . urlencode($handover->Handover_No) . '&doc_type=' . $docType),
+                        'requires_bast_now' => false,
+                    ];
+                }
+            } catch (\Throwable $e) {
+                $assetHandoverContext = null;
+            }
+        }
+
+        $reqTypeUpper = strtoupper(trim((string) ($task->Request_Type ?? '')));
+        $prContext = null;
+        $prItems = collect();
+        $reqNoClean = trim((string) ($task->Request_No ?? ''));
+        $isPrRequest = str_contains($reqTypeUpper, 'PR')
+            || str_contains($reqTypeUpper, 'PURCHASE')
+            || preg_match('/^PR[\s\/\-\._]/i', $reqNoClean);
+
+        if ($isPrRequest && $reqNoClean !== '') {
+            try {
+                $prContext = DB::table('purchase_request')
+                    ->whereRaw("TRIM(PR_No) COLLATE utf8mb4_unicode_ci = ?", [$reqNoClean])
+                    ->first();
+
+                $prNoTarget = trim((string) ($prContext->PR_No ?? $reqNoClean));
+
+                $prItems = DB::table('purchase_request_dtl as d')
+                    ->leftJoin(
+                        'product_code as pc',
+                        DB::raw('TRIM(d.Product_Code) COLLATE utf8mb4_unicode_ci'),
+                        '=',
+                        DB::raw('TRIM(pc.Product_Code) COLLATE utf8mb4_unicode_ci')
+                    )
+                    ->whereRaw("TRIM(d.PR_No) COLLATE utf8mb4_unicode_ci = ?", [$prNoTarget])
+                    ->orderBy('d.ID', 'ASC')
+                    ->select(
+                        'd.*',
+                        'pc.Main_Category',
+                        'pc.Category as Master_Category',
+                        'pc.Description as Master_Description',
+                        'pc.Specification as Master_Specification',
+                        'pc.Product_Brand',
+                        'pc.Product_Type',
+                        'pc.Unit_Name as Master_Unit_Name',
+                        'pc.UnitPrice as Master_UnitPrice',
+                        'pc.Price as Master_Price',
+                        'pc.Qty_Stock',
+                        'pc.Location as Master_Location'
+                    )
+                    ->get();
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('PR detail items query failed: ' . $e->getMessage());
+                $prContext = null;
+                $prItems = collect();
+            }
+        }
+
+
+        $approvalTrail = $this->workflow->buildApprovalTrail((int) $task->Request_ID);
+
         return compact(
             'task',
             'candidates',
             'logs',
+            'approvalTrail',
             'isAdmin',
             'canAct',
             'canClaim',
             'canRelease',
             'canForceApprove',
             'isMyClaim',
-            'payrollBreakdown'
+            'payrollBreakdown',
+            'assetHandoverContext',
+            'prItems'
         );
     }
 

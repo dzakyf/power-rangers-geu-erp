@@ -106,6 +106,39 @@
             </div>
         </div>
 
+        @if(!empty($assetHandoverContext) && !empty($assetHandoverContext['handover']))
+            @php
+                $ahCtx = $assetHandoverContext['handover'];
+                $ahDocType = $assetHandoverContext['doc_type'];
+                $ahBastDocs = $assetHandoverContext['bast_docs'] ?? [];
+                $ahBastPrintUrl = $assetHandoverContext['bast_print_url'] ?? url('hrd-asset-handover-bast-print?Handover_No=' . urlencode($ahCtx->Handover_No) . '&doc_type=' . $ahDocType);
+            @endphp
+            <div class="finora-card mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="fw-bold small text-uppercase text-muted">
+                        <i class="fas fa-file-pdf text-danger me-1"></i> BAST Sistem ({{ $ahDocType }})
+                    </span>
+                    <a href="{{ $ahBastPrintUrl }}" target="_blank" class="btn btn-danger btn-sm rounded-pill px-3 py-1" style="font-size: 11px;">
+                        <i class="fas fa-print me-1"></i> Cetak PDF
+                    </a>
+                </div>
+                @forelse($ahBastDocs as $doc)
+                    <div class="sub-item-card d-flex justify-content-between align-items-center gap-2">
+                        <div class="small">
+                            <div class="fw-bold text-break">{{ $doc['original_name'] }}</div>
+                            <div class="text-muted" style="font-size: 11px;">{{ strtoupper($doc['extension']) }} &bull; {{ $doc['file_size_fmt'] }}</div>
+                        </div>
+                        <div class="d-flex gap-1">
+                            <a href="{{ $doc['preview_url'] }}" target="_blank" class="btn btn-outline-primary btn-sm py-1 px-2"><i class="fas fa-eye"></i></a>
+                            <a href="{{ $doc['download_url'] }}" class="btn btn-outline-success btn-sm py-1 px-2"><i class="fas fa-download"></i></a>
+                        </div>
+                    </div>
+                @empty
+                    <div class="text-muted small">Tidak ada lampiran fisik tambahan untuk {{ $ahCtx->Handover_No }}.</div>
+                @endforelse
+            </div>
+        @endif
+
         <!-- Card 2: Kandidat Approver (Vertical Stack) -->
         <div class="finora-card mb-3">
             <div class="d-flex justify-content-between align-items-center mb-2">

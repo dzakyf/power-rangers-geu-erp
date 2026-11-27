@@ -2381,7 +2381,20 @@ public function detailPO(Request $request)
                 '=',
                 DB::raw('s.Supplier_ID COLLATE utf8mb4_unicode_ci')
             )
-            ->select('po.*', 's.Company_Name', 's.Address as Supplier_Address', 's.Phone as Supplier_Phone', 's.Email as Supplier_Email')
+            ->leftJoin(
+                'purchase_request as pr',
+                DB::raw('po.PR_No COLLATE utf8mb4_unicode_ci'),
+                '=',
+                DB::raw('pr.PR_No COLLATE utf8mb4_unicode_ci')
+            )
+            ->select(
+                'po.*',
+                's.Company_Name',
+                's.Address as Supplier_Address',
+                's.Phone as Supplier_Phone',
+                's.Email as Supplier_Email',
+                'pr.Urgency as Urgency'
+            )
             ->where('po.PO_No', $poNo)
             ->first();
 
@@ -2431,7 +2444,6 @@ public function detailPO(Request $request)
             ->header('Content-Type', 'application/pdf')
             ->header('Content-Disposition', 'inline; filename="' . $safeFilename . '"');
     }
-
     // Generate Split PO (1 PR menjadi Banyak PO berdasarkan item yang diceklis per vendor)
     public function generateSplitPO(Request $request)
     {
@@ -4406,6 +4418,964 @@ $poReceiveList = collect();
 
     return view('humanresources.procurement.mobile-po-good-received', compact('poReceiveList', 'userObj'));
 }
+    /**
+ * Menampilkan halaman Approval Purchase Order Berjenjang
+ */
+public function approvalPOInbox(Request $request)
+{
+    $user = Auth::user();
+    $username = $user->username ?? $user->Username ?? session('username');
+
+    // 1. Ambil Policy berdasarkan Request_Type dan Status = 'ACTIVE'
+    $policies = DB::table('approval_policy')
+        ->whereIn('Request_Type', ['PURCHASE_ORDER', 'PO', 'PROCUREMENT'])
+        ->where('Status', 'ACTIVE')
+        ->orderBy('Policy_Code')
+        ->get()
+        ->map(function ($policy) {
+            $policy->steps = DB::table('approval_policy_step')
+                ->where('Policy_ID', $policy->ID)
+                ->orderBy('Stage_Order')
+                ->orderBy('Level_Number')
+                ->get();
+            return $policy;
+        });
+
+    // 2. Ambil Task Approval PO sesuai kolom asli approval_request & purchase_order
+    $tasks = DB::table('approval_request_task as t')
+        ->join('approval_request as r', 'r.ID', '=', 't.Request_ID')
+        ->leftJoin('purchase_order as po', 'po.PO_No', '=', 'r.Request_No')
+        ->leftJoin('approval_policy as p', 'p.ID', '=', 'r.Policy_ID')
+        ->leftJoin('users as u', 'u.id', '=', 'r.Requester_Id')
+        ->whereIn('r.Request_Type', ['PURCHASE_ORDER', 'PO'])
+        ->select(
+            't.ID as task_id',
+            't.Request_ID as request_id',
+            't.Stage_Order as stage',
+            't.Level_Number as level',
+            't.Approval_Mode as mode',
+            't.Status as task_status',
+            't.Position_Code as position_code',
+            't.Position_Name as position_name',
+            'r.Request_No as po_no',
+            'r.Request_Type as type',
+            DB::raw("COALESCE(u.Name, u.username, r.Requester_Id) as requester"),
+            'r.Location as location',
+            DB::raw('COALESCE(r.Submitted_At, r.Created_At) as submitted_at'),
+            'r.Revision_No as revision_no',
+            'r.Status as request_status',
+            'p.Policy_Code as policy_code',
+            'p.Policy_Name as policy_name',
+            'po.PR_No as pr_no',
+            'po.Supplier as supplier',
+            DB::raw('COALESCE(po.Department, r.Department) as department'),
+            DB::raw('COALESCE(po.Total, r.Amount, 0) as total_amount')
+        )
+        ->orderByRaw("FIELD(t.Status, 'PENDING', 'WAITING', 'APPROVED', 'REJECTED')")
+        ->orderByDesc('r.ID')
+        ->get();
+
+    // 3. Hitung total stage per request
+    $stageCounts = DB::table('approval_request_task')
+        ->select('Request_ID', DB::raw('MAX(Stage_Order) as max_stage'))
+        ->groupBy('Request_ID')
+        ->pluck('max_stage', 'Request_ID');
+
+    return view('humanresources.procurement.approval-purchase-order', compact(
+        'policies',
+        'tasks',
+        'stageCounts',
+        'username'
+    ));
+}
+
+/**
+ * Mengambil detail lengkap Task Approval PO + Item PO + Jenjang Stage (AJAX)
+ */
+public function getApprovalPODetail($taskId)
+{
+    $task = DB::table('approval_request_task as t')
+        ->join('approval_request as r', 'r.ID', '=', 't.Request_ID')
+        ->leftJoin('purchase_order as po', 'po.PO_No', '=', 'r.Request_No')
+        ->leftJoin('approval_policy as p', 'p.ID', '=', 'r.Policy_ID')
+        ->leftJoin('users as u', 'u.id', '=', 'r.Requester_Id')
+        ->where('t.ID', $taskId)
+        ->select(
+            't.*',
+            'r.Request_No as po_no',
+            'r.Request_Type as module_type',
+            DB::raw("COALESCE(u.Name, u.username, r.Requester_Id) as requester"),
+            'r.Department as req_department',
+            'r.Location as location',
+            'r.Company_ID as company',
+            'r.Amount as req_amount',
+            'r.Revision_No as revision_no',
+            'r.Status as doc_status',
+            'r.Description as description',
+            DB::raw('COALESCE(r.Submitted_At, r.Created_At) as submitted_at'),
+            'p.Policy_Code as policy_code',
+            'p.Policy_Name as policy_name',
+            'po.ID as po_id',
+            'po.PR_No as pr_no',
+            'po.Supplier as supplier',
+            'po.Department as po_department',
+            'po.Term_Payment as payment_term',
+            'po.Total as po_total',
+            'po.Status as po_status'
+        )
+        ->first();
+
+    if (!$task) {
+        return response()->json(['success' => false, 'message' => 'Task approval PO tidak ditemukan.'], 404);
+    }
+
+    $items = DB::table('purchase_order_dtl')
+        ->where('PO_No', $task->po_no)
+        ->get();
+
+    $candidates = DB::table('users')
+        ->when(!empty($task->Position_ID), function ($q) use ($task) {
+            $q->where('Position_ID', $task->Position_ID);
+        }, function ($q) use ($task) {
+            $q->where('Position', $task->Position_Name);
+        })
+        ->select('Name as name', 'username', 'Department as dept')
+        ->get();
+
+    $allStages = DB::table('approval_request_task')
+        ->where('Request_ID', $task->Request_ID)
+        ->orderBy('Stage_Order')
+        ->orderBy('Level_Number')
+        ->get();
+
+    return response()->json([
+        'success'    => true,
+        'task'       => $task,
+        'items'      => $items,
+        'candidates' => $candidates,
+        'stages'     => $allStages,
+    ]);
+}
+
+/**
+ * Proses Approve / Reject / Force Approve Berjenjang
+ */
+public function processPOApprovalAction(Request $request)
+{
+    $request->validate([
+        'task_id' => 'required|integer',
+        'action'  => 'required|in:APPROVE,REJECT,FORCE_APPROVE',
+        'remarks' => 'nullable|string|max:500',
+    ]);
+
+    $user = Auth::user();
+    $username = $user->username ?? $user->Username ?? session('username') ?? 'SYSTEM';
+    $notes = $request->remarks;
+
+    DB::beginTransaction();
+    try {
+        $task = DB::table('approval_request_task')->where('ID', $request->task_id)->lockForUpdate()->first();
+        if (!$task) {
+            throw new \RuntimeException('Task approval tidak ditemukan.');
+        }
+
+        if ($task->Status !== 'PENDING') {
+            throw new \RuntimeException('Task ini sudah diproses atau belum memasuki gilirannya (Status: ' . $task->Status . ').');
+        }
+
+        $approvalReq = DB::table('approval_request')->where('ID', $task->Request_ID)->lockForUpdate()->first();
+        $poNo = $approvalReq->Request_No ?? null;
+        $now = now();
+
+        if ($request->action === 'REJECT') {
+            DB::table('approval_request_task')->where('ID', $task->ID)->update([
+                'Status'     => 'REJECTED',
+                'Action'     => 'REJECT',
+                'Acted_By'   => $username,
+                'Acted_At'   => $now,
+                'Notes'      => $notes,
+                'Updated_At' => $now,
+            ]);
+
+            // Batalkan stage berikutnya yang masih PENDING / WAITING
+            DB::table('approval_request_task')
+                ->where('Request_ID', $task->Request_ID)
+                ->whereIn('Status', ['PENDING', 'WAITING'])
+                ->update([
+                    'Status'     => 'CANCELLED',
+                    'Updated_At' => $now,
+                ]);
+
+            DB::table('approval_request')->where('ID', $task->Request_ID)->update([
+                'Status'     => 'REJECTED',
+                'Updated_At' => $now,
+            ]);
+
+            if (!empty($poNo)) {
+                DB::table('purchase_order')->where('PO_No', $poNo)->update([
+                    'Status' => 'REJECTED',
+                ]);
+            }
+        } elseif ($request->action === 'FORCE_APPROVE') {
+            // Setujui task aktif dan seluruh sisa stage
+            DB::table('approval_request_task')
+                ->where('Request_ID', $task->Request_ID)
+                ->whereIn('Status', ['PENDING', 'WAITING'])
+                ->update([
+                    'Status'     => 'APPROVED',
+                    'Action'     => 'FORCE_APPROVE',
+                    'Acted_By'   => $username . ' (FORCE)',
+                    'Acted_At'   => $now,
+                    'Notes'      => $notes ?? 'Force Approved',
+                    'Updated_At' => $now,
+                ]);
+
+            DB::table('approval_request')->where('ID', $task->Request_ID)->update([
+                'Status'     => 'APPROVED',
+                'Updated_At' => $now,
+            ]);
+
+            if (!empty($poNo)) {
+                DB::table('purchase_order')->where('PO_No', $poNo)->update([
+                    'Status' => 'APPROVED',
+                ]);
+            }
+        } else {
+            // APPROVE normal bertahap
+            DB::table('approval_request_task')->where('ID', $task->ID)->update([
+                'Status'     => 'APPROVED',
+                'Action'     => 'APPROVE',
+                'Acted_By'   => $username,
+                'Acted_At'   => $now,
+                'Notes'      => $notes,
+                'Updated_At' => $now,
+            ]);
+
+            // Cek apakah masih ada task PENDING di stage yang sama (jika mode ALL)
+            $remainingSameStage = DB::table('approval_request_task')
+                ->where('Request_ID', $task->Request_ID)
+                ->where('Stage_Order', $task->Stage_Order)
+                ->where('Status', 'PENDING')
+                ->count();
+
+            if ($remainingSameStage === 0) {
+                // Cari stage berikutnya yang masih WAITING
+                $nextStage = DB::table('approval_request_task')
+                    ->where('Request_ID', $task->Request_ID)
+                    ->where('Stage_Order', '>', $task->Stage_Order)
+                    ->where('Status', 'WAITING')
+                    ->min('Stage_Order');
+
+                if ($nextStage) {
+                    // Aktifkan stage berikutnya menjadi PENDING
+                    DB::table('approval_request_task')
+                        ->where('Request_ID', $task->Request_ID)
+                        ->where('Stage_Order', $nextStage)
+                        ->update([
+                            'Status'     => 'PENDING',
+                            'Updated_At' => $now,
+                        ]);
+                } else {
+                    // Semua stage selesai -> dokumen resmi APPROVED
+                    DB::table('approval_request')->where('ID', $task->Request_ID)->update([
+                        'Status'     => 'APPROVED',
+                        'Updated_At' => $now,
+                    ]);
+
+                    if (!empty($poNo)) {
+                        DB::table('purchase_order')->where('PO_No', $poNo)->update([
+                            'Status' => 'APPROVED',
+                        ]);
+                    }
+                }
+            }
+        }
+
+        DB::commit();
+        return response()->json([
+            'success' => true,
+            'message' => 'Aksi ' . $request->action . ' untuk ' . ($poNo ?? 'dokumen') . ' berhasil diproses.',
+        ]);
+    } catch (\Throwable $e) {
+        DB::rollBack();
+        return response()->json([
+            'success' => false,
+            'message' => 'Gagal memproses approval: ' . $e->getMessage(),
+        ], 422);
+    }
+}
 
 
+private function createPOApprovalRequest(string $poNo): void
+{
+    $po = DB::table('purchase_order')->where('PO_No', $poNo)->first();
+    if (!$po) {
+        return;
+    }
+
+    // Hindari duplikasi jika sudah ada request approval untuk PO ini
+    $existing = DB::table('approval_request')
+        ->where('Request_No', $poNo)
+        ->whereIn('Request_Type', ['PURCHASE_ORDER', 'PO'])
+        ->first();
+    if ($existing) {
+        return;
+    }
+
+    $totalAmount = (float) ($po->Total ?? 0);
+    $now = now();
+    $userObj = Auth::user();
+    $requesterId = $userObj->id ?? null;
+
+    // Cari policy khusus PO yang sesuai nominal (Min_Amount .. Max_Amount)
+    $policy = DB::table('approval_policy')
+        ->whereIn('Request_Type', ['PURCHASE_ORDER', 'PO'])
+        ->where('Status', 'ACTIVE')
+        ->where(function ($q) use ($totalAmount) {
+            $q->whereNull('Min_Amount')->orWhere('Min_Amount', '<=', $totalAmount);
+        })
+        ->where(function ($q) use ($totalAmount) {
+            $q->whereNull('Max_Amount')->orWhere('Max_Amount', '>=', $totalAmount);
+        })
+        ->orderByDesc('Min_Amount')
+        ->first();
+
+    $steps = collect();
+    if ($policy) {
+        $steps = DB::table('approval_policy_step')
+            ->where('Policy_ID', $policy->ID)
+            ->orderBy('Stage_Order')
+            ->orderBy('Level_Number')
+            ->orderBy('ID')
+            ->get();
+    }
+
+    $firstStage = $steps->first()->Stage_Order ?? 1;
+    $firstLevel = $steps->first()->Level_Number ?? 1;
+
+    $reqId = DB::table('approval_request')->insertGetId([
+        'Status'       => 'PENDING',
+        'Requester_Id' => $requesterId,
+        'Description'  => 'Approval Purchase Order ' . $poNo . ' (Ref PR: ' . ($po->PR_No ?? '-') . ')',
+        'Request_Type' => 'PURCHASE_ORDER',
+        'Current_Stage'=> $firstStage,
+        'Current_Level'=> $firstLevel,
+        'Submitted_At' => $now,
+        'Created_At'   => $now,
+        'Updated_At'   => $now,
+        'Request_No'   => $poNo,
+        'Policy_ID'    => $policy->ID ?? null,
+        'Location'     => $po->Location ?? null,
+        'Department'   => $po->Department ?? null,
+        'Amount'       => $totalAmount,
+    ]);
+
+    if ($steps->isNotEmpty()) {
+        foreach ($steps as $st) {
+            $isActiveStage = ((int) $st->Stage_Order === (int) $firstStage);
+            DB::table('approval_request_task')->insert([
+                'Request_ID'    => $reqId,
+                'Stage_Order'   => $st->Stage_Order,
+                'Level_Number'  => $st->Level_Number,
+                'Position_ID'   => $st->Position_ID ?? null,
+                'Position_Code' => $st->Position_Code ?? null,
+                'Position_Name' => $st->Label ?? ($st->Position_Code ?? 'Approver'),
+                'Approval_Mode' => $st->Approval_Mode ?? 'ALL',
+                'Status'        => $isActiveStage ? 'PENDING' : 'WAITING',
+                'Created_At'    => $now,
+            ]);
+        }
+    } else {
+        // Fallback 1 stage jika belum ada step policy PO di database
+        DB::table('approval_request_task')->insert([
+            'Request_ID'    => $reqId,
+            'Stage_Order'   => 1,
+            'Level_Number'  => 1,
+            'Position_Name' => 'Manager / Approver PO',
+            'Approval_Mode' => 'ALL',
+            'Status'        => 'PENDING',
+            'Created_At'    => $now,
+        ]);
+    }
+}
+
+/**
+ * Menampilkan halaman Approval Purchase Request (PR) Berjenjang
+ */
+public function approvalPRInbox(Request $request)
+{
+    $user = Auth::user();
+    $username = $user->username ?? $user->Username ?? session('username');
+
+    // 1. Ambil daftar Policy PR aktif beserta step jenjangnya
+    $policies = DB::table('approval_policy')
+        ->where(function ($q) {
+            $q->whereIn('Request_Type', ['PURCHASE_REQUEST', 'PR', 'PROCUREMENT'])
+              ->orWhereRaw("Policy_Code COLLATE utf8mb4_unicode_ci LIKE 'PR\\_%' COLLATE utf8mb4_unicode_ci");
+        })
+        ->where('Status', 'ACTIVE')
+        ->orderBy('Policy_Code')
+        ->get()
+        ->map(function ($policy) {
+            $policy->steps = DB::table('approval_policy_step')
+                ->where('Policy_ID', $policy->ID)
+                ->orderBy('Stage_Order')
+                ->orderBy('Level_Number')
+                ->orderBy('ID')
+                ->get();
+            return $policy;
+        });
+
+    // 2. Ambil PR yang statusnya masih PENDING (diurutkan dari yang paling baru dibuat)
+    $pendingPRs = DB::table('purchase_request')
+        ->whereRaw("UPPER(COALESCE(Status, '')) = 'PENDING'")
+        ->orderByDesc('Created_Date')
+        ->orderByDesc('ID')
+        ->get();
+
+    $prNos = $pendingPRs->pluck('PR_No')->filter()->unique()->values()->all();
+
+    // Ambil task approval aktif/pending terkait PR tersebut jika ada
+    $tasksByPrNo = !empty($prNos)
+        ? DB::table('approval_request_task as t')
+            ->join('approval_request as r', 'r.ID', '=', 't.Request_ID')
+            ->whereIn('r.Request_No', $prNos)
+            ->orderBy('t.Stage_Order')
+            ->orderBy('t.Level_Number')
+            ->orderBy('t.ID')
+            ->select(
+                't.ID as task_id',
+                't.Request_ID as request_id',
+                't.Stage_Order as stage',
+                't.Level_Number as level',
+                't.Approval_Mode as mode',
+                't.Status as task_status',
+                't.Position_ID as position_id',
+                't.Position_Code as position_code',
+                't.Position_Name as position_name',
+                'r.Request_No as pr_no',
+                'r.Policy_ID as policy_id'
+            )
+            ->get()
+            ->groupBy('pr_no')
+        : collect();
+
+    $policyIds = $tasksByPrNo->flatten(1)->pluck('policy_id')->filter()->unique()->values()->all();
+    $policiesById = !empty($policyIds)
+        ? DB::table('approval_policy')->whereIn('ID', $policyIds)->get()->keyBy('ID')
+        : collect();
+
+    $tasks = $pendingPRs->map(function ($pr, $index) use ($tasksByPrNo, $policiesById) {
+        $prTasks = $tasksByPrNo->get($pr->PR_No, collect());
+        $activeTask = $prTasks->firstWhere('task_status', 'PENDING') ?? $prTasks->first();
+        $pol = ($activeTask && !empty($activeTask->policy_id))
+            ? $policiesById->get($activeTask->policy_id)
+            : null;
+
+        return (object) [
+            'task_id'         => $activeTask->task_id ?? ($pr->ID ?? ($index + 1)),
+            'request_id'      => $activeTask->request_id ?? ($pr->Approval_Request_ID ?? $pr->ID),
+            'pr_id'           => $pr->ID,
+            'pr_no'           => $pr->PR_No,
+            'po_no'           => $pr->PR_No, // kompatibel dengan Blade lama jika memanggil $t->po_no
+            'supplier'        => $pr->Supplier_Name ?: ($pr->PIC ?: '-'),
+            'requester'       => $pr->PIC ?: ($pr->User_Request_Name ?: ($pr->Request_By ?: ($pr->Created_By ?: '-'))),
+            'department'      => $pr->Department ?: ($pr->Department_Request ?: '-'),
+            'location'        => $pr->Location ?: '-',
+            'urgency'         => $pr->Urgency ?: '-',
+            'hope_date'       => $pr->Hope_Date,
+            'pr_date'         => $pr->PR_Date,
+            'submitted_at'    => $pr->Created_Date,
+            'total_amount'    => (float) ($pr->Estimated_Budget ?? 0),
+            'estimated_budget'=> (float) ($pr->Estimated_Budget ?? 0),
+            'pr_status'       => $pr->Status ?: 'PENDING',
+            'task_status'     => $activeTask->task_status ?? ($pr->Status ?: 'PENDING'),
+            'stage'           => $activeTask->stage ?? 1,
+            'level'           => $activeTask->level ?? 1,
+            'mode'            => $activeTask->mode ?? 'ALL',
+            'position_id'     => $activeTask->position_id ?? null,
+            'position_code'   => $activeTask->position_code ?? 'PR',
+            'position_name'   => $activeTask->position_name ?? 'PR Approval',
+            'policy_code'     => $pol->Policy_Code ?? 'PR-STD',
+            'policy_name'     => $pol->Policy_Name ?? 'Purchase Request Approval',
+        ];
+    });
+
+    // 3. Hitung total stage per request untuk tampilan "Stage 1/3"
+    $requestIds = $tasks->pluck('request_id')->filter()->unique()->values()->all();
+    $stageCounts = !empty($requestIds)
+        ? DB::table('approval_request_task')
+            ->whereIn('Request_ID', $requestIds)
+            ->select('Request_ID', DB::raw('MAX(Stage_Order) as max_stage'))
+            ->groupBy('Request_ID')
+            ->pluck('max_stage', 'Request_ID')
+        : collect();
+
+    return view('humanresources.procurement.approval-purchase-request', compact(
+        'policies',
+        'tasks',
+        'stageCounts',
+        'username'
+    ));
+}
+
+public function getApprovalPRDetail(Request $request, $id = null)
+{
+    try {
+        $taskId = $id ?? $request->input('task_id');
+
+        if (empty($taskId)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Task ID wajib diisi.'
+            ], 422);
+        }
+
+        $row = DB::table('approval_request_task as t')
+            ->join('approval_request as r', 'r.ID', '=', 't.Request_ID')
+            ->where('t.ID', $taskId)
+            ->select(
+                't.*',
+                'r.Request_No as pr_no',
+                'r.Request_Type as module_type',
+                'r.Requester_Id as requester_id',
+                'r.Department as req_department',
+                'r.Location as location',
+                'r.Company_ID as company',
+                'r.Amount as req_amount',
+                'r.Revision_No as revision_no',
+                'r.Status as doc_status',
+                'r.Description as description',
+                'r.Policy_Snapshot as policy_snapshot',
+                'r.Submitted_At',
+                'r.Created_At',
+                'r.Policy_ID as policy_id'
+            )
+            ->first();
+
+        if (!$row) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Task approval PR tidak ditemukan.'
+            ], 404);
+        }
+
+        $pr = !empty($row->pr_no)
+            ? DB::table('purchase_request')
+                ->whereRaw("TRIM(PR_No) COLLATE utf8mb4_unicode_ci = ?", [trim((string) $row->pr_no)])
+                ->first()
+            : null;
+
+        $pol = !empty($row->policy_id)
+            ? DB::table('approval_policy')->where('ID', $row->policy_id)->first()
+            : null;
+
+        $usr = null;
+        if (!empty($row->requester_id)) {
+            $usr = is_numeric($row->requester_id)
+                ? DB::table('users')->where('id', $row->requester_id)->first()
+                : DB::table('users')
+                    ->whereRaw("username COLLATE utf8mb4_unicode_ci = ?", [(string) $row->requester_id])
+                    ->first();
+        }
+
+        $prArr  = $pr ? (array) $pr : [];
+        $usrArr = $usr ? (array) $usr : [];
+
+        $requesterName = ($usrArr['Name'] ?? $usrArr['name'] ?? $usrArr['username'] ?? null)
+            ?? ($prArr['PIC'] ?? $prArr['Created_By'] ?? $row->requester_id ?? '-');
+
+        $prNoClean = trim((string) ($prArr['PR_No'] ?? $row->pr_no ?? ''));
+
+        $task = (object) array_merge((array) $row, [
+            'pr_no'         => $prNoClean ?: '-',
+            'po_no'         => $prNoClean ?: '-',
+            'supplier'      => $prArr['Supplier_Name'] ?? ($prArr['PIC'] ?? '-'),
+            'requester'     => $requesterName,
+            'department'    => $prArr['Department'] ?? ($row->req_department ?? '-'),
+            'payment_term'  => $prArr['Urgency'] ?? '-',
+            'budget_amount' => isset($prArr['Estimated_Budget']) ? (float) $prArr['Estimated_Budget'] : (float) ($row->req_amount ?? 0),
+            'pr_status'     => $prArr['Status'] ?? ($row->doc_status ?? 'PENDING'),
+            'policy_code'   => $pol->Policy_Code ?? 'PR-STD',
+            'policy_name'   => $pol->Policy_Name ?? 'Purchase Request Approval',
+            'submitted_at'  => $prArr['Created_Date'] ?? ($row->Submitted_At ?: $row->Created_At),
+            'description'   => $prArr['Note'] ?? ($row->description ?? '-'),
+        ]);
+
+        // Ambil item PR + data lengkap master produk dari tabel `product_code`
+        $items = collect();
+        if ($prNoClean !== '') {
+            $items = DB::table('purchase_request_dtl as d')
+                ->leftJoin(
+                    'product_code as pc',
+                    DB::raw('TRIM(d.Product_Code) COLLATE utf8mb4_unicode_ci'),
+                    '=',
+                    DB::raw('TRIM(pc.Product_Code) COLLATE utf8mb4_unicode_ci')
+                )
+                ->whereRaw("TRIM(d.PR_No) COLLATE utf8mb4_unicode_ci = ?", [$prNoClean])
+                ->orderBy('d.ID', 'ASC')
+                ->select(
+                    'd.*',
+                    'pc.ID as Master_Product_ID',
+                    'pc.Main_Category',
+                    'pc.Category',
+                    'pc.Supplies_Type',
+                    'pc.Description as Master_Description',
+                    'pc.Specification as Master_Specification',
+                    'pc.Product_Brand',
+                    'pc.Product_Type',
+                    'pc.Unit_Name as Master_Unit_Name',
+                    'pc.UnitPrice as Master_UnitPrice',
+                    'pc.Price as Master_Price',
+                    'pc.Qty_Stock',
+                    'pc.Location as Master_Location',
+                    'pc.status_Muncul',
+                    'pc.Status as Master_Status'
+                )
+                ->get();
+        }
+
+        // Ambil user yang berhak/kandidat approval untuk tahap/posisi ini
+        $posName = trim((string) ($task->Position_Name ?? ''));
+        $posCode = trim((string) ($task->Position_Code ?? ''));
+
+        $q = DB::table('users')
+            ->select(
+                'id',
+                'Name as name',
+                'username',
+                'Position as position',
+                'Department as dept',
+                'Location as location',
+                'PR_Approval as pr_approval',
+                'BP_Approval as bp_approval',
+                'Status as status'
+            )
+            ->where(function ($stQ) {
+                $stQ->whereNull('Status')
+                    ->orWhereNotIn(DB::raw("UPPER(TRIM(Status))"), ['0', 'INACTIVE', 'NONACTIVE', 'DISABLED', 'RESIGN', 'DELETED', '']);
+            });
+
+        $hasSpecificFilter = false;
+        $q->where(function ($sub) use ($posName, $posCode, &$hasSpecificFilter) {
+            if ($posName !== '' && strtoupper($posName) !== 'PR APPROVAL') {
+                $hasSpecificFilter = true;
+                $sub->orWhereRaw("UPPER(TRIM(Position)) = ?", [strtoupper($posName)]);
+            }
+            if ($posCode !== '' && strtoupper($posCode) !== 'PR') {
+                $hasSpecificFilter = true;
+                $sub->orWhereRaw("UPPER(TRIM(Position)) = ?", [strtoupper($posCode)])
+                    ->orWhereRaw("UPPER(TRIM(Position)) LIKE ?", [strtoupper($posCode) . ' %'])
+                    ->orWhereRaw("UPPER(TRIM(Position)) LIKE ?", ['% - ' . strtoupper($posCode)])
+                    ->orWhereRaw("UPPER(TRIM(Position)) LIKE ?", ['%(' . strtoupper($posCode) . ')%']);
+            }
+        });
+
+        if (!$hasSpecificFilter) {
+            $q->whereIn(
+                DB::raw("UPPER(TRIM(COALESCE(PR_Approval, '')))"),
+                ['1', 'Y', 'YES', 'TRUE', 'ACTIVE', 'APPROVE', 'APPROVED']
+            );
+        }
+
+        $candidates = $q->orderBy('Name', 'ASC')->get();
+
+        // Ambil seluruh task yang sudah ada pada request ini
+        $allStages = DB::table('approval_request_task')
+            ->where('Request_ID', $task->Request_ID)
+            ->orderBy('Stage_Order')
+            ->orderBy('Level_Number')
+            ->orderBy('ID')
+            ->get();
+
+        // Ambil daftar step konfigurasi dari approval_policy_step (atau Policy_Snapshot)
+        // Ambil daftar step konfigurasi dari approval_policy_step (atau Policy_Snapshot)
+        $policySteps = collect();
+        if (!empty($row->policy_id)) {
+            try {
+                $mpCols = Schema::hasTable('master_position') ? Schema::getColumnListing('master_position') : [];
+                $posNameCol = in_array('Position_Name', $mpCols) ? 'mp.Position_Name'
+                    : (in_array('Position', $mpCols) ? 'mp.Position'
+                    : (in_array('Name', $mpCols) ? 'mp.Name' : null));
+                $posCodeCol = in_array('Position_Code', $mpCols) ? 'mp.Position_Code'
+                    : (in_array('Code', $mpCols) ? 'mp.Code' : null);
+
+                $qSteps = DB::table('approval_policy_step as s')
+                    ->where('s.Policy_ID', $row->policy_id)
+                    ->orderBy('s.Stage_Order', 'ASC')
+                    ->orderBy('s.Level_Number', 'ASC')
+                    ->orderBy('s.ID', 'ASC');
+
+                $selects = ['s.*'];
+                if ($posNameCol && Schema::hasColumn('approval_policy_step', 'Position_ID')) {
+                    $qSteps->leftJoin('master_position as mp', 'mp.ID', '=', 's.Position_ID');
+                    $selects[] = DB::raw("{$posNameCol} as Master_Position_Name");
+                }
+                if ($posCodeCol && Schema::hasColumn('approval_policy_step', 'Position_ID')) {
+                    $selects[] = DB::raw("{$posCodeCol} as Master_Position_Code");
+                }
+
+                $policySteps = $qSteps->select($selects)->get();
+            } catch (\Throwable $stepErr) {
+                $policySteps = DB::table('approval_policy_step')
+                    ->where('Policy_ID', $row->policy_id)
+                    ->orderBy('Stage_Order', 'ASC')
+                    ->orderBy('Level_Number', 'ASC')
+                    ->orderBy('ID', 'ASC')
+                    ->get();
+            }
+        }
+
+        if ($policySteps->isEmpty() && !empty($row->policy_snapshot)) {
+            $snap = json_decode($row->policy_snapshot, true);
+            $snapSteps = $snap['steps'] ?? ($snap['policy_steps'] ?? []);
+            if (is_array($snapSteps) && count($snapSteps) > 0) {
+                $policySteps = collect($snapSteps)->map(function ($st) {
+                    return (object) $st;
+                });
+            }
+        }
+
+        // Susun Jenjang Approval Lengkap (gabungan step policy + task aktual)
+        $approvalMatrix = [];
+        $usedTaskIds = [];
+
+        foreach ($policySteps as $st) {
+            $stageOrder = (int) ($st->Stage_Order ?? $st->stage_order ?? 1);
+            $levelNum   = (int) ($st->Level_Number ?? $st->level_number ?? $stageOrder);
+            $stepPosId  = $st->Position_ID ?? $st->position_id ?? null;
+            $stepPosCode = trim((string) ($st->Position_Code ?? $st->position_code ?? $st->Master_Position_Code ?? ''));
+            $stepPosName = trim((string) ($st->Label ?? $st->label ?? $st->Master_Position_Name ?? $st->Position_Name ?? ($stepPosCode ?: 'Approver')));
+
+            // Cari task yang cocok dengan stage / posisi step ini
+            $matchedTask = $allStages->first(function ($tItem) use ($stageOrder, $stepPosId, $stepPosCode, $usedTaskIds) {
+                if (in_array($tItem->ID, $usedTaskIds, true)) {
+                    return false;
+                }
+                if ((int) ($tItem->Stage_Order ?? 1) !== $stageOrder) {
+                    return false;
+                }
+                if (!empty($stepPosId) && !empty($tItem->Position_ID) && (int) $stepPosId === (int) $tItem->Position_ID) {
+                    return true;
+                }
+                if ($stepPosCode !== '' && !empty($tItem->Position_Code) && strtoupper(trim((string) $tItem->Position_Code)) === strtoupper($stepPosCode)) {
+                    return true;
+                }
+                return true;
+            });
+
+            if ($matchedTask) {
+                $usedTaskIds[] = $matchedTask->ID;
+                $rawStatus = strtoupper(trim((string) ($matchedTask->Status ?? 'PENDING')));
+                $actor = trim((string) ($matchedTask->Acted_By ?? ''));
+                $actedAt = $matchedTask->Acted_At ?? null;
+                $notes = trim((string) ($matchedTask->Notes ?? ''));
+
+                if ($rawStatus === 'PENDING') {
+                    $statusLabel = 'Menunggu Approval';
+                    $statusBadge = 'PENDING';
+                    $executorText = $actor !== '' ? $actor : ('Kandidat: ' . ($task->Position_Name ?? $stepPosName));
+                    $noteText = $notes !== '' ? $notes : '-';
+                } elseif ($rawStatus === 'WAITING') {
+                    $statusLabel = 'Menunggu Giliran';
+                    $statusBadge = 'WAITING';
+                    $executorText = $actor !== '' ? $actor : '-';
+                    $noteText = $notes !== '' ? $notes : 'Menunggu persetujuan tahap sebelumnya.';
+                } elseif (in_array($rawStatus, ['APPROVED', 'AUTO_APPROVED'], true)) {
+                    $statusLabel = $rawStatus === 'AUTO_APPROVED' ? 'Auto Approved' : 'Disetujui';
+                    $statusBadge = 'APPROVED';
+                    $executorText = $actor !== '' ? $actor : '-';
+                    $noteText = $notes !== '' ? $notes : '-';
+                } elseif ($rawStatus === 'REJECTED') {
+                    $statusLabel = 'Ditolak';
+                    $statusBadge = 'REJECTED';
+                    $executorText = $actor !== '' ? $actor : '-';
+                    $noteText = $notes !== '' ? $notes : '-';
+                } elseif (in_array($rawStatus, ['SKIPPED', 'CANCELLED'], true)) {
+                    $statusLabel = $rawStatus === 'SKIPPED' ? 'Dilewati' : 'Dibatalkan';
+                    $statusBadge = $rawStatus;
+                    $executorText = $actor !== '' ? $actor : '-';
+                    $noteText = $notes !== '' ? $notes : '-';
+                } else {
+                    $statusLabel = $rawStatus ?: 'Menunggu Giliran';
+                    $statusBadge = $rawStatus ?: 'WAITING';
+                    $executorText = $actor !== '' ? $actor : '-';
+                    $noteText = $notes !== '' ? $notes : '-';
+                }
+
+                $approvalMatrix[] = [
+                    'stage_order'   => $stageOrder,
+                    'level_number'  => $levelNum,
+                    'stage_label'   => 'Stage ' . $stageOrder,
+                    'position_name' => trim((string) ($matchedTask->Position_Name ?? '')) ?: $stepPosName,
+                    'position_code' => trim((string) ($matchedTask->Position_Code ?? '')) ?: $stepPosCode,
+                    'status_raw'    => $rawStatus,
+                    'status_badge'  => $statusBadge,
+                    'status_label'  => $statusLabel,
+                    'executor'      => $executorText,
+                    'acted_at'      => $actedAt,
+                    'notes'         => $noteText,
+                ];
+            } else {
+                // Stage mendatang yang belum memiliki task di `approval_request_task`
+                $approvalMatrix[] = [
+                    'stage_order'   => $stageOrder,
+                    'level_number'  => $levelNum,
+                    'stage_label'   => 'Stage ' . $stageOrder,
+                    'position_name' => $stepPosName,
+                    'position_code' => $stepPosCode,
+                    'status_raw'    => 'WAITING',
+                    'status_badge'  => 'WAITING',
+                    'status_label'  => 'Menunggu Giliran',
+                    'executor'      => '-',
+                    'acted_at'      => null,
+                    'notes'         => 'Menunggu persetujuan tahap sebelumnya.',
+                ];
+            }
+        }
+
+        // Jika ada task di `approval_request_task` yang belum masuk (misal tanpa policy step)
+        foreach ($allStages as $tItem) {
+            if (!in_array($tItem->ID, $usedTaskIds, true)) {
+                $stageOrder = (int) ($tItem->Stage_Order ?? 1);
+                $rawStatus = strtoupper(trim((string) ($tItem->Status ?? 'PENDING')));
+                $actor = trim((string) ($tItem->Acted_By ?? ''));
+                $notes = trim((string) ($tItem->Notes ?? ''));
+
+                $statusMap = [
+                    'PENDING'       => 'Menunggu Approval',
+                    'WAITING'       => 'Menunggu Giliran',
+                    'APPROVED'      => 'Disetujui',
+                    'AUTO_APPROVED' => 'Auto Approved',
+                    'REJECTED'      => 'Ditolak',
+                    'SKIPPED'       => 'Dilewati',
+                    'CANCELLED'     => 'Dibatalkan',
+                ];
+
+                $approvalMatrix[] = [
+                    'stage_order'   => $stageOrder,
+                    'level_number'  => (int) ($tItem->Level_Number ?? $stageOrder),
+                    'stage_label'   => 'Stage ' . $stageOrder,
+                    'position_name' => trim((string) ($tItem->Position_Name ?? 'Approver')),
+                    'position_code' => trim((string) ($tItem->Position_Code ?? '')),
+                    'status_raw'    => $rawStatus,
+                    'status_badge'  => in_array($rawStatus, ['APPROVED', 'AUTO_APPROVED'], true) ? 'APPROVED' : $rawStatus,
+                    'status_label'  => $statusMap[$rawStatus] ?? $rawStatus,
+                    'executor'      => $actor !== '' ? $actor : ($rawStatus === 'PENDING' ? 'Kandidat: ' . ($tItem->Position_Name ?? '-') : '-'),
+                    'acted_at'      => $tItem->Acted_At ?? null,
+                    'notes'         => $notes !== '' ? $notes : ($rawStatus === 'WAITING' ? 'Menunggu persetujuan tahap sebelumnya.' : '-'),
+                ];
+            }
+        }
+
+        usort($approvalMatrix, function ($a, $b) {
+            if ($a['stage_order'] === $b['stage_order']) {
+                return $a['level_number'] <=> $b['level_number'];
+            }
+            return $a['stage_order'] <=> $b['stage_order'];
+        });
+
+        // Ambil audit trail dari `approval_log` jika tabel tersedia
+        $auditLogs = [];
+        try {
+            if (\Illuminate\Support\Facades\Schema::hasTable('approval_log')) {
+                $auditLogs = DB::table('approval_log')
+                    ->where('Request_ID', $task->Request_ID)
+                    ->orderBy('ID', 'ASC')
+                    ->get()
+                    ->map(function ($log) {
+                        $arr = (array) $log;
+                        return [
+                            'time'   => $arr['Created_At'] ?? ($arr['Acted_At'] ?? ($arr['Timestamp'] ?? '-')),
+                            'actor'  => $arr['Actor_Name'] ?? ($arr['Acted_By'] ?? ($arr['User_Id'] ?? 'SYSTEM')),
+                            'action' => strtoupper((string) ($arr['Action'] ?? ($arr['Event_Type'] ?? 'ACTION'))),
+                            'stage'  => isset($arr['Stage_Order']) && $arr['Stage_Order'] !== null && $arr['Stage_Order'] !== ''
+                                ? 'Stage ' . $arr['Stage_Order']
+                                : 'Stage -',
+                            'notes'  => $arr['Notes'] ?? ($arr['Remarks'] ?? ($arr['Description'] ?? '-')),
+                        ];
+                    })
+                    ->values()
+                    ->all();
+            }
+        } catch (\Throwable $ignoreLogErr) {
+            $auditLogs = [];
+        }
+
+        return response()->json([
+            'success'         => true,
+            'task'            => $task,
+            'items'           => $items,
+            'candidates'      => $candidates,
+            'stages'          => $allStages,
+            'approval_matrix' => $approvalMatrix,
+            'audit_logs'      => $auditLogs,
+        ]);
+    } catch (\Throwable $e) {
+        return response()->json([
+            'success' => false,
+            'message' => $e->getMessage(),
+            'line'    => $e->getLine(),
+        ], 500);
+    }
+    }
+
+    public function grantSelfApprovalException(Request $request)
+{
+    $validated = $request->validate([
+        'task_id'    => 'required',
+        'reason'     => 'required|string|max:500',
+        'expires_at' => 'nullable|date',
+    ]);
+
+    $authUser = auth()->user();
+    if (!$authUser) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Sesi login tidak ditemukan.'
+        ], 401);
+    }
+
+    $actorName = trim((string) ($authUser->Name ?? $authUser->name ?? $authUser->username ?? 'ADMINISTRATOR'));
+
+    $task = DB::table('approval_request_task')->where('ID', $validated['task_id'])->first();
+    if (!$task) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Task approval tidak ditemukan.'
+        ], 404);
+    }
+
+    $expiresAt = !empty($validated['expires_at'])
+        ? \Carbon\Carbon::parse($validated['expires_at'])
+        : null;
+
+    if (Schema::hasTable('approval_self_approval_exception')) {
+        DB::table('approval_self_approval_exception')->insert([
+            'Request_ID' => $task->Request_ID,
+            'Task_ID'    => $task->ID,
+            'Reason'     => trim($validated['reason']),
+            'Expires_At' => $expiresAt ? $expiresAt->format('Y-m-d H:i:s') : null,
+            'Granted_By' => $actorName,
+            'Created_At' => now(),
+        ]);
+    }
+
+    if (Schema::hasTable('approval_log')) {
+        $expText = $expiresAt ? ' (Berlaku s/d ' . $expiresAt->format('Y-m-d H:i') . ')' : ' (Tanpa batas waktu)';
+        DB::table('approval_log')->insert([
+            'Request_ID' => $task->Request_ID,
+            'Stage_Order'=> $task->Stage_Order ?? null,
+            'Actor_Name' => strtoupper($actorName),
+            'Action'     => 'GRANT_EXCEPTION',
+            'Notes'      => trim($validated['reason']) . $expText,
+            'Created_At' => now(),
+        ]);
+    }
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Self-Approval Exception berhasil diberikan.'
+    ]);
+}
 }

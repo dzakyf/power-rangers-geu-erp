@@ -7012,6 +7012,32 @@ Route::post('/purchase-request-approve', [ProcurementController::class, 'approve
 // Detail PR Approved
 Route::get('/purchase-request-detail-approved', [ProcurementController::class, 'detailPRApproved']);
 
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('/approval-purchase-request', [ProcurementController::class, 'approvalPRInbox'])
+        ->name('procurement.pr.approval.inbox');
+
+    Route::get('/approval-purchase-request/detail/{taskId}', [ProcurementController::class, 'getApprovalPRDetail'])
+        ->name('procurement.pr.approval.detail');
+
+    Route::post('/approval-purchase-request/action', [ProcurementController::class, 'processPRApprovalAction'])
+        ->name('procurement.pr.approval.action');
+});
+
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('/approval-purchase-order', [ProcurementController::class, 'approvalPOInbox'])
+        ->name('procurement.po.approval.inbox');
+
+    Route::get('/approval-purchase-order/detail/{taskId}', [ProcurementController::class, 'getApprovalPODetail'])
+        ->name('procurement.po.approval.detail');
+
+    Route::post('/approval-purchase-order/action', [ProcurementController::class, 'processPOApprovalAction'])
+        ->name('procurement.po.approval.action');
+});
+
+
+
 // Proses Lanjut ke RFQ dari PR Approved
 
 Route::post('purchase-request-to-rfq', [App\Http\Controllers\ProcurementController::class, 'convertToRFQ']);
@@ -7038,6 +7064,9 @@ Route::get('print-pr', [ProcurementController::class, 'printPR']);
 Route::get('goods-received-list', [ProcurementController::class, 'goodsReceivedIndex']);
 Route::get('xml-goods-received-list', [ProcurementController::class, 'xmlGoodsReceivedList']);
 Route::get('goods-received-detail', [ProcurementController::class, 'detailGoodsReceived']);
+
+Route::post('/approval-purchase-request/grant-exception', [ProcurementController::class, 'grantSelfApprovalException'])
+    ->name('procurement.pr.approval.grant_exception');
 
 
 

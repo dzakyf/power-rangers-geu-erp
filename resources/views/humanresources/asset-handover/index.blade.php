@@ -23,6 +23,7 @@
 
     <div class="card shadow-sm border-0 mt-3">
         <div class="card-body">
+            @include('humanresources.asset-handover.partials.quick-nav', ['activeTab' => 'handover'])
             <div id="AssetHandover" style="width:100%;height:500px;background-color:white;overflow:hidden"></div>
             <div id="divtom2" class="d-flex flex-wrap align-items-center gap-2 mt-3">
                 <button type="button" id="FormAssetHandover" name="FormAssetHandover" class="btn btn-primary btn-sm">
@@ -30,6 +31,15 @@
                 </button>
                 <button type="button" id="DetailAssetHandover" name="DetailAssetHandover" class="btn btn-info btn-sm text-white">
                     <i class="fa fa-eye me-1"></i> Detail Handover
+                </button>
+                <button type="button" id="PrintBastHandoverBtn" class="btn btn-danger btn-sm">
+                    <i class="fa fa-file-pdf me-1"></i> Cetak BAST Handover
+                </button>
+                <button type="button" id="BastHandoverBtn" class="btn btn-outline-primary btn-sm">
+                    <i class="fa fa-paperclip me-1"></i> BAST &amp; Lampiran Handover
+                </button>
+                <button type="button" id="BastReturnBtn" class="btn btn-outline-warning btn-sm text-dark">
+                    <i class="fa fa-paperclip me-1"></i> BAST &amp; Lampiran Return
                 </button>
                 <button type="button" id="LogAssetHandover" name="LogAssetHandover" class="btn btn-success btn-sm">
                     <i class="fa fa-history me-1"></i> Log Handover
@@ -49,14 +59,18 @@
     <script>
         AssetHandover = new dhtmlXGridObject('AssetHandover');
         AssetHandover.setImagePath("dhtmlx/imgs/");
-        AssetHandover.setHeader("No.,Handover No, Handover Date, User Name, User NIK, PIC Name, PIC Department, PIC Phone, REference, Remark, Products");
-        AssetHandover.setInitWidths("70,170,100,100,100,100,100,100,120,100");
-        AssetHandover.attachHeader("&nbsp;,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
-        AssetHandover.setColAlign("center,center,center,center,center,center,center,left,center,center");
-        AssetHandover.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
-        AssetHandover.setColSorting("int,str,str,str,str,str,str,str,str");
-        AssetHandover.setEditable(true);
+        AssetHandover.setHeader("No.,Handover No,Handover Date,Status,BAST Handover,BAST Return,User Name,User NIK,Lead Pemberi,PIC Name,PIC Department,PIC Phone,Reference,Remark,Products");
+        AssetHandover.setInitWidths("60,175,100,125,110,100,110,95,125,120,110,100,120,140,180");
+        AssetHandover.attachHeader("&nbsp;,#text_filter,#text_filter,#select_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
+        AssetHandover.setColAlign("center,center,center,center,center,center,left,center,left,left,center,center,center,left,left");
+        AssetHandover.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
+        AssetHandover.setColSorting("int,str,str,str,str,str,str,str,str,str,str,str,str,str,str");
+        AssetHandover.setEditable(false);
         AssetHandover.setSkin("dhx_skyblue");
+        AssetHandover.attachEvent("onRowDblClicked", function(rId) {
+            AssetHandover.selectRowById(rId);
+            $('#DetailAssetHandover').trigger('click');
+        });
         AssetHandover.init();
         refreshData();
 
@@ -67,6 +81,32 @@
         function scrollToHandoverPanel() {
             var el = document.getElementById('AssetHandoverDiv');
             if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function openBastQuickModal(docType) {
+            let pmid = AssetHandover.getSelectedRowId();
+            if (pmid == null) {
+                alert('Mohon pilih baris handover terlebih dahulu');
+                return;
+            }
+            let Handover_No = AssetHandover.cells(pmid, 1).getValue();
+            let modalUrl = 'hrd-asset-handover-bast-modal?Handover_No=' + encodeURIComponent(Handover_No) + '&doc_type=' + encodeURIComponent(docType);
+            if (window.AppModal && typeof window.AppModal.open === 'function') {
+                window.AppModal.open({
+                    title: 'Dokumen BAST (' + docType + ') — ' + Handover_No,
+                    body: '<div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div><div class="small text-muted mt-2">Memuat dokumen BAST...</div></div>',
+                    size: 'xl'
+                });
+                $.get(modalUrl, function(html) {
+                    $('#appModalBody').html(html);
+                }).fail(function(xhr) {
+                    var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : ('Gagal memuat dokumen BAST (' + xhr.status + ').');
+                    $('#appModalBody').html('<div class="alert alert-danger mb-0">' + msg + '</div>');
+                });
+            } else {
+                LoadM('AssetHandoverDiv', modalUrl);
+                scrollToHandoverPanel();
+            }
         }
 
         $('#FormAssetHandover').on('click', function() {
@@ -83,6 +123,24 @@
             let Handover_No = AssetHandover.cells(pmid, 1).getValue();
             LoadM('AssetHandoverDiv', 'hrd-asset-handover-detail?Handover_No=' + encodeURIComponent(Handover_No));
             scrollToHandoverPanel();
+        });
+
+        $('#PrintBastHandoverBtn').on('click', function() {
+            let pmid = AssetHandover.getSelectedRowId();
+            if (pmid == null) {
+                alert('Mohon pilih baris handover terlebih dahulu');
+                return;
+            }
+            let Handover_No = AssetHandover.cells(pmid, 1).getValue();
+            window.open('hrd-asset-handover-bast-print?Handover_No=' + encodeURIComponent(Handover_No) + '&doc_type=HANDOVER', '_blank');
+        });
+
+        $('#BastHandoverBtn').on('click', function() {
+            openBastQuickModal('HANDOVER');
+        });
+
+        $('#BastReturnBtn').on('click', function() {
+            openBastQuickModal('RETURN');
         });
 
         $('#LogAssetHandover').on('click', function() {

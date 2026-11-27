@@ -39,24 +39,33 @@ class FinanceApprovalController extends Controller
 
         $totalVoucherAmount = collect($vouchers['maintenance'])->sum('Estimasi_Biaya')
             + collect($vouchers['vehicle_tax'])->sum('Estimasi_Biaya')
-            + collect($vouchers['ga_vouchers'])->sum('Amount');
+            + collect($vouchers['ga_vouchers'])->sum('Amount')
+            + collect($vouchers['manual_vouchers'] ?? [])->sum('Total');
 
         return response()->json([
-            'status'              => 'success',
-            'tasks'               => $tasks,
-            'maintenance'         => $vouchers['maintenance'],
-            'vehicle_tax'         => $vouchers['vehicle_tax'],
-            'ga_vouchers'         => $vouchers['ga_vouchers'],
-            'history_maintenance' => $vouchers['history_maintenance'],
-            'history_tax'         => $vouchers['history_tax'],
-            'history_ga_vouchers' => $vouchers['history_ga_vouchers'],
-            'history_workflows'   => $vouchers['history_workflows'] ?? [],
-            'summary'             => [
+            'status'                  => 'success',
+            'tasks'                   => $tasks,
+            'maintenance'             => $vouchers['maintenance'],
+            'vehicle_tax'             => $vouchers['vehicle_tax'],
+            'ga_vouchers'             => $vouchers['ga_vouchers'],
+            'manual_vouchers'         => $vouchers['manual_vouchers'] ?? [],
+            'ap_vouchers'             => $vouchers['ap_vouchers'] ?? [],
+            'history_maintenance'     => $vouchers['history_maintenance'],
+            'history_tax'             => $vouchers['history_tax'],
+            'history_ga_vouchers'     => $vouchers['history_ga_vouchers'],
+            'history_manual_vouchers' => $vouchers['history_manual_vouchers'] ?? [],
+            'history_workflows'       => $vouchers['history_workflows'] ?? [],
+            'summary'                 => [
                 'inbox_count'          => count($tasks),
                 'maintenance_count'    => count($vouchers['maintenance']),
                 'vehicle_tax_count'    => count($vouchers['vehicle_tax']),
                 'ga_voucher_count'     => count($vouchers['ga_vouchers']),
-                'total_pending'        => count($tasks) + count($vouchers['maintenance']) + count($vouchers['vehicle_tax']) + count($vouchers['ga_vouchers']),
+                'manual_voucher_count' => count($vouchers['manual_vouchers'] ?? []),
+                'ap_voucher_count'     => count(array_filter($vouchers['ap_vouchers'] ?? [], function ($r) {
+                    $st = strtoupper((string) ($r->AP_Status ?? $r->Status));
+                    return !in_array($st, ['CLOSED', 'PAID'], true);
+                })),
+                'total_pending'        => count($tasks) + count($vouchers['maintenance']) + count($vouchers['vehicle_tax']) + count($vouchers['ga_vouchers']) + count($vouchers['manual_vouchers'] ?? []),
                 'total_voucher_amount' => (float) $totalVoucherAmount,
             ],
         ]);

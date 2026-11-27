@@ -55,13 +55,19 @@
                     </button>
                 @endif
             @elseif($type === 'maintenance')
+                <a href="finance-hr-voucher-print?source_module=ASSET_MAINTENANCE&amp;source_id={{ $item->ID }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                    <i class="fa fa-print me-1"></i> Cetak Voucher
+                </a>
                 @if($item->Status === 'FINANCE_SUBMITTED')
-                    <button type="button" class="btn btn-sm btn-success" onclick="confirmMaintVoucher({{ $item->ID }}, true);">
-                        <i class="fa fa-check-circle me-1"></i> Verifikasi &amp; Setujui Jadwal
+                    <button type="button" class="btn btn-sm btn-primary" onclick="openFinVoucherReview({ source_module: 'ASSET_MAINTENANCE', source_id: {{ $item->ID }} });">
+                        <i class="fa fa-check-circle me-1"></i> Proses COA / AP
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="quickRejectSourceVoucher('ASSET_MAINTENANCE', {{ $item->ID }});">
+                        <i class="fa fa-undo me-1"></i> Reject
                     </button>
                 @endif
             @elseif($type === 'ga_voucher')
-                <a href="hrd-ga-ticket-voucher-print?voucher_id={{ $item->ID }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                <a href="finance-hr-voucher-print?source_module=GA_WORK_ORDER&amp;source_id={{ $item->ID }}" target="_blank" class="btn btn-sm btn-outline-primary">
                     <i class="fa fa-print me-1"></i> Cetak Voucher
                 </a>
                 @if(!empty($item->Attachment_Path))
@@ -70,8 +76,11 @@
                     </a>
                 @endif
                 @if($item->Status === 'FINANCE_SUBMITTED')
-                    <button type="button" class="btn btn-sm btn-success" onclick="openFinanceGaPayModal({{ $item->ID }});">
-                        <i class="fa fa-money-bill-wave me-1"></i> Bayar &amp; Selesai
+                    <button type="button" class="btn btn-sm btn-primary" onclick="openFinVoucherReview({ source_module: 'GA_WORK_ORDER', source_id: {{ $item->ID }} });">
+                        <i class="fa fa-check-circle me-1"></i> Proses COA / AP
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="quickRejectSourceVoucher('GA_WORK_ORDER', {{ $item->ID }});">
+                        <i class="fa fa-undo me-1"></i> Reject
                     </button>
                 @elseif(!empty($item->Payment_Proof_Path))
                     <a href="{{ asset('filevendor/' . $item->Payment_Proof_Path) }}" target="_blank" class="btn btn-sm btn-outline-success">
@@ -79,12 +88,15 @@
                     </a>
                 @endif
             @else
-                <a href="hrd-vehicle-management-tax-voucher?id={{ $item->ID }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                <a href="finance-hr-voucher-print?source_module=VEHICLE_TAX&amp;source_id={{ $item->ID }}" target="_blank" class="btn btn-sm btn-outline-primary">
                     <i class="fa fa-print me-1"></i> Cetak Voucher
                 </a>
                 @if($item->Status === 'FINANCE_SUBMITTED')
-                    <button type="button" class="btn btn-sm btn-success" onclick="openFinanceTaxPayModal({{ $item->ID }});">
-                        <i class="fa fa-money-bill-wave me-1"></i> Bayar &amp; Selesai
+                    <button type="button" class="btn btn-sm btn-primary" onclick="openFinVoucherReview({ source_module: 'VEHICLE_TAX', source_id: {{ $item->ID }} });">
+                        <i class="fa fa-check-circle me-1"></i> Proses COA / AP
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="quickRejectSourceVoucher('VEHICLE_TAX', {{ $item->ID }});">
+                        <i class="fa fa-undo me-1"></i> Reject
                     </button>
                 @elseif(!empty($item->Bukti_Bayar) && strpos($item->Bukti_Bayar, '/') !== false)
                     <a href="{{ asset('filevendor/' . $item->Bukti_Bayar) }}" target="_blank" class="btn btn-sm btn-outline-success">

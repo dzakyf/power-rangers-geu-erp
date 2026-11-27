@@ -238,6 +238,10 @@ class AssetFleetApprovalService
                         'Approval_Note' => $lastNote ?: $row->Approval_Note,
                         'Updated_At'    => now(),
                     ]);
+                    if (\Illuminate\Support\Facades\Schema::hasTable('finance_hr_vouchers')) {
+                        app(\App\Services\Finance\FinanceHrVoucherService::class)
+                            ->getOrHydrateFromSource(\App\Services\Finance\FinanceHrVoucherService::SOURCE_ASSET_MAINTENANCE, (int) $row->ID, (string) ($row->Created_By ?: 'system'));
+                    }
                 } elseif (in_array($statusUpper, ['RETURNED', 'REJECTED'], true)) {
                     DB::table('asset_maintenance_schedule')->where('ID', $row->ID)->update([
                         'Status'        => $statusUpper,
@@ -267,6 +271,10 @@ class AssetFleetApprovalService
                         'Approval_Note' => $lastNote ?: $row->Approval_Note,
                         'Updated_At'    => now(),
                     ]);
+                    if (\Illuminate\Support\Facades\Schema::hasTable('finance_hr_vouchers')) {
+                        app(\App\Services\Finance\FinanceHrVoucherService::class)
+                            ->getOrHydrateFromSource(\App\Services\Finance\FinanceHrVoucherService::SOURCE_VEHICLE_TAX, (int) $row->ID, (string) ($row->Created_By ?: 'system'));
+                    }
                 } elseif (in_array($statusUpper, ['RETURNED', 'REJECTED'], true)) {
                     DB::table('vehicle_tax_request')->where('ID', $row->ID)->update([
                         'Status'        => $statusUpper,

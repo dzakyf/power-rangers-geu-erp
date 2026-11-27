@@ -34,18 +34,23 @@ class FinanceApprovalService
     /** @var GaPaymentVoucherService */
     protected $gaVoucherService;
 
+    /** @var FinanceHrVoucherService */
+    protected $hrVoucherService;
+
     public function __construct(
         ApprovalWorkflowService $workflow,
         ApprovalAuthorizationService $authorization,
         AssetMaintenanceScheduleService $maintenanceScheduleService,
         VehicleFleetService $vehicleFleetService,
-        GaPaymentVoucherService $gaVoucherService
+        GaPaymentVoucherService $gaVoucherService,
+        FinanceHrVoucherService $hrVoucherService = null
     ) {
         $this->workflow = $workflow;
         $this->authorization = $authorization;
         $this->maintenanceScheduleService = $maintenanceScheduleService;
         $this->vehicleFleetService = $vehicleFleetService;
         $this->gaVoucherService = $gaVoucherService;
+        $this->hrVoucherService = $hrVoucherService ?: app(FinanceHrVoucherService::class);
     }
 
     /**
@@ -185,8 +190,52 @@ class FinanceApprovalService
             ->get()
             ->all();
 
-        $gaVouchers = $this->gaVoucherService->pendingForFinance()->all();
-        $historyGaVouchers = $this->gaVoucherService->historyForFinance()->all();
+        $gaVouchers = Schema::hasTable('ga_payment_voucher')
+            ? $this->gaVoucherService->pendingForFinance()->all()
+            : [];
+        $historyGaVouchers = Schema::hasTable('ga_payment_voucher')
+            ? $this->gaVoucherService->historyForFinance()->all()
+            : [];
+
+        $manualVouchers = Schema::hasTable('finance_hr_vouchers')
+            ? $this->hrVoucherService->listPendingManualForFinance()
+            : [];
+        $apVouchers = Schema::hasTable('finance_hr_vouchers')
+            ? $this->hrVoucherService->listApVouchersForFinance()
+            : [];
+        $historyManualVouchers = Schema::hasTable('finance_hr_vouchers')
+            ? $this->hrVoucherService->listHistoryManualForFinance()
+            : [];
+
+        $maintMap = $this->hrVoucherService->getChannelMapForSources(
+            FinanceHrVoucherService::SOURCE_ASSET_MAINTENANCE,
+            array_map(function ($r) { return (int) $r->ID; }, $maintenance)
+        );
+        foreach ($maintenance as $m) {
+            $linked = $maintMap[(int) $m->ID] ?? null;
+            $m->Central_Voucher_ID = $linked ? (int) $linked->ID : null;
+            $m->Requested_Channel = $linked ? $linked->Requested_Channel : 'DIRECT';
+        }
+
+        $taxMap = $this->hrVoucherService->getChannelMapForSources(
+            FinanceHrVoucherService::SOURCE_VEHICLE_TAX,
+            array_map(function ($r) { return (int) $r->ID; }, $vehicleTax)
+        );
+        foreach ($vehicleTax as $t) {
+            $linked = $taxMap[(int) $t->ID] ?? null;
+            $t->Central_Voucher_ID = $linked ? (int) $linked->ID : null;
+            $t->Requested_Channel = $linked ? $linked->Requested_Channel : 'DIRECT';
+        }
+
+        $gaMap = $this->hrVoucherService->getChannelMapForSources(
+            FinanceHrVoucherService::SOURCE_GA_WORK_ORDER,
+            array_map(function ($r) { return (int) $r->ID; }, $gaVouchers)
+        );
+        foreach ($gaVouchers as $g) {
+            $linked = $gaMap[(int) $g->ID] ?? null;
+            $g->Central_Voucher_ID = $linked ? (int) $linked->ID : null;
+            $g->Requested_Channel = $linked ? $linked->Requested_Channel : 'DIRECT';
+        }
 
         $historyWorkflows = DB::table('approval_request_task as t')
             ->join('approval_request as r', 'r.ID', '=', 't.Request_ID')
@@ -220,13 +269,16 @@ class FinanceApprovalService
             ->all();
 
         return [
-            'maintenance'         => $maintenance,
-            'vehicle_tax'         => $vehicleTax,
-            'ga_vouchers'         => $gaVouchers,
-            'history_maintenance' => $historyMaintenance,
-            'history_tax'         => $historyTax,
-            'history_ga_vouchers' => $historyGaVouchers,
-            'history_workflows'   => $historyWorkflows,
+            'maintenance'             => $maintenance,
+            'vehicle_tax'             => $vehicleTax,
+            'ga_vouchers'             => $gaVouchers,
+            'manual_vouchers'         => $manualVouchers,
+            'ap_vouchers'             => $apVouchers,
+            'history_maintenance'     => $historyMaintenance,
+            'history_tax'             => $historyTax,
+            'history_ga_vouchers'     => $historyGaVouchers,
+            'history_manual_vouchers' => $historyManualVouchers,
+            'history_workflows'       => $historyWorkflows,
         ];
     }
 

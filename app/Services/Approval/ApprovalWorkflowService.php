@@ -534,15 +534,53 @@ class ApprovalWorkflowService
             $resolution = $this->candidateResolver->resolve($policy, $step, $context, $requesterId);
 
             if (empty($resolution['positions'])) {
+                $stepPosCode = !empty($step->Position_Code) ? (string) $step->Position_Code : null;
+                $stepLabel = !empty($step->Label) ? (string) $step->Label : ($stepPosCode ?: ('Stage ' . $stageOrder));
                 if ($resolution['Action'] === 'HOLD' || $resolution['Action'] === 'BLOCK') {
                     $held = true;
-                    $this->log($requestId, 0, 'STAGE_HELD', (int) $step->Level_Number, $stageOrder, null, null, null, [
+                    $this->log($requestId, 0, 'STAGE_HELD', (int) $step->Level_Number, $stageOrder, !empty($step->Position_ID) ? (int) $step->Position_ID : null, $stepPosCode, null, [
                         'Reason' => $resolution['Reason'],
                         'Action' => $resolution['Action'],
+                        'Label'  => $stepLabel,
                     ], true);
                 } else {
-                    $this->log($requestId, 0, 'STAGE_AUTO_APPROVED', (int) $step->Level_Number, $stageOrder, null, null, null, [
-                        'Reason' => $resolution['Reason'],
+                    $skipReason = 'Dilewati otomatis sistem (' . ($resolution['Reason'] ?: 'NO_HIGHER_LEVEL') . ')';
+                    $stepMode = strtoupper((string) ($step->Approval_Mode ?? 'ALL'));
+                    $taskId = null;
+
+                    // Catat baris task AUTO_APPROVED untuk stage yang dilewati agar audit trail
+                    // tetap mencatat posisi (mis. VP / VPD) beserta alasan dilewatinya.
+                    if ($stepMode !== 'ANY' || count($stageSteps) === 1) {
+                        $now = Carbon::now();
+                        $taskId = DB::table('approval_request_task')->insertGetId([
+                            'Request_ID'       => $requestId,
+                            'Stage_Order'      => $stageOrder,
+                            'Level_Number'     => (int) ($step->Level_Number ?? 0),
+                            'Position_ID'      => (int) ($step->Position_ID ?? 0),
+                            'Position_Code'    => $stepPosCode,
+                            'Position_Name'    => mb_substr($stepLabel, 0, 150),
+                            'Department'       => !empty($step->Department) ? (string) $step->Department : ($context['Department'] ?? null),
+                            'Approval_Mode'    => $stepMode,
+                            'Quorum'           => $step->Quorum ?? null,
+                            'Status'           => 'AUTO_APPROVED',
+                            'Acted_By'         => 0,
+                            'Acted_At'         => $now,
+                            'Action'           => 'AUTO_SKIP',
+                            'Notes'            => $skipReason,
+                            'Is_Self_Approval' => 0,
+                            'Snapshot'         => json_encode([
+                                'Step'         => (array) $step,
+                                'Reason'       => $resolution['Reason'],
+                                'Auto_Skipped' => true,
+                            ]),
+                            'Created_At'       => $now,
+                            'Updated_At'       => $now,
+                        ]);
+                        $created++;
+                    }
+
+                    $this->log($requestId, 0, 'STAGE_AUTO_APPROVED', (int) $step->Level_Number, $stageOrder, !empty($step->Position_ID) ? (int) $step->Position_ID : null, $stepPosCode, $taskId, [
+                        'Reason' => $stepLabel . ': ' . $skipReason,
                     ], true);
                 }
                 continue;
@@ -930,17 +968,95 @@ class ApprovalWorkflowService
                 );
             }
 
+            $now = Carbon::now();
+
             DB::table('approval_request_task')
                 ->where('Request_ID', $requestId)
                 ->whereIn('Status', ['PENDING', 'CLAIMED', 'HELD'])
                 ->update([
                     'Status'     => 'AUTO_APPROVED',
                     'Acted_By'   => $adminId,
-                    'Acted_At'   => Carbon::now(),
+                    'Acted_At'   => $now,
                     'Action'     => 'FORCE_APPROVE',
-                    'Notes'      => $reason,
-                    'Updated_At' => Carbon::now(),
+                    'Notes'      => 'Force Approve: ' . $reason,
+                    'Updated_At' => $now,
                 ]);
+
+            // Pastikan seluruh sisa stage pada Policy_Snapshot tetap tercatat di approval_request_task
+            // dan approval_log sebagai FORCE_BYPASSED agar audit trail tetap utuh hingga VP/BOD.
+            $existingStages = DB::table('approval_request_task')
+                ->where('Request_ID', $requestId)
+                ->where('Status', '!=', 'CANCELLED')
+                ->pluck('Stage_Order')
+                ->map(function ($s) {
+                    return (int) $s;
+                })
+                ->all();
+            $existingStageMap = array_flip($existingStages);
+
+            $context = $this->decodeJson($request->Context, []);
+            $steps = $this->stepsForRequest($request);
+            usort($steps, function ($a, $b) {
+                return ((int) ($a['Stage_Order'] ?? 0)) <=> ((int) ($b['Stage_Order'] ?? 0));
+            });
+
+            foreach ($steps as $step) {
+                $stepStage = (int) ($step['Stage_Order'] ?? 0);
+                if ($stepStage <= 0 || isset($existingStageMap[$stepStage])) {
+                    continue;
+                }
+                $existingStageMap[$stepStage] = true;
+
+                $resolvedPos = null;
+                try {
+                    $foundPositions = $this->candidateResolver->positionsForStep((object) $step, $context);
+                    $resolvedPos = $foundPositions[0] ?? null;
+                } catch (\Throwable $e) {
+                    $resolvedPos = null;
+                }
+
+                $posId = $resolvedPos ? (int) $resolvedPos->ID : (int) ($step['Position_ID'] ?? 0);
+                $posCode = $resolvedPos && !empty($resolvedPos->Initial)
+                    ? (string) $resolvedPos->Initial
+                    : (!empty($step['Position_Code']) ? (string) $step['Position_Code'] : null);
+                $posName = !empty($step['Label'])
+                    ? (string) $step['Label']
+                    : ($resolvedPos && !empty($resolvedPos->Position) ? (string) $resolvedPos->Position : ($posCode ?: ('Approval Stage ' . $stepStage)));
+                $dept = !empty($step['Department'])
+                    ? (string) $step['Department']
+                    : ($resolvedPos && !empty($resolvedPos->Department) ? (string) $resolvedPos->Department : ($request->Department ?: null));
+                $bypassNote = 'Dilewati via Force Approve: ' . $reason;
+
+                $bypassTaskId = DB::table('approval_request_task')->insertGetId([
+                    'Request_ID'       => $requestId,
+                    'Stage_Order'      => $stepStage,
+                    'Level_Number'     => $resolvedPos ? (int) $resolvedPos->Level : (int) ($step['Level_Number'] ?? 0),
+                    'Position_ID'      => $posId,
+                    'Position_Code'    => $posCode,
+                    'Position_Name'    => mb_substr($posName, 0, 150),
+                    'Department'       => $dept,
+                    'Approval_Mode'    => strtoupper((string) ($step['Approval_Mode'] ?? 'ALL')),
+                    'Quorum'           => $step['Quorum'] ?? null,
+                    'Status'           => 'AUTO_APPROVED',
+                    'Acted_By'         => $adminId,
+                    'Acted_At'         => $now,
+                    'Action'           => 'FORCE_BYPASSED',
+                    'Notes'            => $bypassNote,
+                    'Is_Self_Approval' => 0,
+                    'Snapshot'         => json_encode([
+                        'Step'                     => $step,
+                        'Position'                 => $resolvedPos ? (array) $resolvedPos : null,
+                        'Bypassed_By_Force_Approve'=> true,
+                    ]),
+                    'Created_At'       => $now,
+                    'Updated_At'       => $now,
+                ]);
+
+                $this->log($requestId, $adminId, 'STAGE_FORCE_BYPASSED', (int) ($step['Level_Number'] ?? 0), $stepStage, $posId > 0 ? $posId : null, $posCode, $bypassTaskId, [
+                    'Bypass' => true,
+                    'Reason' => $posName . ' — ' . $bypassNote,
+                ], true);
+            }
 
             $this->log($requestId, $adminId, 'FORCE_APPROVED', (int) $request->Current_Level, (int) $request->Current_Stage, null, null, null, [
                 'Bypass' => true,
@@ -951,6 +1067,251 @@ class ApprovalWorkflowService
 
             return $this->getRequest($requestId);
         });
+    }
+
+    /**
+     * Bangun audit trail approval lengkap (menggabungkan Policy_Snapshot, approval_request_task, dan approval_log)
+     * sehingga seluruh jenjang approval termasuk stage Force Approve, Auto-Skip, dan Upcoming tetap terbaca.
+     */
+    public function buildApprovalTrail(int $approvalRequestId): array
+    {
+        if ($approvalRequestId <= 0) {
+            return [];
+        }
+
+        $request = $this->getRequest($approvalRequestId);
+        if (!$request) {
+            return [];
+        }
+
+        $reqStatus = strtoupper((string) $request->Status);
+        $steps = $this->stepsForRequest($request);
+        usort($steps, function ($a, $b) {
+            return ((int) ($a['Stage_Order'] ?? 0)) <=> ((int) ($b['Stage_Order'] ?? 0));
+        });
+
+        $tasks = DB::table('approval_request_task as t')
+            ->leftJoin('users as u', 'u.id', '=', 't.Acted_By')
+            ->leftJoin('users as cu', 'cu.id', '=', 't.Claimed_By')
+            ->where('t.Request_ID', $approvalRequestId)
+            ->where('t.Status', '!=', 'CANCELLED')
+            ->select(
+                't.*',
+                'u.Name as Actor_Name',
+                'u.username as Actor_Username',
+                'cu.Name as Claimer_Name',
+                'cu.username as Claimer_Username'
+            )
+            ->orderBy('t.Stage_Order', 'ASC')
+            ->orderBy('t.Level_Number', 'ASC')
+            ->orderBy('t.ID', 'ASC')
+            ->get();
+
+        $taskIds = $tasks->pluck('ID')->map(function ($id) {
+            return (int) $id;
+        })->all();
+        $candidatesByTask = [];
+        if (!empty($taskIds)) {
+            $candRows = DB::table('approval_task_candidate as c')
+                ->join('users as u', 'u.id', '=', 'c.User_Id')
+                ->whereIn('c.Task_ID', $taskIds)
+                ->where('c.Status', 'ACTIVE')
+                ->select('c.Task_ID', 'u.Name', 'u.username', 'c.Candidate_Type')
+                ->orderBy('c.Candidate_Type', 'ASC')
+                ->orderBy('u.Name', 'ASC')
+                ->get();
+            foreach ($candRows as $cr) {
+                $tid = (int) $cr->Task_ID;
+                $cName = trim((string) ($cr->Name ?: $cr->username));
+                if ($cName !== '') {
+                    $candidatesByTask[$tid][] = $cName;
+                }
+            }
+        }
+
+        $tasksByStage = [];
+        foreach ($tasks as $t) {
+            $tasksByStage[(int) $t->Stage_Order][] = $t;
+        }
+
+        $logs = DB::table('approval_log as l')
+            ->leftJoin('users as u', 'u.id', '=', 'l.Approver_Id')
+            ->where('l.Request_Id', $approvalRequestId)
+            ->select('l.*', 'u.Name as User_Name', 'u.username as Username')
+            ->orderBy('l.ID', 'DESC')
+            ->get();
+
+        $forceLog = null;
+        $skipLogsByStage = [];
+        foreach ($logs as $l) {
+            $act = strtoupper((string) $l->Action);
+            if ($act === 'FORCE_APPROVED' && !$forceLog) {
+                $forceLog = $l;
+            } elseif ($act === 'STAGE_AUTO_APPROVED' && !empty($l->Stage_Order) && !isset($skipLogsByStage[(int) $l->Stage_Order])) {
+                $skipLogsByStage[(int) $l->Stage_Order] = $l;
+            }
+        }
+
+        $statusLabels = [
+            'APPROVED'       => 'Disetujui',
+            'FORCE_APPROVED' => 'Force Approve',
+            'SKIPPED_FORCE'  => 'Dilewati (Force Approve)',
+            'SKIPPED'        => 'Dilewati Sistem',
+            'AUTO_APPROVED'  => 'Auto Approved',
+            'CLAIMED'        => 'Sedang Diproses',
+            'PENDING'        => 'Menunggu Approval',
+            'HELD'           => 'Ditahan / Vacant',
+            'REJECTED'       => 'Ditolak',
+            'UPCOMING'       => 'Menunggu Giliran',
+            'NOT_REACHED'    => 'Tidak Tercapai',
+        ];
+
+        $trail = [];
+        $coveredStages = [];
+
+        $buildFromTask = function ($t, ?array $stepDef) use ($candidatesByTask, $statusLabels) {
+            $rawSt = strtoupper((string) $t->Status);
+            $act = strtoupper((string) ($t->Action ?? ''));
+            $displaySt = $rawSt;
+            if ($rawSt === 'AUTO_APPROVED') {
+                if ($act === 'FORCE_APPROVE') {
+                    $displaySt = 'FORCE_APPROVED';
+                } elseif ($act === 'FORCE_BYPASSED') {
+                    $displaySt = 'SKIPPED_FORCE';
+                } elseif ($act === 'AUTO_SKIP') {
+                    $displaySt = 'SKIPPED';
+                }
+            }
+
+            $actor = trim((string) ($t->Actor_Name ?: $t->Actor_Username));
+            if ($actor === '' && in_array($rawSt, ['CLAIMED'], true)) {
+                $actor = trim((string) ($t->Claimer_Name ?: $t->Claimer_Username));
+            }
+            if ($actor === '' && in_array($rawSt, ['PENDING', 'HELD'], true)) {
+                $candList = array_values(array_unique($candidatesByTask[(int) $t->ID] ?? []));
+                if (!empty($candList)) {
+                    $actor = 'Kandidat: ' . implode(', ', array_slice($candList, 0, 3)) . (count($candList) > 3 ? ' (+' . (count($candList) - 3) . ')' : '');
+                }
+            }
+            if ($actor === '' && $displaySt === 'SKIPPED') {
+                $actor = 'Sistem (Auto Skip)';
+            } elseif ($actor === '' && $rawSt === 'AUTO_APPROVED') {
+                $actor = 'Auto Approved (Sistem)';
+            } elseif ($actor !== '' && in_array($displaySt, ['FORCE_APPROVED', 'SKIPPED_FORCE'], true)) {
+                $actor .= ' (Force Approve)';
+            }
+
+            $label = !empty($stepDef['Label'])
+                ? (string) $stepDef['Label']
+                : ($t->Position_Name ?: ($t->Position_Code ?: ('Approval Stage ' . $t->Stage_Order)));
+            $posCode = $t->Position_Code ?: ($stepDef['Position_Code'] ?? null);
+
+            return (object) [
+                'stage_order'   => (int) $t->Stage_Order,
+                'level_number'  => (int) $t->Level_Number,
+                'position_code' => $posCode,
+                'label'         => $label,
+                'status'        => $displaySt,
+                'status_label'  => $statusLabels[$displaySt] ?? $displaySt,
+                'raw_status'    => $rawSt,
+                'action'        => $t->Action,
+                'actor_name'    => $actor ?: '-',
+                'acted_at'      => $t->Acted_At,
+                'notes'         => $t->Notes,
+            ];
+        };
+
+        foreach ($steps as $step) {
+            $stageOrder = (int) ($step['Stage_Order'] ?? 0);
+            if ($stageOrder <= 0) {
+                continue;
+            }
+            $coveredStages[$stageOrder] = true;
+
+            if (!empty($tasksByStage[$stageOrder])) {
+                foreach ($tasksByStage[$stageOrder] as $t) {
+                    $trail[] = $buildFromTask($t, $step);
+                }
+                continue;
+            }
+
+            $label = !empty($step['Label'])
+                ? (string) $step['Label']
+                : (!empty($step['Position_Code']) ? (string) $step['Position_Code'] : ('Approval Stage ' . $stageOrder));
+            $posCode = !empty($step['Position_Code']) ? (string) $step['Position_Code'] : null;
+            $levelNo = (int) ($step['Level_Number'] ?? 0);
+
+            if (isset($skipLogsByStage[$stageOrder])) {
+                $sl = $skipLogsByStage[$stageOrder];
+                $trail[] = (object) [
+                    'stage_order'   => $stageOrder,
+                    'level_number'  => $levelNo,
+                    'position_code' => $posCode ?: ($sl->Position_Code ?? null),
+                    'label'         => $label,
+                    'status'        => 'SKIPPED',
+                    'status_label'  => $statusLabels['SKIPPED'],
+                    'raw_status'    => 'AUTO_APPROVED',
+                    'action'        => 'AUTO_SKIP',
+                    'actor_name'    => 'Sistem (Auto Skip)',
+                    'acted_at'      => $sl->Action_Date,
+                    'notes'         => $sl->Notes ?: 'Posisi kosong / tidak ditemukan; dilewati otomatis oleh sistem.',
+                ];
+            } elseif ($reqStatus === 'APPROVED' && $forceLog) {
+                $forceActor = trim((string) ($forceLog->User_Name ?: $forceLog->Username ?: ('User #' . $forceLog->Approver_Id)));
+                $trail[] = (object) [
+                    'stage_order'   => $stageOrder,
+                    'level_number'  => $levelNo,
+                    'position_code' => $posCode,
+                    'label'         => $label,
+                    'status'        => 'SKIPPED_FORCE',
+                    'status_label'  => $statusLabels['SKIPPED_FORCE'],
+                    'raw_status'    => 'AUTO_APPROVED',
+                    'action'        => 'FORCE_BYPASSED',
+                    'actor_name'    => $forceActor . ' (Force Approve)',
+                    'acted_at'      => $forceLog->Action_Date,
+                    'notes'         => 'Dilewati via Force Approve' . (!empty($forceLog->Notes) ? ': ' . $forceLog->Notes : ''),
+                ];
+            } elseif (in_array($reqStatus, ['REJECTED', 'RETURNED', 'CANCELLED'], true)) {
+                $trail[] = (object) [
+                    'stage_order'   => $stageOrder,
+                    'level_number'  => $levelNo,
+                    'position_code' => $posCode,
+                    'label'         => $label,
+                    'status'        => 'NOT_REACHED',
+                    'status_label'  => $statusLabels['NOT_REACHED'],
+                    'raw_status'    => 'NOT_REACHED',
+                    'action'        => null,
+                    'actor_name'    => '-',
+                    'acted_at'      => null,
+                    'notes'         => 'Pengajuan berhenti pada stage sebelumnya (' . $reqStatus . ').',
+                ];
+            } else {
+                $trail[] = (object) [
+                    'stage_order'   => $stageOrder,
+                    'level_number'  => $levelNo,
+                    'position_code' => $posCode,
+                    'label'         => $label,
+                    'status'        => 'UPCOMING',
+                    'status_label'  => $statusLabels['UPCOMING'],
+                    'raw_status'    => 'UPCOMING',
+                    'action'        => null,
+                    'actor_name'    => '-',
+                    'acted_at'      => null,
+                    'notes'         => 'Menunggu persetujuan tahap sebelumnya.',
+                ];
+            }
+        }
+
+        foreach ($tasksByStage as $stageOrder => $stageTasks) {
+            if (isset($coveredStages[$stageOrder])) {
+                continue;
+            }
+            foreach ($stageTasks as $t) {
+                $trail[] = $buildFromTask($t, null);
+            }
+        }
+
+        return $trail;
     }
 
     protected function completeRequest(int $requestId, string $reason): void
